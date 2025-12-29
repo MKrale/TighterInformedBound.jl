@@ -60,6 +60,6 @@ aloha10_O_data[8] = [1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0
 aloha10_O_row[9] = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30]
 aloha10_O_col[9] = [1,2,3,1,2,3,1,2,3,1,2,3,1,2,3,1,2,3,1,2,3,1,2,3,1,2,3,1,2,3]
 aloha10_O_data[9] = [1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0]
-aloha10_O = [sparse(aloha10_O_row[a], aloha10_O_col[a], aloha10_O_data[a], 30, 30) for a in 1:9]
+aloha10_O = [sparse(aloha10_O_row[a], aloha10_O_col[a], aloha10_O_data[a], 30, 3) for a in 1:9]
 aloha10_init = sparsevec([1], [1.0])
 Sparse_aloha10(;discount=0.95) = SparseTabularPOMDP(aloha10_T, aloha10_R, aloha10_O, aloha10_init, Set(), discount)
