@@ -1,0 +1,1 @@
+{"env_full":"ABCModel_delayed","env_data":{},"solvetime":0.007019052,"lb":-1,"ub":0.47500000000000375,"solver":"TIBSolver (entropy)","simtime":-1.0,"ravg":-1.0,"env":"ABC_delayed"}

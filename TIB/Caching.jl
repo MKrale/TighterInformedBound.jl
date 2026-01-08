@@ -42,21 +42,28 @@ Returns: SAO_probs ((s,a,o)->p), SAOs ((s,a) -> os with p>0)
 function get_all_obs_probs(model::POMDP, constants::C)
     S,A,O = constants.S , constants.A, constants.O
     ns, na, no = constants.ns, constants.na, constants.no
+    O_dict = Dict( zip(O, 1:no))    
 
-    SAO_probs = zeros(no,ns,na)
+    SAO_probs = zeros(no,ns,na)                 # TODO: this is big: we can make it sparse by using SAOs (probably fine) # TODO: elements order memory efficient?
     SAOs = Array{Vector{Int}}(undef,ns,na)
-    # TODO: this can be done cleaner I imagine...
     for si in 1:ns
         for ai in 1:na
             SAOs[si,ai] = []
         end
     end
 
-    for (oi,o) in enumerate(constants.O)
-        for (si,s) in enumerate(constants.S)
-            for (ai,a) in enumerate(constants.A)
-                SAO_probs[oi,si,ai] = get_obs_prob(model,o,s,a)
-                SAO_probs[oi,si,ai] > 0.0 && push!(SAOs[si,ai], oi)
+    for (si, s) in enumerate(constants.S)
+        for (ai, a) in enumerate(constants.A)
+            obs_probs = Dict()
+            for (sp, psp) in weighted_iterator(transition(model,s,a))
+                for (o, po) in weighted_iterator(observation(model,a,sp))
+                    oi = O_dict[o]
+                    add_to_dict!(obs_probs, oi, po*psp)
+                end
+            end
+            for oi in keys(obs_probs)
+                push!(SAOs[si,ai], oi)
+                SAO_probs[oi,si,ai] += obs_probs[oi]
             end
         end
     end
@@ -94,10 +101,10 @@ end
 """Computes observations-prob dictionary of possible observations given a belief and action"""
 function get_possible_obs_probs(b::DiscreteHashedBelief, ai, SAOs,SAO_probs, S_dict)
     possible_os = Dict{Int, Float64}()
-    for s in support(b)
+    for (s,p) in weighted_iterator(b)
         si = S_dict[s]
         for oi in SAOs[si,ai]
-            add_to_dict!(possible_os, oi, pdf(b,s) * SAO_probs[oi,si,ai])
+            add_to_dict!(possible_os, oi, p * SAO_probs[oi,si,ai])
         end
     end
     return possible_os
@@ -124,18 +131,22 @@ function get_belief_set(model::POMDP, SAOs, constants::C)
     ns,na,no = constants.ns, constants.na, constants.no
     U = DiscreteHashedBeliefUpdater(model)
 
-    B = Array{DiscreteHashedBelief,1}()       
-    B_idx = zeros(Int,ns,na,no)
+    B = Array{DiscreteHashedBelief,1}()
+    B_dict = Dict()       
+    B_idx = zeros(Int,ns,na,no)                 # TODO: can be made sparse, probably not necessary
 
     # Initialize with unit beliefs and initial belief
     # Note: technically we should ignore the unit beliefs for ETIB, but we currently do not
-    for s in S 
-        push!(B, DiscreteHashedBelief([s],[1.0]))
+    for (si, s) in enumerate(S) 
+        bs = DiscreteHashedBelief([s],[1.0])
+        push!(B, bs)
+        B_dict[bs] = si
     end
     b_init = DiscreteHashedBelief(initialstate(model))
-    k = findfirst( x -> x==b_init , B)
+    k = get(B_dict, b_init, nothing)
     if isnothing(k)
         push!(B,b_init)
+        B_dict[b_init] = length(B)
     end
 
     # Loop through all 1-step transitions and records new beliefs
@@ -145,16 +156,16 @@ function get_belief_set(model::POMDP, SAOs, constants::C)
             for oi in SAOs[si,ai]
                 o = O[oi]
                 b = update(U, b_s, a, o)
-                k = findfirst( x -> x==b , B)
+                k = get(B_dict, b, nothing)
                 if isnothing(k)
                     push!(B,b)
                     k=length(B)
+                    B_dict[b] = k
                 end
                 B_idx[si,ai,oi] = k
             end
         end
     end
-
     return B, B_idx
 end
 
@@ -268,7 +279,7 @@ function get_Bbao(model, Data::TIB_Data, constants)
     # For each belief, determine the state with the lowest index with non-zero support (speeds up overlap computations)
     Bs_lowest_support_state = Dict()
     for (bi, b) in enumerate(B)
-        s_lowest = minimum(s -> stateindex(model, s), support(b))
+        s_lowest = support(b)[1]
         if haskey(Bs_lowest_support_state, s_lowest)
             push!(Bs_lowest_support_state[s_lowest], bi)
         else
@@ -281,7 +292,7 @@ function get_Bbao(model, Data::TIB_Data, constants)
         B_overlap[bi] = []
         s_lowest = minimum(map(s -> stateindex(model, s), support(b)))
         s_highest = maximum(map(s -> stateindex(model, s), support(b)))
-        for s=s_lowest:s_highest
+        for s=s_lowest:s_highest                                                # TODO: I don't think this works for general states: fix!
             # we will check only those beliefs whos lowest index lies between the lowest and highest index of our belief:
             # Depending on the env, this may significantly reduce the search space.
             if haskey(Bs_lowest_support_state, s) 
@@ -310,11 +321,20 @@ function get_Bbao(model, Data::TIB_Data, constants)
 end
 
 """Returns true if the support of bp is a subset of the support of b"""
-function have_overlap(b,bp)
-    for sp in support(bp)
-        pdf(b,sp) == 0 && (return false)
+function have_overlap(b::DiscreteHashedBelief,bp::DiscreteHashedBelief)
+    bidx, bpidx = 1, 1
+    n_sup_b, n_sup_bp = lenght(support(b)), lenght(support(bp))
+    while bidx <= length_support_b && bpidx <= length_support_b
+        if b[bidx] == bp[bpidx]     # both beliefs contain state: fine
+            bidx += 1
+            bpidx += 1
+        elseif objectid(b[bidx]) <= objectid(bp[bpidx]) # b contains state not in bp: fine
+            bidx += 1
+        else    # bp contains a state not in b -> not allowed
+            return false
+        end
     end
-    return true
+    return (bpidx >= length_support_bp)  # all elements in support bp have been checked
 end
 
 """Finds all beliefs in B where the support is a subset of that of b"""
@@ -408,19 +428,18 @@ function get_entropy_weights(b, B, Bi_overlap, B_entropies; model=nothing, initi
 
     @variable(model, 0.0 <= b_ps[1:length(B_overlap)] <= 1.0)
     # Build the constraint that probabilities for each state match that of b
-    for s in support(b)
+    for (s, ps) in weighted_iterator(b)
         Idx, Ps = [], []
         for (bpi, bp) in enumerate(B_overlap)
-            p = pdf(bp,s)
             if p > 0
                 push!(Idx, bpi)
-                push!(Ps,p)
+                push!(Ps,ps)
             end
         end
-        length(Idx) > 0 && @constraint(model, sum(b_ps[Idx[i]] * Ps[i] for i in 1:length(Idx)) == pdf(b,s) )
+        length(Idx) > 0 && @constraint(model, sum(b_ps[Idx[i]] * Ps[i] for i in 1:length(Idx)) == ps )
     end
     @objective(model, Max, sum( b_ps.*B_entropies))
-     # !(isnothing(initial_weights) && set_start_value.(b_ps, B_start) # Warm start is not used: it did not lead to improvements
+    # !(isnothing(initial_weights) && set_start_value.(b_ps, B_start) # Warm start is not used: it did not lead to improvements
     optimize!(model)
 
     # Unpack weight & idxs from problem:
@@ -443,27 +462,28 @@ end
 
 """Returns the belief that has the lowest minratio with b (as well as that ratio)"""
 function get_best_minratio(b, B, B_overlap::Vector)
-    best_bi, best_ratio = nothing, 0
-    for bpi in B_overlap
+    best_bi, best_ratio = nothing, -Inf
+    for bpi in B_overlap                # TODO: skip all state beliefs: these are always worse (convexity) -> implement edgecase where no beliefs have overlap
         this_ratio = Inf
         bp = B[bpi]
-        for sp in support(bp)
-            this_ratio = min(this_ratio, pdf(b,sp) / pdf(bp,sp))
-            this_ratio < best_ratio && break # Current belief is already suboptimal
+        for (sp, psp) in weighted_iterator(bp)
+            this_ratio = min(this_ratio, pdf(b,sp) / psp)
+            this_ratio <= best_ratio && break # Current belief is already suboptimal
         end
         this_ratio > best_ratio && (best_bi = bpi; best_ratio = this_ratio)
+        best_ratio == 1 && break
     end
     return best_bi, best_ratio
 end
 
 """Compute a weighting for b using only the belief in B with the highest minratio, plus exterior beliefs"""
 function get_closeness_weight(b, B; B_overlap=nothing, Data=nothing)
-    closest_bi, min_ratio = get_best_minratio(b,B,B_overlap)
+    closest_bi, min_ratio = get_best_minratio(b,B,B_overlap)                # TODO: try this iteratively -> if its better, test both (may imply 'improved sawtooth' is valuable more generally)
     closest_b = B[closest_bi]
     weights, idxs = [min_ratio], [closest_bi]
-    for s in support(b)
+    for (s, ps) in weighted_iterator(b)
         si = Data.S_dict[s]
-        this_weight = pdf(b,s) - (min_ratio * pdf(closest_b,s))
+        this_weight = ps - (min_ratio * pdf(closest_b,s))
         if this_weight != 0
             push!(weights, this_weight)
             push!(idxs, si)

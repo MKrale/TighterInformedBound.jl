@@ -62,6 +62,8 @@ function solve(solver::X, model::POMDP; Data::Union{TIB_Data,Nothing}=nothing) w
         Weights = get_entropy_weights_all(Data.B, Bbao_data)
     elseif solver isa CTIBSolver
         Weights = get_closeness_weights_all(Data.B, Bbao_data, Data)
+    # elseif solver isa LOTIB_Solver                                          # TODO: implement!
+    #     Weights = get_current_optimal-weights_all(Data.B, Bbao_data, Data)
     end
 
     t_w = time() - t0 - t_init
@@ -112,10 +114,9 @@ function precompute_Qs(model::POMDP, Data::TIB_Data, solver::X ; getdata=false) 
     Qs = zeros(Float64, length(B), constants.na)
     for (b_idx, b) in enumerate(B)
         for (ai, a) in enumerate(constants.A)
-            for (si, s) in enumerate(constants.S)
-                if pdf(b,s) > 0
-                    Qs[b_idx, ai] += pdf(b,s) * π.Data.Q[si,ai]
-                end
+            for (s, p) in weighted_iterator(b)      # DONE: do weigthed iterator loop
+                si = Data.S_dict[s]
+                Qs[b_idx, ai] += p * π.Data.Q[si,ai]
             end
         end
     end
@@ -140,7 +141,7 @@ end
 """Performs one iteration of TIB"""
 function get_QTIB_Beliefset(model::POMDP, Q, timeleft, Data::TIB_Data)
     t0 = time()
-    Qs_new = zero(Q) # TODO: this may be inefficient?
+    Qs_new = zero(Q)
     for (b_idx,b) in enumerate(Data.B)
         timeleft+t0-time() < 0 && (return Q, 0)
         for (ai, a) in enumerate(Data.constants.A)
@@ -157,13 +158,16 @@ function get_QTIB_ba(model::POMDP,b,a,Qs,B_idx,Br,SAO_probs, SAOs, constants::C;
     isnothing(bi) ? (Q = breward(model,b,a)) : (Q = Br[bi,ai])
     for oi in get_possible_obs(b,ai,SAOs, S_dict)
         o = constants.O[oi]
-        Qo = zeros(constants.na)
-        for s in support(b)
+        Qo = zeros(Float64,constants.na)
+        for (s, ps) in weighted_iterator(b)         # DONE: weigthed iterator!
             si = S_dict[s]
             if oi in SAOs[si,ai]
-                p = pdf(b,s) * SAO_probs[oi,si,ai]
+                po = ps * SAO_probs[oi,si,ai]
                 bp_idx = B_idx[si,ai,oi]
-                Qo = Qo .+ (p .* Qs[bp_idx,:])
+                # @views @inbounds @simd for ai in eachindex(Qo)
+                #     Qo[ai] = muladd(po, Qs[bp_idx, ai], Qo[ai])
+                # end
+                @views Qo .+= po .* Qs[bp_idx,:]
             end
         end
         Q += discount(model) * maximum(Qo)
@@ -180,7 +184,7 @@ get_QTIB_ba(model::POMDP,b,a,D::TIB_Data; bi=nothing, ai=nothing) = get_QTIB_ba(
 """Performs one iteration of OTIB"""
 function get_QOTIB_Beliefset(model::POMDP, Q, timeleft, Data::TIB_Data, Bbao_data::BBAO_Data)
     t0 = time()
-    Qs_new = zero(Q) # TODO: this may be inefficient?
+    Qs_new = zero(Q)
     for (bi,b) in enumerate(Data.B)
         timeleft+t0-time() < 0 && (return Q, 0)
         for (ai, a) in enumerate(Data.constants.A)
@@ -209,7 +213,7 @@ function get_QOTIB_ba(model::POMDP,b,a,Qs,B,Br, SAOs, SAO_probs, constants::C; a
         if !(Bbao_data isa Nothing) && !(bi isa Nothing)
             bao = get_bao(Bbao_data, bi, ai, oi, B)
             overlap_idxs = get_overlap(Bbao_data, bi, ai, oi)
-            if length(overlap_idxs) == 1
+            if length(overlap_idxs) == 1                # TODO: check if b is a one-step belief: skip if so
                 Qo = maximum(Qs[overlap_idxs,:])
             else
                 thisBs, thisQs = B[overlap_idxs], Qs[overlap_idxs,:]
@@ -228,8 +232,8 @@ function get_QOTIB_ba(model::POMDP,b,a,Qs,B,Br, SAOs, SAO_probs, constants::C; a
             end
         end
         p = 0
-        for s in support(b)
-            p += pdf(b,s) * SAO_probs[oi,S_dict[s],ai]
+        for (s, ps) in weighted_iterator(b)
+            p += ps * SAO_probs[oi,S_dict[s],ai]
         end
         Q += p * discount(model) * Qo
     end
@@ -251,16 +255,13 @@ function get_QLP(b,Qs,B, model)
     @variable(model, Qmax)
 
     # Constraint 1: set must represent b
-    for s in support(b)
+    for (s, p) in weighted_iterator(b)                     # DONE: weighted iterator!
         Idx, Ps = [], []
         for (bpi, bp) in enumerate(B)
-            p = pdf(bp,s)
-            if p > 0
-                push!(Idx, bpi)
-                push!(Ps, p)
-            end
+            push!(Idx, bpi)
+            push!(Ps, p)
         end
-        length(Idx) > 0 && @constraint(model, sum(b_ps[Idx] .* Ps) == pdf(b,s) )
+        length(Idx) > 0 && @constraint(model, sum(b_ps[Idx] .* Ps) == p )
     end
 
     # Constraint 2: Qmax is Q of best action
@@ -277,7 +278,7 @@ end
 
 """Performs one iteration of ETIB"""
 function get_QETIB_Beliefset(model::POMDP,Q, timeleft, Data::TIB_Data, Bbao_data, Weights)
-    Qs_new = zero(Q) # TODO: this may be inefficient?
+    Qs_new = zero(Q)
     t0 = time()
     for (b_idx,b) in enumerate(Data.B)
         timeleft+t0-time() < 0 && (return Q, 0)
@@ -317,8 +318,8 @@ function get_QETIB_ba(model::POMDP, b, a, Data::TIB_Data; weight_function = get_
         idxs, weights = weight_function(bao, Data.B, relevant_Bis, B_entropies)
         Qo = maximum( sum(weights .* Data.Q[idxs,:], dims=1) )
         p = 0
-        for s in support(b)
-            p += pdf(b,s) * Data.SAO_probs[oi,Data.S_dict[s],ai]
+        for (s, ps) in weighted_iterator(b)
+            p += ps * Data.SAO_probs[oi,Data.S_dict[s],ai]
         end
         Q += p * discount(model) * Qo
     end

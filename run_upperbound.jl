@@ -4,6 +4,7 @@ import POMDPs, POMDPTools
 using POMDPs
 using POMDPTools, POMDPFiles, ArgParse, JSON
 using Statistics, POMDPModels
+using Profile, FlameGraphs, ProfileSVG
 
 include("TIB/TIB.jl")
 using .TIB
@@ -141,6 +142,7 @@ import RockSample
 POMDPs.states(M::RockSample.RockSamplePOMDP) = map(si -> RockSample.state_from_index(M,si), 1:length(M))
 POMDPs.discount(M::RockSample.RockSamplePOMDP) = discount
 include("Environments/K-out-of-N.jl"); using .K_out_of_Ns
+include("Environments/HeavenOrHell.jl"); using .HeavenOrHellModel
 include("Environments/Sparse_models/SparseModels.jl"); using .SparseModels
 
 envs, envargs = [], []
@@ -150,14 +152,18 @@ if env_name == "ABC"
     abcmodel = SparseTabularPOMDP(ABC(discount=discount))
     push!(envs, abcmodel)
     push!(envargs, (name="ABCModel",))
-    ### Tiger
+end
+if env_name == "ABC_delayed"
+    include("Environments/ABCModel.jl"); using .ABCModel
+    abcmodel = SparseTabularPOMDP(ABC_delayed(discount=discount))
+    push!(envs, abcmodel)
+    push!(envargs, (name="ABCModel_delayed",))
 end
 if env_name == "Tiger"
     tiger = POMDPModels.TigerPOMDP()
     tiger.discount_factor = discount
     push!(envs, SparseTabularPOMDP(tiger))
     push!(envargs, (name="Tiger",))
-    ### RockSample
 end
 if env_name == "RockSample5"
     map_size, rock_pos = (5,5), [(1,1), (3,3), (4,4)] # Default
@@ -193,6 +199,11 @@ if env_name == "K-out-of-N3"
     k_model3 = K_out_of_N(N=3, K=3, discount=discount)
     push!(envs, SparseTabularPOMDP(k_model3))
     push!(envargs, (name="K-out-of-N (3)",))
+end
+if env_name == "HeavenOrHell"
+    model = HeavenOrHell(discount=discount)
+    push!(envs, SparseTabularPOMDP(model))
+    push!(envargs, (name="Heaven-or-Hell (7)",))
 end
 # UNUSED (cause non-standard for planning):
 # if env_name == "FrozenLake4"
@@ -351,9 +362,10 @@ for (m_idx,(model, modelargs)) in enumerate(zip(envs, envargs))
 
         # Compute policy & get upper bound
         thissolver = solver(;solverarg.sargs...)
-	GC.gc()
+	    GC.gc()
         t = @elapsed begin
-            policy, info = POMDPTools.solve_info(thissolver, model; solverarg.pargs...) 
+            # @profile policy, info = POMDPTools.solve_info(thissolver, model; solverarg.pargs...)
+            policy, info = POMDPTools.solve_info(thissolver, model; solverarg.pargs...)  
         end
         if (info isa Nothing)
             ub = POMDPs.value(policy, POMDPs.initialstate(model))
@@ -361,7 +373,10 @@ for (m_idx,(model, modelargs)) in enumerate(zip(envs, envargs))
         else
             ub = info.ub
             lb =  info.lb
-        end       
+        end
+        
+        # fg = flamegraph(Profile.fetch(); norepl=true, combine=true)
+        # ProfileSVG.save("flamegraph.svg", fg; width=2400, fontsize=10, maxdepth=25, maxframes=10_000)
 
         ### Policy simulation (very slow, so not used)
         #rs = []

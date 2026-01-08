@@ -40,6 +40,7 @@ function POMDPTools.solve_info(solver::SARSOPSolver, pomdp::POMDP)
         push!(ubs, tree.V_upper[1])
         push!(lbs, tree.V_lower[1])
         iter += 1
+        println(iter, " ", tree.V_lower[1], " ",tree.V_upper[1])
     end
     is_timed_out = root_diff_normalized(tree) > solver.precision
 

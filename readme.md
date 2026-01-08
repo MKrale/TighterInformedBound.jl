@@ -49,3 +49,17 @@ For example, a possible command may look as follows:
 ```bash
 julia --project=. run_upperbound.jl --env RockSample5 --solvers TIB --discount 0.95 --precompile true
 ```
+
+
+
+
+## TODOs
+* TIB:
+  * Represent this explicitely as computing weight based on dynamics -> same as ETIB then
+  * Optimalisation: multiple b_{s,a,o}'s might be equal, and can thus all be represented using different weights: use the one that is best.
+* CTIB optimalizations:
+  * Precompute x = max_s(pdf(b,s)) forall b \in B: we can then use x / x' as an upper bound for min ratio.
+  * Try sorting beliefs according to highest pdf: might lead to earlier cutoffs (this requires new belief representation: skip if you don't think it'll work)
+* 3TIB and 4TIB:
+  * Think about if/how to define a generic 
+  

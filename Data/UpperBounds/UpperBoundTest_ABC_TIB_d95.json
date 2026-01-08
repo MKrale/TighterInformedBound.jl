@@ -1,1 +1,1 @@
-{"env_full":"ABCModel","env_data":{},"solvetime":0.004216469,"lb":-1,"ub":0.613700000000005,"solver":"TIBSolver (standard)","simtime":-1.0,"ravg":-1.0,"env":"ABC"}
+{"env_full":"ABCModel","env_data":{},"solvetime":0.002922608,"lb":-1,"ub":0.613700000000005,"solver":"TIBSolver (standard)","simtime":-1.0,"ravg":-1.0,"env":"ABC"}

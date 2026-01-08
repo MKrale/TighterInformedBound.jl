@@ -24,9 +24,9 @@ iters, tol = 1_000, 10^-4
 # push!(solvers, FIBSolver_alt)
 # push!(solverargs, (name="FIB", sargs=(max_iterations=iters,precision=tol), pargs=(), get_Q0=true))
 
-# ### TIB
-#  push!(solvers, STIBSolver)
-#  push!(solverargs, (name="TIBSolver (standard)", sargs=(max_iterations=iters, precision=tol), pargs=(), get_Q0=true))
+### TIB
+ push!(solvers, STIBSolver)
+ push!(solverargs, (name="TIBSolver (standard)", sargs=(max_iterations=iters, precision=tol), pargs=(), get_Q0=true))
 
 # ### ETIB
 # push!(solvers, ETIBSolver)
@@ -37,8 +37,8 @@ iters, tol = 1_000, 10^-4
 # push!(solverargs, (name="TIBSolver (closeness)", sargs=(max_iterations=iters, precision=tol), pargs=(), get_Q0=true)) 
 
 ### OTIBs
-push!(solvers, OTIBSolver)
-push!(solverargs, (name="TIBSolver (worst-case)", sargs=(max_iterations=iters, precision=tol), pargs=(), get_Q0=true))
+# push!(solvers, OTIBSolver)
+# push!(solverargs, (name="TIBSolver (worst-case)", sargs=(max_iterations=iters, precision=tol), pargs=(), get_Q0=true))
 
 # ### SARSOP
 # include("Sarsop_altered/NativeSARSOP.jl")
@@ -51,7 +51,7 @@ push!(solverargs, (name="TIBSolver (worst-case)", sargs=(max_iterations=iters, p
 
 
 # push!(solvers, NativeSARSOP_alt.SARSOPSolver)
-# push!(solverargs, (name="SARSOP (max $max_time s)", sargs=( epsilon=1e-2, precision=1e-2, max_time=max_time, verbose=false), pargs=(), get_Q0=true))
+# push!(solverargs, (name="SARSOP (max $max_time s)", sargs=( epsilon=1e-2, precision=1e-2, max_time=max_time, verbose=false, heuristic_solver=NativeSARSOP_alt.FIBSolver_alt()), pargs=(), get_Q0=true))
 
 # ### SARSOP
 # using NativeSARSOP
@@ -112,10 +112,10 @@ POMDPs.discount(M::RockSample.RockSamplePOMDP) = discount
 # push!(envargs, (name="RockSample (7,8)",))
 # push!(envs, rocksamplelarge)
 
-map_size, rock_pos = (5,5), [(1,1), (3,3), (4,4)] # Default
-rocksamplesmall = RockSample.RockSamplePOMDP(map_size, rock_pos)
-push!(envargs, (name="RockSample (5x5)",))
-push!(envs, rocksamplesmall)
+# map_size, rock_pos = (5,5), [(1,1), (3,3), (4,4)] # Default
+# rocksamplesmall = RockSample.RockSamplePOMDP(map_size, rock_pos)
+# push!(envargs, (name="RockSample (5x5)",))
+# push!(envs, rocksamplesmall)
 
 # map_size, rock_pos = (10,10), [(2,3), (4,6), (7,4), (8,9) ] # Big Boy!
 # rocksamplelarge = RockSample.RockSamplePOMDP(map_size, rock_pos)
@@ -125,6 +125,10 @@ push!(envs, rocksamplesmall)
 # # ### K-out-of-N
 include("Environments/K-out-of-N.jl"); using .K_out_of_Ns
 
+# k_model1 = K_out_of_N(N=1, K=1, discount=discount)
+# push!(envs, k_model1)
+# push!(envargs, (name="K-out-of-N (1)",))
+
 # k_model2 = K_out_of_N(N=2, K=2, discount=discount)
 # push!(envs, k_model2)
 # push!(envargs, (name="K-out-of-N (2)",))
@@ -132,6 +136,11 @@ include("Environments/K-out-of-N.jl"); using .K_out_of_Ns
 # k_model3 = K_out_of_N(N=3, K=3, discount=discount)
 # push!(envs, k_model3)
 # push!(envargs, (name="K-out-of-N (3)",))
+
+# include("Environments/HeavenOrHell.jl"); using .HeavenOrHellModel
+# HHmodel = HeavenOrHell2(discount=discount)
+# push!(envs, HHmodel)
+# push!(envargs, (name="HeavenOrHell",))
 
 # # # Frozen Lake variants
 # include("Environments/CustomGridworld.jl"); using .CustomGridWorlds

@@ -60,8 +60,8 @@ function solve(sol::QMDPSolver_alt, m::POMDP; C=nothing, S_dict=nothing)
             for (ai,a) in enumerate(C.A)
                 Qnext = reward(m,s,a)
                 thisT = transition(m,s,a)
-                for sp in support(thisT)
-                    Qnext += pdf(thisT, sp) * discount(m) * Qmax[S_dict[sp]]
+                for (sp, psp) in weighted_iterator(thisT)
+                    Qnext += psp * discount(m) * Qmax[S_dict[sp]]
                 end
                 largest_change = max(largest_change, abs((Qnext - Q[si,ai]) / (Q[si,ai]+1e-10) ))
                 Q[si,ai] = Qnext
@@ -92,8 +92,8 @@ struct FIBPlanner_alt <: QS_table_policy
     Data::Simple_Data
 end
 
-
 POMDPs.solve(sol::FIBSolver_alt, m::POMDP) = solve(sol,m;Data=nothing)
+
 
 function solve(sol::FIBSolver_alt, m::POMDP; Data = nothing)
     # Initialization & cachin
@@ -127,8 +127,8 @@ function solve(sol::FIBSolver_alt, m::POMDP; Data = nothing)
                     bnext_idx = B_idx[si,ai,oi]
                     bnext = B[bnext_idx]
                     Qo = zeros(C.na)
-                    for s in support(bnext)
-                        Qo = Qo .+ ( pdf(bnext, s) .* Q[S_dict[s], :])
+                    for (s,p) in weighted_iterator(bnext)     # DONE: weighted iterator
+                        Qo = Qo .+ ( p .* Q[S_dict[s], :])
                     end
                     thisQ += γ * SAO_probs[oi,si,ai] * maximum(Qo)
                 end
@@ -153,9 +153,9 @@ function action_value(π::X,b) where X<: QS_table_policy
     M = π.model
     thisQ = zeros(π.Data.constants.na)
     for ai in 1:π.Data.constants.na
-        for s in support(b)
+        for (s, ps) in weighted_iterator(b)
             si = π.Data.S_dict[s]
-            thisQ[ai] += pdf(b,s) * π.Data.Q[si,ai]
+            thisQ[ai] += ps * π.Data.Q[si,ai]
         end
     end 
     aimax = argmax(thisQ)

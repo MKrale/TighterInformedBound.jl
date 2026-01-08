@@ -9,7 +9,7 @@ struct DiscreteHashedBelief{S}
     hash::UInt
 end
 
-function DiscreteHashedBelief(state_list::Vector, probs::Vector{<:Float64})
+function DiscreteHashedBelief(state_list::Vector, probs::Vector{<:Float64}) # evt. Test verschil rationals -> B1/B2 worden kleiner?
     nonzero_els = findall(>(0),probs)
     state_list, probs = state_list[nonzero_els], probs[nonzero_els]
     idxs = sortperm(state_list; lt= (x,y) -> objectid(x) < objectid(y))
@@ -18,8 +18,7 @@ function DiscreteHashedBelief(state_list::Vector, probs::Vector{<:Float64})
     return DiscreteHashedBelief(ordered_state_list, ordered_probs, hash)
 end
 
-
-#TODO: This method should only be used when b is a belief, but currently this is not checked.
+#Note: This method should only be used when b is a belief, but currently this is not checked.
 # I don't see any way to do this though: the beliefs used throughout the POMDP framework do not have a consistent supertype (even though they should all be distributions...)
 # Maybe checking for the existance of a support/pdf function would be enough, but the way of doing this in Julia (method_exists()) seems to be removed and is the only thing I can find.
 function DiscreteHashedBelief(b) 
@@ -32,7 +31,6 @@ function DiscreteHashedBelief(b)
     end
     return DiscreteHashedBelief(S,P)
 end
-
 
 function POMDPs.rand(rng::AbstractRNG, s::Random.SamplerTrivial{DiscreteHashedBelief})
     d = s[]
@@ -47,14 +45,19 @@ function POMDPs.rand(rng::AbstractRNG, s::Random.SamplerTrivial{DiscreteHashedBe
 end
 
 function POMDPs.pdf(d::DiscreteHashedBelief, s) 
-    k=findfirst( ==(s), d.state_list)               # This could use the fact that states are sorted...
-    isnothing(k) ? (return 0) : (return d.probs[k])
+    possible_ks = searchsorted(d.state_list, s, by=(x -> objectid(x)))
+    for k in possible_ks
+        d.state_list[k] == s && return d.probs[k]
+    end
+    return 0
 end
 POMDPs.support(d::DiscreteHashedBelief) = d.state_list
 
 Base.length(d::DiscreteHashedBelief) = length(d.state_list)
 mean(d::DiscreteHashedBelief) = throw("Function not implemented")
 mode(d::DiscreteHashedBelief) = throw("Function not implemented")
+
+POMDPTools.weighted_iterator(b::DiscreteHashedBelief) = zip(b.state_list, b.probs)
 
 #########################################
 #          Hashing & Equality
@@ -96,12 +99,12 @@ function initialize_belief(bu::DiscreteHashedBeliefUpdater, d)
     return DiscreteHashedBelief(S,P)
 end
 
-function POMDPs.update(bu::DiscreteHashedBeliefUpdater, b::DiscreteHashedBelief,a,o)
+function POMDPs.update(bu::DiscreteHashedBeliefUpdater, b::DiscreteHashedBelief,a,o) # Is inefficient, particularly if we are looping over all o's: can we get it out?
     model = bu.model
     bnext = Dict{Any, Float64}()
 
     for (s, ps) in weighted_iterator(b)
-        ss_next = transition(model, s, a)
+        ss_next = transition(model, s, a)                   # TODO: see what happens if you first precompute ss_next for all ss, then compute pos (this will break if O depends on s: fix!)
         for (snext, psnext) in weighted_iterator(ss_next)
             po = obs_weight(model,s,a,snext,o)
             add_to_dict!(bnext, snext, ps*psnext*po)
@@ -113,5 +116,5 @@ function POMDPs.update(bu::DiscreteHashedBeliefUpdater, b::DiscreteHashedBelief,
     return DiscreteHashedBelief(states,probs)
 end
 
-#TODO: again, we never type-check b, but I don't know how to do this...
+#Note: again, we never type-check b, but I don't know how to do this...
 POMDPs.update(bu::DiscreteHashedBeliefUpdater, b, a, o) = update(bu, DiscreteHashedBelief(b),a,o) 

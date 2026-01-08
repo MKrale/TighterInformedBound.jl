@@ -144,7 +144,7 @@ POMDPs.transition(M::K_out_of_N, s,a) = T(M,s,a)
 POMDPs.observation(M::K_out_of_N, a,sp) = O(M,sp,a)
 POMDPs.reward(M::K_out_of_N, s,a) = R(M,s,a)
 POMDPs.discount(M::K_out_of_N) = M.discount
-POMDPs.initialstate(M::K_out_of_N) = Deterministic(Tuple(fill(1,M.N)))
+POMDPs.initialstate(M::K_out_of_N) = SparseCat([Tuple(fill(1,M.N))],[1.0])s
 
 POMDPs.actiontype(M::K_out_of_N) = NTuple{M.N, Integer}
 POMDPs.statetype(M::K_out_of_N) = NTuple{M.N, Integer}
