@@ -99,20 +99,33 @@ function initialize_belief(bu::DiscreteHashedBeliefUpdater, d)
     return DiscreteHashedBelief(S,P)
 end
 
-function POMDPs.update(bu::DiscreteHashedBeliefUpdater, b::DiscreteHashedBelief,a,o) # Is inefficient, particularly if we are looping over all o's: can we get it out?
+function POMDPs.update(bu::DiscreteHashedBeliefUpdater, b::DiscreteHashedBelief,a,o)
     model = bu.model
     bnext = Dict{Any, Float64}()
 
+    # Collect possible next states with transition probs
     for (s, ps) in weighted_iterator(b)
-        ss_next = transition(model, s, a)                   # TODO: see what happens if you first precompute ss_next for all ss, then compute pos (this will break if O depends on s: fix!)
-        for (snext, psnext) in weighted_iterator(ss_next)
-            po = obs_weight(model,s,a,snext,o)
-            add_to_dict!(bnext, snext, ps*psnext*po)
+        for (snext, psnext) in weighted_iterator(transition(model,s,a))
+            add_to_dict!(bnext, snext, ps * psnext)
         end
     end
 
-    states, probs = collect(keys(bnext)), collect(values(bnext))
+    # Alter weights according to obs
+    bnext_ = Dict{Any, Float64}()
+    for (snext, psnext) in bnext
+        po = pdf(observation(model,a,snext), o)
+        bnext_[snext] = psnext * po
+    end
+
+    # Normalize
+    states, probs = collect(keys(bnext_)), collect(values(bnext_))
     probs ./= sum(probs)
+
+    bp = DiscreteHashedBelief(states,probs)
+
+    # length(support(bp)) == 0 && println(sum(probs), bnext_, bnext, DiscreteHashedBelief(states,probs))
+    # println(sum(probs), bnext_, bnext, DiscreteHashedBelief(states,probs))
+
     return DiscreteHashedBelief(states,probs)
 end
 

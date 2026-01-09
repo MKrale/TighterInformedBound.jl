@@ -305,9 +305,9 @@ if env_name == "grid"
     push!(envargs, (name="Grid",))
 end
 if env_name == "Tag"
-    ### Tag
     using TagPOMDPProblem
     tag = TagPOMDPProblem.TagPOMDP(discount_factor=discount)
+    # tag = SparseTabularPOMDP(tag)
     push!(envs, tag)
     push!(envargs, (name="Tag",))
 end

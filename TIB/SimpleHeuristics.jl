@@ -56,11 +56,10 @@ function solve(sol::QMDPSolver_alt, m::POMDP; C=nothing, S_dict=nothing)
     while (factor * largest_change > sol.precision) && (i < sol.max_iterations)
         i+=1
         largest_change = 0
-        for (si,s) in enumerate(C.S)
+        @inbounds for (si,s) in enumerate(C.S)
             for (ai,a) in enumerate(C.A)
                 Qnext = reward(m,s,a)
-                thisT = transition(m,s,a)
-                for (sp, psp) in weighted_iterator(thisT)
+                for (sp, psp) in weighted_iterator(transition(m,s,a))
                     Qnext += psp * discount(m) * Qmax[S_dict[sp]]
                 end
                 largest_change = max(largest_change, abs((Qnext - Q[si,ai]) / (Q[si,ai]+1e-10) ))

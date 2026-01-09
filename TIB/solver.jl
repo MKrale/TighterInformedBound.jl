@@ -213,8 +213,10 @@ function get_QOTIB_ba(model::POMDP,b,a,Qs,B,Br, SAOs, SAO_probs, constants::C; a
         if !(Bbao_data isa Nothing) && !(bi isa Nothing)
             bao = get_bao(Bbao_data, bi, ai, oi, B)
             overlap_idxs = get_overlap(Bbao_data, bi, ai, oi)
-            if length(overlap_idxs) == 1                # TODO: check if b is a one-step belief: skip if so
+            if length(overlap_idxs) == 1
                 Qo = maximum(Qs[overlap_idxs,:])
+            elseif support(bao) == 1
+                Qo = Qs[overlap_idxs[1]]
             else
                 thisBs, thisQs = B[overlap_idxs], Qs[overlap_idxs,:]
                 empty!(opt_model)
@@ -309,19 +311,20 @@ end
 function get_QETIB_ba(model::POMDP, b, a, Data::TIB_Data; weight_function = get_entropy_weights)
     ai = actionindex(model, a)
     Q = breward(model,b,a)
-    Os = collect(keys(get_possible_obs_probs(b,ai,Data.SAOs,Data.SAO_probs,Data.S_dict)))
-    for oi in Os
+    Ois = get_possible_obs_probs(b, ai, Data.SAOs, Data.SAO_probs, Data.S_dict)
+    for (oi, po) in Ois
+    # for (oi, o) in enumerate(Data.constants.O)
         o = Data.constants.O[oi]
         bao = update(DiscreteHashedBeliefUpdater(model),b,a,o)
+        if length(support(bao)) == 0
+            println("Warning: Numerical error in belief update! ($po, $po_)")
+            continue
+        end
         relevant_Bs, relevant_Bis = get_overlapping_beliefs(bao, Data.B)
         B_entropies = map(bi -> get_entropy(bi), relevant_Bs)
         idxs, weights = weight_function(bao, Data.B, relevant_Bis, B_entropies)
         Qo = maximum( sum(weights .* Data.Q[idxs,:], dims=1) )
-        p = 0
-        for (s, ps) in weighted_iterator(b)
-            p += ps * Data.SAO_probs[oi,Data.S_dict[s],ai]
-        end
-        Q += p * discount(model) * Qo
+        Q += po * discount(model) * Qo
     end
     return Q
 end

@@ -8,7 +8,7 @@ function breward(model::POMDP, b::DiscreteHashedBelief,a)
     return r
 end
 
-function add_to_dict!(dict, key, value; func=+, minvalue=0)
+function add_to_dict!(dict, key, value; func=+, minvalue=1e-10)
     if haskey(dict, key)
         dict[key] = func(dict[key], value)
     elseif isnothing(minvalue) || value > minvalue

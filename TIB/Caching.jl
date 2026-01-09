@@ -5,9 +5,8 @@ struct C
     S; A; O 
     ns; na; no
 end
-get_constants(model) = C( states(model), actions(model), observations(model),
+get_constants(model) = C( sort(collect(states(model)), by=objectid), sort(collect(actions(model)),by=objectid), sort(collect(observations(model)), by=objectid),
                          length(states(model)), length(actions(model)), length(observations(model)))
-
 
 #########################################
 #             TIB_Data:
@@ -44,7 +43,7 @@ function get_all_obs_probs(model::POMDP, constants::C)
     ns, na, no = constants.ns, constants.na, constants.no
     O_dict = Dict( zip(O, 1:no))    
 
-    SAO_probs = zeros(no,ns,na)                 # TODO: this is big: we can make it sparse by using SAOs (probably fine) # TODO: elements order memory efficient?
+    SAO_probs = zeros(no,ns,na)
     SAOs = Array{Vector{Int}}(undef,ns,na)
     for si in 1:ns
         for ai in 1:na
@@ -133,7 +132,7 @@ function get_belief_set(model::POMDP, SAOs, constants::C)
 
     B = Array{DiscreteHashedBelief,1}()
     B_dict = Dict()       
-    B_idx = zeros(Int,ns,na,no)                 # TODO: can be made sparse, probably not necessary
+    B_idx = zeros(Int,ns,na,no)
 
     # Initialize with unit beliefs and initial belief
     # Note: technically we should ignore the unit beliefs for ETIB, but we currently do not
@@ -216,7 +215,7 @@ function get_possible_obs(bi::Tuple{Bool, Int}, ai, Data::TIB_Data, Bbao_data::B
         b = Data.B[last(bi)]
         possible_os = Set{Int}
         for s in support(b)
-            si = S_dict[s]
+            si = Data.S_dict[s]
             union!(possible_os, SAOs[si,ai])
         end
         return 
@@ -290,11 +289,11 @@ function get_Bbao(model, Data::TIB_Data, constants)
     # Record overlap for b
     for (bi,b) in enumerate(B)
         B_overlap[bi] = []
-        s_lowest = minimum(map(s -> stateindex(model, s), support(b)))
-        s_highest = maximum(map(s -> stateindex(model, s), support(b)))
-        for s=s_lowest:s_highest                                                # TODO: I don't think this works for general states: fix!
+        sidx_lowest, sidx_highest = S_dict[support(b)[1]], S_dict[support(b)[length(support(b))]]
+        for sidx=sidx_lowest:sidx_highest
             # we will check only those beliefs whos lowest index lies between the lowest and highest index of our belief:
             # Depending on the env, this may significantly reduce the search space.
+            s = constants.S[sidx]
             if haskey(Bs_lowest_support_state, s) 
                 for bpi in Bs_lowest_support_state[s]
                     have_overlap(b,B[bpi]) && push!(B_overlap[bi], bpi)
@@ -305,9 +304,9 @@ function get_Bbao(model, Data::TIB_Data, constants)
     # Repeat the process above for beliefs in Bbao
     for (bi,b) in enumerate(Bbao)
         Bbao_overlap[bi] = []
-        s_lowest = minimum(map(s -> stateindex(model, s), support(b)))
-        s_highest = maximum(map(s -> stateindex(model, s), support(b)))
-        for s=s_lowest:s_highest
+        sidx_lowest, sidx_highest = S_dict[support(b)[1]], S_dict[support(b)[length(support(b))]]
+        for sidx=sidx_lowest:sidx_highest
+            s = constants.S[sidx]
             if haskey(Bs_lowest_support_state, s)
                 for bpi in Bs_lowest_support_state[s]
                     have_overlap(b,B[bpi]) && push!(Bbao_overlap[bi], bpi)
@@ -323,18 +322,19 @@ end
 """Returns true if the support of bp is a subset of the support of b"""
 function have_overlap(b::DiscreteHashedBelief,bp::DiscreteHashedBelief)
     bidx, bpidx = 1, 1
-    n_sup_b, n_sup_bp = lenght(support(b)), lenght(support(bp))
-    while bidx <= length_support_b && bpidx <= length_support_b
-        if b[bidx] == bp[bpidx]     # both beliefs contain state: fine
+    sup_b, sup_bp = support(b), support(bp)
+    n_sup_b, n_sup_bp = length(sup_b), length(sup_bp)
+    while bidx <= n_sup_b && bpidx <= n_sup_bp
+        if sup_b[bidx] == sup_bp[bpidx]     # both beliefs contain state: fine
             bidx += 1
             bpidx += 1
-        elseif objectid(b[bidx]) <= objectid(bp[bpidx]) # b contains state not in bp: fine
+        elseif objectid(sup_b[bidx]) <= objectid(sup_bp[bpidx]) # b contains state not in bp: fine
             bidx += 1
         else    # bp contains a state not in b -> not allowed
             return false
         end
     end
-    return (bpidx >= length_support_bp)  # all elements in support bp have been checked
+    return (bpidx >= n_sup_bp)  # all elements in support bp have been checked
 end
 
 """Finds all beliefs in B where the support is a subset of that of b"""
@@ -431,7 +431,7 @@ function get_entropy_weights(b, B, Bi_overlap, B_entropies; model=nothing, initi
     for (s, ps) in weighted_iterator(b)
         Idx, Ps = [], []
         for (bpi, bp) in enumerate(B_overlap)
-            if p > 0
+            if ps > 0
                 push!(Idx, bpi)
                 push!(Ps,ps)
             end
@@ -461,11 +461,34 @@ end
 ########## Closest belief weights ##########
 
 """Returns the belief that has the lowest minratio with b (as well as that ratio)"""
-function get_best_minratio(b, B, B_overlap::Vector)
+function get_best_minratio(b::DiscreteHashedBelief, B::Vector{DiscreteHashedBelief}, B_overlap::Vector)
     best_bi, best_ratio = nothing, -Inf
-    for bpi in B_overlap                # TODO: skip all state beliefs: these are always worse (convexity) -> implement edgecase where no beliefs have overlap
+    sup_b, n_sup_b = support(b), length(support(b))
+    for bpi in B_overlap
         this_ratio = Inf
         bp = B[bpi]
+        # sup_bp, n_sup_bp = support(bp), length(support(bp))
+        # bidx, bpidx = 1, 1
+        # while bidx <= n_sup_b && bpidx <= n_sup_bp
+        #     sb, sbp = sup_b[bidx], sup_bp[bpidx]
+        #     if sb == sbp
+        #         this_ratio = min(this_ratio, b.probs[bidx] / bp.probs[bpidx])
+        #         this_ratio <= best_ratio && break 
+        #         bidx += 1; bpidx += 1
+        #     elseif objectid(sb) < objectid(sbp)
+        #         bidx += 1
+        #     else
+        #         print("huh?")
+        #         break
+        #     end
+        # end
+        # (bidx >= n_sup_b && bpidx <= n_sup_bp) && (this_ratio = 0.0)
+        # if this_ratio > best_ratio
+        #     best_bi = bpi
+        #     best_ratio = this_ratio
+        # end
+        # # end
+        # best_ratio == 1 && break
         for (sp, psp) in weighted_iterator(bp)
             this_ratio = min(this_ratio, pdf(b,sp) / psp)
             this_ratio <= best_ratio && break # Current belief is already suboptimal
