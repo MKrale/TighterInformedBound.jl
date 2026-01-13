@@ -306,6 +306,9 @@ if env_name == "grid"
 end
 if env_name == "Tag"
     using TagPOMDPProblem
+    Base.:(==)(s1::TagState, s2::TagState) = s1.r_pos == s2.r_pos && s1.t_pos == s2.t_pos
+    Base.isless(s1::TagState, s2::TagState) = s1.r_pos == s2.r_pos ? (s1.t_pos < s2.t_pos) : (s1.r_pos < s2.r_pos)
+    Base.:(<)(s1::TagState, s2::TagState) = isless(s1,s2)
     tag = TagPOMDPProblem.TagPOMDP(discount_factor=discount)
     # tag = SparseTabularPOMDP(tag)
     push!(envs, tag)

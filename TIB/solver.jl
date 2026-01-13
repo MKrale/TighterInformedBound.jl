@@ -311,19 +311,41 @@ end
 function get_QETIB_ba(model::POMDP, b, a, Data::TIB_Data; weight_function = get_entropy_weights)
     ai = actionindex(model, a)
     Q = breward(model,b,a)
-    Ois = get_possible_obs_probs(b, ai, Data.SAOs, Data.SAO_probs, Data.S_dict)
-    for (oi, po) in Ois
+
+    # Os = collect(keys(get_possible_obs_probs(b,ai,Data.SAOs,Data.SAO_probs,Data.S_dict)))
+    # for oi in Os
+    #     o = Data.constants.O[oi]
+    #     bao = update(DiscreteHashedBeliefUpdater(model),b,a,o)
+    #     relevant_Bs, relevant_Bis = get_overlapping_beliefs(bao, Data.B)
+    #     B_entropies = map(bi -> get_entropy(bi), relevant_Bs)
+    #     idxs, weights = weight_function(bao, Data.B, relevant_Bis, B_entropies)
+    #     Qo = maximum( sum(weights .* Data.Q[idxs,:], dims=1) )
+    #     p = 0
+    #     for s in support(b)
+    #         p += pdf(b,s) * Data.SAO_probs[oi,Data.S_dict[s],ai]
+    #     end
+    #     Q += p * discount(model) * Qo
+    # end
+
+    # Ois = get_possible_obs_probs(b, ai, Data.SAOs, Data.SAO_probs, Data.S_dict)
+    # for (oi, po) in Ois
+    Os = collect(keys(get_possible_obs_probs(b,ai,Data.SAOs,Data.SAO_probs,Data.S_dict)))
+    for oi in Os
     # for (oi, o) in enumerate(Data.constants.O)
         o = Data.constants.O[oi]
         bao = update(DiscreteHashedBeliefUpdater(model),b,a,o)
         if length(support(bao)) == 0
-            println("Warning: Numerical error in belief update! ($po, $po_)")
+            println("Warning: Numerical error in belief update! ")
             continue
         end
         relevant_Bs, relevant_Bis = get_overlapping_beliefs(bao, Data.B)
         B_entropies = map(bi -> get_entropy(bi), relevant_Bs)
         idxs, weights = weight_function(bao, Data.B, relevant_Bis, B_entropies)
         Qo = maximum( sum(weights .* Data.Q[idxs,:], dims=1) )
+        po = 0
+        for s in support(b)
+            po += pdf(b,s) * Data.SAO_probs[oi,Data.S_dict[s],ai]
+        end
         Q += po * discount(model) * Qo
     end
     return Q

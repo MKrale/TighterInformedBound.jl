@@ -5,8 +5,10 @@ struct C
     S; A; O 
     ns; na; no
 end
-get_constants(model) = C( sort(collect(states(model)), by=objectid), sort(collect(actions(model)),by=objectid), sort(collect(observations(model)), by=objectid),
+get_constants(model) = C( sort(collect(states(model))), sort(collect(actions(model))), sort(collect(observations(model))),
                          length(states(model)), length(actions(model)), length(observations(model)))
+# get_constants(model) = C( states(model), actions(model), observations(model),
+#                          length(states(model)), length(actions(model)), length(observations(model)))
 
 #########################################
 #             TIB_Data:
@@ -51,18 +53,26 @@ function get_all_obs_probs(model::POMDP, constants::C)
         end
     end
 
-    for (si, s) in enumerate(constants.S)
-        for (ai, a) in enumerate(constants.A)
-            obs_probs = Dict()
-            for (sp, psp) in weighted_iterator(transition(model,s,a))
-                for (o, po) in weighted_iterator(observation(model,a,sp))
-                    oi = O_dict[o]
-                    add_to_dict!(obs_probs, oi, po*psp)
-                end
-            end
-            for oi in keys(obs_probs)
-                push!(SAOs[si,ai], oi)
-                SAO_probs[oi,si,ai] += obs_probs[oi]
+    # for (si, s) in enumerate(constants.S)
+    #     for (ai, a) in enumerate(constants.A)
+    #         obs_probs = Dict()
+    #         for (sp, psp) in weighted_iterator(transition(model,s,a))
+    #             for (o, po) in weighted_iterator(observation(model,a,sp))
+    #                 oi = O_dict[o]
+    #                 add_to_dict!(obs_probs, oi, po*psp)
+    #             end
+    #         end
+    #         for oi in keys(obs_probs)
+    #             push!(SAOs[si,ai], oi)
+    #             SAO_probs[oi,si,ai] += obs_probs[oi]
+    #         end
+    #     end
+    # end
+    for (oi,o) in enumerate(constants.O)
+        for (si,s) in enumerate(constants.S)
+            for (ai,a) in enumerate(constants.A)
+                SAO_probs[oi,si,ai] = get_obs_prob(model,o,s,a)
+                SAO_probs[oi,si,ai] > 0.0 && push!(SAOs[si,ai], oi)
             end
         end
     end
@@ -136,16 +146,13 @@ function get_belief_set(model::POMDP, SAOs, constants::C)
 
     # Initialize with unit beliefs and initial belief
     # Note: technically we should ignore the unit beliefs for ETIB, but we currently do not
-    for (si, s) in enumerate(S) 
-        bs = DiscreteHashedBelief([s],[1.0])
-        push!(B, bs)
-        B_dict[bs] = si
+    for s in S 
+        push!(B, DiscreteHashedBelief([s],[1.0]))
     end
     b_init = DiscreteHashedBelief(initialstate(model))
-    k = get(B_dict, b_init, nothing)
+    k = findfirst( x -> x==b_init , B)
     if isnothing(k)
         push!(B,b_init)
-        B_dict[b_init] = length(B)
     end
 
     # Loop through all 1-step transitions and records new beliefs
@@ -155,16 +162,44 @@ function get_belief_set(model::POMDP, SAOs, constants::C)
             for oi in SAOs[si,ai]
                 o = O[oi]
                 b = update(U, b_s, a, o)
-                k = get(B_dict, b, nothing)
+                k = findfirst( x -> x==b , B)
                 if isnothing(k)
                     push!(B,b)
                     k=length(B)
-                    B_dict[b] = k
                 end
                 B_idx[si,ai,oi] = k
             end
         end
     end
+    # for (si, s) in enumerate(S) 
+    #     bs = DiscreteHashedBelief([s],[1.0])
+    #     push!(B, bs)
+    #     B_dict[bs] = si
+    # end
+    # b_init = DiscreteHashedBelief(initialstate(model))
+    # k = get(B_dict, b_init, nothing)
+    # if isnothing(k)
+    #     push!(B,b_init)
+    #     B_dict[b_init] = length(B)
+    # end
+
+    # # Loop through all 1-step transitions and records new beliefs
+    # for (si,s) in enumerate(S)
+    #     b_s = DiscreteHashedBelief([s],[1.0])
+    #     for (ai,a) in enumerate(A)
+    #         for oi in SAOs[si,ai]
+    #             o = O[oi]
+    #             b = update(U, b_s, a, o)
+    #             k = get(B_dict, b, nothing)
+    #             if isnothing(k)
+    #                 push!(B,b)
+    #                 k=length(B)
+    #                 B_dict[b] = k
+    #             end
+    #             B_idx[si,ai,oi] = k
+    #         end
+    #     end
+    # end
     return B, B_idx
 end
 
@@ -278,7 +313,7 @@ function get_Bbao(model, Data::TIB_Data, constants)
     # For each belief, determine the state with the lowest index with non-zero support (speeds up overlap computations)
     Bs_lowest_support_state = Dict()
     for (bi, b) in enumerate(B)
-        s_lowest = support(b)[1]
+        s_lowest = minimum( support(b))
         if haskey(Bs_lowest_support_state, s_lowest)
             push!(Bs_lowest_support_state[s_lowest], bi)
         else
@@ -289,24 +324,25 @@ function get_Bbao(model, Data::TIB_Data, constants)
     # Record overlap for b
     for (bi,b) in enumerate(B)
         B_overlap[bi] = []
-        sidx_lowest, sidx_highest = S_dict[support(b)[1]], S_dict[support(b)[length(support(b))]]
-        for sidx=sidx_lowest:sidx_highest
+        s_lowest = minimum(support(b))
+        s_highest = maximum(support(b))
+        for s=s_lowest:s_highest
             # we will check only those beliefs whos lowest index lies between the lowest and highest index of our belief:
             # Depending on the env, this may significantly reduce the search space.
-            s = constants.S[sidx]
             if haskey(Bs_lowest_support_state, s) 
                 for bpi in Bs_lowest_support_state[s]
                     have_overlap(b,B[bpi]) && push!(B_overlap[bi], bpi)
                 end
             end
         end
+        # println("$bi, $(support(b)), $(map(bi -> support(B[bi]), B_overlap[bi]))")
     end
     # Repeat the process above for beliefs in Bbao
     for (bi,b) in enumerate(Bbao)
         Bbao_overlap[bi] = []
-        sidx_lowest, sidx_highest = S_dict[support(b)[1]], S_dict[support(b)[length(support(b))]]
-        for sidx=sidx_lowest:sidx_highest
-            s = constants.S[sidx]
+        s_lowest = minimum(support(b))
+        s_highest = maximum(support(b))
+        for s=s_lowest:s_highest
             if haskey(Bs_lowest_support_state, s)
                 for bpi in Bs_lowest_support_state[s]
                     have_overlap(b,B[bpi]) && push!(Bbao_overlap[bi], bpi)
@@ -315,26 +351,110 @@ function get_Bbao(model, Data::TIB_Data, constants)
         end
     end
 
+    # Bs_lowest_support_state = Dict()
+    # for (bi, b) in enumerate(B)
+    #     sidx_lowest = S_dict[support(b)[1]]
+    #     if haskey(Bs_lowest_support_state, sidx_lowest)
+    #         push!(Bs_lowest_support_state[sidx_lowest], bi)
+    #     else
+    #         Bs_lowest_support_state[sidx_lowest] = [bi]
+    #     end
+    # end
+
+    # # Record overlap for b
+    # for (bi,b) in enumerate(B)
+    #     B_overlap[bi] = []
+    #     sidx_lowest = S_dict[support(b)[1]]
+    #     sidx_highest = S_dict[support(b)[length(support(b))]]
+    #     sidx_lowest > sidx_highest && println("Warning: $sidx_lowest, $sidx_highest")
+    #     # println(map(s -> S_dict[s], support(b)), sidx_lowest, sidx_highest)
+    #     for sidx=sidx_lowest:sidx_highest
+    #         # we will check only those beliefs whos lowest index lies between the lowest and highest index of our belief:
+    #         # Depending on the env, this may significantly reduce the search space.
+    #         if haskey(Bs_lowest_support_state, sidx) 
+    #             for bpi in Bs_lowest_support_state[sidx]
+    #                 have_overlap(b,B[bpi]) && push!(B_overlap[bi], bpi)
+    #             end
+    #         end
+    #     end
+    # end
+    # # Repeat the process above for beliefs in Bbao
+    # for (bi,b) in enumerate(Bbao)
+    #     Bbao_overlap[bi] = []
+    #     sidx_lowest = S_dict[support(b)[1]]
+    #     sidx_highest = S_dict[support(b)[length(support(b))]]
+    #     sidx_lowest > sidx_highest && println("Warning: $sidx_lowest, $sidx_highest")
+    #     for sidx=sidx_lowest:sidx_highest
+    #         if haskey(Bs_lowest_support_state, sidx)
+    #             for bpi in Bs_lowest_support_state[sidx]
+    #                 have_overlap(b,B[bpi]) && push!(Bbao_overlap[bi], bpi)
+    #             end
+    #         end
+    #     end
+    # end
+    # Bs_lowest_support_state = Dict()
+    # for (bi, b) in enumerate(B)
+    #     s_lowest = support(b)[1]
+    #     if haskey(Bs_lowest_support_state, s_lowest)
+    #         push!(Bs_lowest_support_state[s_lowest], bi)
+    #     else
+    #         Bs_lowest_support_state[s_lowest] = [bi]
+    #     end
+    # end
+
+    # # Record overlap for b
+    # for (bi,b) in enumerate(B)
+    #     B_overlap[bi] = []
+    #     sidx_lowest, sidx_highest = S_dict[support(b)[1]], S_dict[support(b)[length(support(b))]]
+    #     for sidx=sidx_lowest:sidx_highest
+    #         # we will check only those beliefs whos lowest index lies between the lowest and highest index of our belief:
+    #         # Depending on the env, this may significantly reduce the search space.
+    #         s = constants.S[sidx]
+    #         if haskey(Bs_lowest_support_state, s) 
+    #             for bpi in Bs_lowest_support_state[s]
+    #                 have_overlap(b,B[bpi]) && push!(B_overlap[bi], bpi)
+    #             end
+    #         end
+    #     end
+    # end
+    # # Repeat the process above for beliefs in Bbao
+    # for (bi,b) in enumerate(Bbao)
+    #     Bbao_overlap[bi] = []
+    #     sidx_lowest, sidx_highest = S_dict[support(b)[1]], S_dict[support(b)[length(support(b))]]
+    #     for sidx=sidx_lowest:sidx_highest
+    #         s = constants.S[sidx]
+    #         if haskey(Bs_lowest_support_state, s)
+    #             for bpi in Bs_lowest_support_state[s]
+    #                 have_overlap(b,B[bpi]) && push!(Bbao_overlap[bi], bpi)
+    #             end
+    #         end
+    #     end
+    # end
+
     B_entropy = map( b -> get_entropy(b), B)
     return BBAO_Data(Bbao, Bbao_idx, BAO_probs, B_in_Bboa, B_overlap, Bbao_overlap, B_entropy, Bbao_valid_weights)
 end
 
 """Returns true if the support of bp is a subset of the support of b"""
 function have_overlap(b::DiscreteHashedBelief,bp::DiscreteHashedBelief)
-    bidx, bpidx = 1, 1
-    sup_b, sup_bp = support(b), support(bp)
-    n_sup_b, n_sup_bp = length(sup_b), length(sup_bp)
-    while bidx <= n_sup_b && bpidx <= n_sup_bp
-        if sup_b[bidx] == sup_bp[bpidx]     # both beliefs contain state: fine
-            bidx += 1
-            bpidx += 1
-        elseif objectid(sup_b[bidx]) <= objectid(sup_bp[bpidx]) # b contains state not in bp: fine
-            bidx += 1
-        else    # bp contains a state not in b -> not allowed
-            return false
-        end
+    # bidx, bpidx = 1, 1
+    # sup_b, sup_bp = support(b), support(bp)
+    # n_sup_b, n_sup_bp = length(sup_b), length(sup_bp)
+    # while bidx <= n_sup_b && bpidx <= n_sup_bp
+    #     if sup_b[bidx] == sup_bp[bpidx]     # both beliefs contain state: fine
+    #         bidx += 1
+    #         bpidx += 1
+    #     elseif objectid(sup_b[bidx]) <= objectid(sup_bp[bpidx]) # b contains state not in bp: fine
+    #         bidx += 1
+    #     else    # bp contains a state not in b -> not allowed
+    #         return false
+    #     end
+    # end
+    # return (bpidx >= n_sup_bp)  # all elements in support bp have been checked
+    for sp in support(bp)
+        pdf(b,sp) == 0 && (return false)
     end
-    return (bpidx >= n_sup_bp)  # all elements in support bp have been checked
+    return true
 end
 
 """Finds all beliefs in B where the support is a subset of that of b"""
