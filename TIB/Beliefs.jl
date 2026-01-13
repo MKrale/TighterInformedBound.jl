@@ -12,14 +12,13 @@ end
 function DiscreteHashedBelief(state_list::Vector, probs::Vector{<:Float64})
     nonzero_els = findall(>(0),probs)
     state_list, probs = state_list[nonzero_els], probs[nonzero_els]
-    idxs = sortperm(state_list; lt= (x,y) -> objectid(x) < objectid(y))
+    idxs = sortperm(state_list)
     ordered_state_list, ordered_probs = state_list[idxs], probs[idxs]
     hash = makeDBhash(ordered_state_list, ordered_probs)
     return DiscreteHashedBelief(ordered_state_list, ordered_probs, hash)
 end
 
-
-#TODO: This method should only be used when b is a belief, but currently this is not checked.
+#Note: This method should only be used when b is a belief, but currently this is not checked.
 # I don't see any way to do this though: the beliefs used throughout the POMDP framework do not have a consistent supertype (even though they should all be distributions...)
 # Maybe checking for the existance of a support/pdf function would be enough, but the way of doing this in Julia (method_exists()) seems to be removed and is the only thing I can find.
 function DiscreteHashedBelief(b) 
@@ -38,8 +37,8 @@ function POMDPs.rand(rng::AbstractRNG, s::Random.SamplerTrivial{DiscreteHashedBe
     d = s[]
     r = rand(rng)
     tot = 0.0
-    for x in support(d)
-        tot += pdf(d,x)
+    for (x, px) in weighted_iterator(d)
+        tot += px
         r < tot && return x
     end
     tot < 1.0 && throw("Trying to sample from non-normalized belief (with total probability $tot)")
@@ -47,10 +46,14 @@ function POMDPs.rand(rng::AbstractRNG, s::Random.SamplerTrivial{DiscreteHashedBe
 end
 
 function POMDPs.pdf(d::DiscreteHashedBelief, s) 
-    k=findfirst( ==(s), d.state_list)               # This could use the fact that states are sorted...
-    isnothing(k) ? (return 0) : (return d.probs[k])
+    possible_ks = searchsorted(d.state_list, s)
+    for k in possible_ks
+        d.state_list[k] == s && return d.probs[k]
+    end
+    return 0
 end
 POMDPs.support(d::DiscreteHashedBelief) = d.state_list
+POMDPTools.weighted_iterator(b::DiscreteHashedBelief) = zip(b.state_list, b.probs)
 
 Base.length(d::DiscreteHashedBelief) = length(d.state_list)
 mean(d::DiscreteHashedBelief) = throw("Function not implemented")
@@ -100,16 +103,23 @@ function POMDPs.update(bu::DiscreteHashedBeliefUpdater, b::DiscreteHashedBelief,
     model = bu.model
     bnext = Dict{Any, Float64}()
 
+    ### Collect possible next states with transition probs
     for (s, ps) in weighted_iterator(b)
-        ss_next = transition(model, s, a)
-        for (snext, psnext) in weighted_iterator(ss_next)
-            po = obs_weight(model,s,a,snext,o)
-            add_to_dict!(bnext, snext, ps*psnext*po)
+        for (snext, psnext) in weighted_iterator(transition(model,s,a))
+            add_to_dict!(bnext, snext, ps * psnext)
         end
     end
 
-    states, probs = collect(keys(bnext)), collect(values(bnext))
+    ### Alter weights according to obs
+    bnext_ = Dict{Any, Float64}()
+    for (snext, psnext) in bnext
+        po = pdf(observation(model,a,snext), o)
+        bnext_[snext] = psnext * po
+    end
+    ### Normalize
+    states, probs = collect(keys(bnext_)), collect(values(bnext_))
     probs ./= sum(probs)
+
     return DiscreteHashedBelief(states,probs)
 end
 

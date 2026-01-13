@@ -49,6 +49,16 @@ function solve(sol::QMDPSolver_alt, m::POMDP; C=nothing, S_dict=nothing)
     Qmax[:] .= maxQ
     factor = discount(m) / (1-discount(m))
 
+    # Precompute T & R (in case they have slow implementations)
+    T = Array{DiscreteHashedBelief}(undef,C.na,C.ns)
+    R = zeros(C.na, C.ns)
+    for (si, s) in enumerate(C.S)
+        for (ai, a) in enumerate(C.A)
+            T[ai,si] = DiscreteHashedBelief(transition(m,s,a))
+            R[ai,si] = reward(m,s,a)
+        end
+    end
+
     # Lets iterate!
     i=0
     largest_change = Inf
@@ -58,11 +68,11 @@ function solve(sol::QMDPSolver_alt, m::POMDP; C=nothing, S_dict=nothing)
         largest_change = 0
         for (si,s) in enumerate(C.S)
             for (ai,a) in enumerate(C.A)
-                Qnext = reward(m,s,a)
-                thisT = transition(m,s,a)
-                for sp in support(thisT)
-                    Qnext += pdf(thisT, sp) * discount(m) * Qmax[S_dict[sp]]
+                Qnext = 0
+                for (sp, psp) in weighted_iterator(T[ai,si])
+                    Qnext += psp * Qmax[S_dict[sp]]
                 end
+                Qnext = R[ai,si] + discount(m) * Qnext 
                 largest_change = max(largest_change, abs((Qnext - Q[si,ai]) / (Q[si,ai]+1e-10) ))
                 Q[si,ai] = Qnext
             end
@@ -127,8 +137,8 @@ function solve(sol::FIBSolver_alt, m::POMDP; Data = nothing)
                     bnext_idx = B_idx[si,ai,oi]
                     bnext = B[bnext_idx]
                     Qo = zeros(C.na)
-                    for s in support(bnext)
-                        Qo = Qo .+ ( pdf(bnext, s) .* Q[S_dict[s], :])
+                    for (s, ps) in weighted_iterator(bnext)
+                        Qo = Qo .+ ( ps .* Q[S_dict[s], :])
                     end
                     thisQ += γ * SAO_probs[oi,si,ai] * maximum(Qo)
                 end
@@ -153,9 +163,9 @@ function action_value(π::X,b) where X<: QS_table_policy
     M = π.model
     thisQ = zeros(π.Data.constants.na)
     for ai in 1:π.Data.constants.na
-        for s in support(b)
+        for (s, ps) in weighted_iterator(b)
             si = π.Data.S_dict[s]
-            thisQ[ai] += pdf(b,s) * π.Data.Q[si,ai]
+            thisQ[ai] += ps * π.Data.Q[si,ai]
         end
     end 
     aimax = argmax(thisQ)

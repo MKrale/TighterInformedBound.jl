@@ -4,6 +4,7 @@ import POMDPs, POMDPTools
 using POMDPs
 using POMDPTools, POMDPFiles, ArgParse, JSON
 using Statistics, POMDPModels
+using Profile, FlameGraphs, ProfileSVG
 
 include("TIB/TIB.jl")
 using .TIB
@@ -296,7 +297,11 @@ end
 if env_name == "Tag"
     ### Tag
     using TagPOMDPProblem
+    Base.:(==)(s1::TagState, s2::TagState) = s1.r_pos == s2.r_pos && s1.t_pos == s2.t_pos
+    Base.isless(s1::TagState, s2::TagState) = s1.r_pos == s2.r_pos ? (s1.t_pos < s2.t_pos) : (s1.r_pos < s2.r_pos)
+    Base.:(<)(s1::TagState, s2::TagState) = isless(s1,s2)
     tag = TagPOMDPProblem.TagPOMDP(discount_factor=discount)
+    tag = SparseTabularPOMDP(tag)
     push!(envs, tag)
     push!(envargs, (name="Tag",))
 end
@@ -354,6 +359,7 @@ for (m_idx,(model, modelargs)) in enumerate(zip(envs, envargs))
 	GC.gc()
         t = @elapsed begin
             policy, info = POMDPTools.solve_info(thissolver, model; solverarg.pargs...) 
+            # @profile policy, info = POMDPTools.solve_info(thissolver, model; solverarg.pargs...) 
         end
         if (info isa Nothing)
             ub = POMDPs.value(policy, POMDPs.initialstate(model))
@@ -362,6 +368,9 @@ for (m_idx,(model, modelargs)) in enumerate(zip(envs, envargs))
             ub = info.ub
             lb =  info.lb
         end       
+
+        # fg = flamegraph(Profile.fetch(); norepl=true, combine=true)
+        # ProfileSVG.save("flamegraph.svg", fg; width=2400, fontsize=10, maxdepth=40, maxframes=10_000)
 
         ### Policy simulation (very slow, so not used)
         #rs = []

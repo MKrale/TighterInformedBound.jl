@@ -1,8 +1,8 @@
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.11.0"
+julia_version = "1.11.5"
 manifest_format = "2.0"
-project_hash = "3644577ab52c1381da835bf5c0c284a3037ae355"
+project_hash = "409ae3e96f4d3a0f6e2506392b953e824fde066a"
 
 [[deps.ADTypes]]
 git-tree-sha1 = "eea5d80188827b35333801ef97a40c2ed653b081"
@@ -699,9 +699,9 @@ version = "0.8.5"
 
 [[deps.FlameGraphs]]
 deps = ["AbstractTrees", "Colors", "FileIO", "FixedPointNumbers", "IndirectArrays", "LeftChildRightSiblingTrees", "Profile"]
-git-tree-sha1 = "bd1aaf448be998ea427b1c7213b8acf2e278498b"
+git-tree-sha1 = "0166baf81babb91cf78bfcc771d8e87c43d568df"
 uuid = "08572546-2f56-4bcf-ba4e-bab62c3a3f89"
-version = "1.0.0"
+version = "1.1.0"
 
 [[deps.Fontconfig_jll]]
 deps = ["Artifacts", "Bzip2_jll", "Expat_jll", "FreeType2_jll", "JLLWrappers", "Libdl", "Libuuid_jll", "Zlib_jll"]
@@ -1356,7 +1356,7 @@ uuid = "4b2f31a3-9ecc-558c-b454-b3730dcb73e9"
 version = "2.40.1+0"
 
 [[deps.Librsvg_jll]]
-deps = ["Artifacts", "JLLWrappers", "Libdl", "Pango_jll", "Pkg", "gdk_pixbuf_jll"]
+deps = ["Artifacts", "JLLWrappers", "Libdl", "Pango_jll", "Pkg", "XML2_jll", "gdk_pixbuf_jll"]
 git-tree-sha1 = "ae0923dab7324e6bc980834f709c4cd83dd797ed"
 uuid = "925c91fb-5dd6-59dd-8e8c-345e74382d89"
 version = "2.54.5+0"
@@ -1639,7 +1639,7 @@ version = "2.5.2+0"
 [[deps.OpenLibm_jll]]
 deps = ["Artifacts", "Libdl"]
 uuid = "05823500-19ac-5b8b-9628-191a04bc5112"
-version = "0.8.1+2"
+version = "0.8.5+0"
 
 [[deps.OpenSSL]]
 deps = ["BitFlags", "Dates", "MozillaCACerts_jll", "OpenSSL_jll", "Sockets"]
@@ -1931,6 +1931,12 @@ version = "1.11.0"
 [[deps.Profile]]
 uuid = "9abbd945-dff8-562f-b5e8-e1ebf5ef1b79"
 version = "1.11.0"
+
+[[deps.ProfileSVG]]
+deps = ["Colors", "FlameGraphs", "Profile", "UUIDs"]
+git-tree-sha1 = "95ef58783baaa61cd227342b7b605d8a4dfba4a9"
+uuid = "132c30aa-f267-4189-9183-c8a63c7e05e6"
+version = "0.2.2"
 
 [[deps.ProgressLogging]]
 deps = ["Logging", "SHA", "UUIDs"]
