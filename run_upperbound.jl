@@ -103,6 +103,11 @@ if "CTIB" in solver_names
     push!(solverargs, (name="TIBSolver (closeness)", sargs=(max_iterations=heuristicsteps, precision=heuristicprecision, max_time=timeout), pargs=(), get_Q0=true))
     push!(precomp_solverargs, ( sargs=(max_iterations=2, precomp_solver=STIBSolver(max_iterations=2)), pargs=()))    
 end
+if "ICTIB" in solver_names
+    push!(solvers, ICTIBSolver)
+    push!(solverargs, (name="TIBSolver (closeness, iterative)", sargs=(max_iterations=heuristicsteps, precision=heuristicprecision, max_time=timeout), pargs=(), get_Q0=true))
+    push!(precomp_solverargs, ( sargs=(max_iterations=2, precomp_solver=STIBSolver(max_iterations=2)), pargs=()))    
+end
 if "OTIB" in solver_names
     push!(solvers, OTIBSolver)
     push!(solverargs, (name="TIBSolver (worst-case)", sargs=(max_iterations=heuristicsteps, precision=heuristicprecision, max_time=timeout), pargs=(), get_Q0=true))

@@ -25,7 +25,7 @@ module TIB
 
     include("solver.jl")
     export
-    STIBSolver, OTIBSolver, ETIBSolver, CTIBSolver, 
-    STIBPolicy, OTIBPolicy, ETIBPolicy, CTIBPolicy
+    STIBSolver, OTIBSolver, ETIBSolver, CTIBSolver, ICTIBSolver,
+    STIBPolicy, OTIBPolicy, ETIBPolicy, CTIBPolicy, ICTIBSolver
     include("Convenience.jl")
 end

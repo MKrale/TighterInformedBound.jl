@@ -195,8 +195,7 @@ struct BBAO_Data
     B_in_Bbao::BitVector                            # bi -> Bool            : is the one-step also a 2-step belief?
     B_overlap::Array{Vector{Int}}                   # bi -> [bi]            : Gives vector of all beliefs who's support is a subset of the support of bi
     Bbao_overlap::Array{Vector{Int}}                # bi -> [bi]            : Gives vector all beliefs who's support is a subset of the support of bi
-    B_entropies::Array{Float64}                     # bi -> e               : entropy of all one-step beliefs
-    Valid_weights::Array{Dict{Int,Float64}}         # bi -> {(bi,p)}        : a valid initial weighting for each belief in Bbao
+    # Valid_weights::Array{Dict{Int,Float64}}         # bi -> {(bi,p)}        : a valid initial weighting for each belief in Bbao
 end
 
 """Convenience function to get belief given transition"""
@@ -260,11 +259,11 @@ function get_Bbao(model, Data::TIB_Data, constants)
                     else
                         push!(Bbao, bao)
                         k=length(Bbao)
-                        valid_weights = Dict{Int, Float64}()
-                        for (s,ps) in weighted_iterator(b)
-                            valid_weights[Data.B_idx[S_dict[s],ai,oi]] = ps
-                        end
-                        push!(Bbao_valid_weights, valid_weights)
+                        # valid_weights = Dict{Int, Float64}()
+                        # for (s,ps) in weighted_iterator(b)
+                        #     valid_weights[Data.B_idx[S_dict[s],ai,oi]] = ps
+                        # end
+                        # push!(Bbao_valid_weights, valid_weights)
                         Bbao_idx[bi,ai][oi] = (false, k)
                         Bs_found[bao] = (false, k)
                     end
@@ -315,8 +314,7 @@ function get_Bbao(model, Data::TIB_Data, constants)
         end
     end
 
-    B_entropy = map( b -> get_entropy(b), B)
-    return BBAO_Data(Bbao, Bbao_idx, BAO_probs, B_in_Bboa, B_overlap, Bbao_overlap, B_entropy, Bbao_valid_weights)
+    return BBAO_Data(Bbao, Bbao_idx, BAO_probs, B_in_Bboa, B_overlap, Bbao_overlap)
 end
 
 """Returns true if the support of bp is a subset of the support of b"""
@@ -382,50 +380,50 @@ function get_weights(Bbao_data::BBAO_Data, weights_data::Weights_Data, bi, ai, o
     end
 end
 
-########## Entropy weights ##########
-
-"""Computes all max-entropy weights for Bbao"""
-function get_entropy_weights_all(B, Bbao_data::BBAO_Data) #TODO: this can probably be combined in some way with get_closeness_weights_all
-    # Define model: this setting performed best in our testing, but others are available.
-    model = Model(Clp.Optimizer; add_bridges=false)
-    set_silent(model)
-    set_string_names_on_creation(model, false)
-
-    # First, we do this for all beliefs in B which are also in Bbao:
+function get_all_weights(B, Bbao_data::BBAO_Data, Data::TIB_Data, compute_single_weights=get_single_closeness_weights; values = nothing)
     B_idxs = Array{Vector{Int}}(undef, length(B))
     B_weights = Array{Vector{Float64}}(undef, length(B))
-    for (bi, b) in enumerate(B)
+
+    ### Compute weights for all beliefs in B and Bbao
+    for (bi,b) in enumerate(B)
         if Bbao_data.B_in_Bbao[bi]
-            empty!(model)
-            B_overlap, valid_weights = Bbao_data.B_overlap[bi], Dict(bi => 1.0)
-            B_entropies = map(bi -> Bbao_data.B_entropies[bi], B_overlap)
-            (this_idxs, this_weights) = get_entropy_weights(b, B, B_overlap, B_entropies; model=model, initial_weights=valid_weights) 
-            B_idxs[bi] = this_idxs; B_weights[bi] = this_weights
+            relevant_belief_idxs = Bbao_data.B_overlap[bi]
+            idxs, weights = compute_single_weights(b, relevant_belief_idxs, Data; values=values)
+            B_idxs[bi] = idxs
+            B_weights[bi] = weights 
         end
     end
 
-    # Then for all beliefs in Bbao, we do the same:
+    ### Compute weights for all beliefs in only Bbao
     Bbao_idxs = Array{Vector{Int}}(undef, length(Bbao_data.Bbao))
     Bbao_weights = Array{Vector{Float64}}(undef, length(Bbao_data.Bbao))
-    for (bi, b) in enumerate(Bbao_data.Bbao)        
-        empty!(model)
-        B_overlap, valid_weights = Bbao_data.Bbao_overlap[bi], Bbao_data.Valid_weights[bi]
-        B_entropies = map(bi -> Bbao_data.B_entropies[bi], B_overlap)
-        (this_idxs, this_weights) = get_entropy_weights(b, B, B_overlap, B_entropies;model=model, initial_weights=valid_weights) 
-        Bbao_idxs[bi] = this_idxs; Bbao_weights[bi] = this_weights
+    for (bi, b) in enumerate(Bbao_data.Bbao)
+        relevant_belief_idxs = Bbao_data.Bbao_overlap[bi]
+        idxs, weights = compute_single_weights(b, relevant_belief_idxs, Data; values=values)
+        Bbao_idxs[bi] = idxs; Bbao_weights[bi] = weights
     end
-    return Weights_Data(B_idxs,B_weights, Bbao_idxs, Bbao_weights) 
-end 
+    return Weights_Data(B_idxs, B_weights,Bbao_idxs, Bbao_weights)
+end
 
-"""Computes all max-entropy weights for Bbao"""
-function get_entropy_weights(b, B, Bi_overlap, B_entropies; model=nothing, initial_weights=nothing)
-    B_overlap = map(bi -> B[bi], Bi_overlap)
+########## Entropy weights ##########
+
+function get_all_entropy_weights(Data::TIB_Data, Bbao_data::BBAO_Data; entropies=nothing) 
+    return get_all_weights(Data.B, Bbao_data, Data, get_single_entropy_weights; values = entropies)
+end
+
+function get_single_entropy_weights(b::DiscreteHashedBelief, Bidxs_overlap, Data::TIB_Data; model=nothing, values=nothing)
     if model isa Nothing
         model = Model(Clp.Optimizer; add_bridges=false)
         set_silent(model)
         set_string_names_on_creation(model, false)
     end
-
+    B_overlap = map(bi -> Data.B[bi], Bidxs_overlap)
+    if values isa Nothing
+        B_entropies = map(b -> get_entropy(b), B_overlap)
+    else
+        B_entropies = values[Bidxs_overlap]
+    end
+    
     @variable(model, 0.0 <= b_ps[1:length(B_overlap)] <= 1.0)
     # Build the constraint that probabilities for each state match that of b
     for (s, ps) in weighted_iterator(b)
@@ -440,7 +438,6 @@ function get_entropy_weights(b, B, Bi_overlap, B_entropies; model=nothing, initi
         length(Idx) > 0 && @constraint(model, sum(b_ps[Idx[i]] * Ps[i] for i in 1:length(Idx)) == ps )
     end
     @objective(model, Max, sum( b_ps.*B_entropies))
-     # !(isnothing(initial_weights) && set_start_value.(b_ps, B_start) # Warm start is not used: it did not lead to improvements
     optimize!(model)
 
     # Unpack weight & idxs from problem:
@@ -451,7 +448,7 @@ function get_entropy_weights(b, B, Bi_overlap, B_entropies; model=nothing, initi
         prob = Float64(JuMP.value(b_ps[bpi]))
         if prob > 0.0
             cumprob += prob
-            real_bpi = Bi_overlap[bpi]
+            real_bpi = Bidxs_overlap[bpi]
             push!(idxs, real_bpi)
             push!(weights, prob)
         end
@@ -461,14 +458,57 @@ end
 
 ########## Closest belief weights ##########
 
+function get_all_closeness_weights(Data::TIB_Data, Bbao_data::BBAO_Data)
+    return return get_all_weights(Data.B, Bbao_data, Data, get_single_closeness_weights)
+end
+
+"""Compute a weighting for b using only the belief in B with the highest minratio, plus exterior beliefs"""
+function get_single_closeness_weights(b, Bidxs, Data::TIB_Data; values=nothing)
+    closest_bi, min_ratio = get_best_minratio(b, Data.B, Bidxs)    # TODO: try this iteratively -> if its better, test both (may imply 'improved sawtooth' is valuable more generally)
+    closest_b = Data.B[closest_bi]
+    weights, idxs = [min_ratio], [closest_bi]
+    for (s, ps) in weighted_iterator(b)
+        si = Data.S_dict[s]
+        this_weight = ps - (min_ratio * pdf(closest_b,s))
+        if this_weight != 0
+            push!(weights, this_weight)
+            push!(idxs, si)
+        end
+    end
+    return idxs, weights
+end
+
+function get_all_iterative_closeness_weights(Data::TIB_Data, Bbao_data::BBAO_Data)
+    return get_all_weights(Data.B, Bbao_data, Data, get_single_iterative_closeness_weights)
+end
+
+function get_single_iterative_closeness_weights(b, Bidxs, Data::TIB_Data; values=nothing)
+    remaining_Bidxs = ones(Bool, length(Bidxs))
+    remaining_weight = 1.0
+    weights, idxs = [], []
+    brest = deepcopy(b)
+    while remaining_weight > 1e-5
+        ### Find current closest belief
+        closest_bi, min_ratio = get_best_minratio(brest, Data.B, Bidxs[remaining_Bidxs])
+        this_weight = remaining_weight * min_ratio
+        push!(idxs, closest_bi)
+        push!(weights, this_weight)
+        remaining_weight -= this_weight
+
+        ### Compute 'remaining' belief
+        brest = subtract_scaled_belief(brest, Data.B[closest_bi], min_ratio)
+    end
+    return idxs, weights
+end
+
 """Returns the belief that has the lowest minratio with b (as well as that ratio)"""
-function get_best_minratio(b, B, B_overlap::Vector)
+function get_best_minratio(b, B, Bidxs)
     best_bi, best_ratio = nothing, -Inf
     sup_b = support(b)
     n_sup_b = length(sup_b)
-    for bpi in B_overlap
-        this_ratio = Inf
+    for bpi in Bidxs
         bp = B[bpi]
+        this_ratio = Inf
         sup_bp = support(bp)
         n_sup_bp = length(sup_bp)
         bidx, bpidx = 1, 1
@@ -481,7 +521,7 @@ function get_best_minratio(b, B, B_overlap::Vector)
             elseif sb < sbp
                 bidx += 1
             else
-                print("Error in min_ratio!")
+                this_ratio = 0
                 break
             end
         end
@@ -495,40 +535,51 @@ function get_best_minratio(b, B, B_overlap::Vector)
     return best_bi, best_ratio
 end
 
-"""Compute a weighting for b using only the belief in B with the highest minratio, plus exterior beliefs"""
-function get_closeness_weight(b, B; B_overlap=nothing, Data=nothing)
-    closest_bi, min_ratio = get_best_minratio(b,B,B_overlap)    # TODO: try this iteratively -> if its better, test both (may imply 'improved sawtooth' is valuable more generally)
-    closest_b = B[closest_bi]
-    weights, idxs = [min_ratio], [closest_bi]
-    for (s, ps) in weighted_iterator(b)
-        si = Data.S_dict[s]
-        this_weight = ps - (min_ratio * pdf(closest_b,s))
-        if this_weight != 0
-            push!(weights, this_weight)
-            push!(idxs, si)
+function subtract_scaled_belief(b, bmin, scale)
+    sup_r = support(b)
+    probs_r = b.probs
+    n_r = length(sup_r)
+
+    sup_b = support(bmin)
+    probs_b = bmin.probs
+    n_b = length(sup_b)
+
+    new_probs = Vector{Float64}(undef, n_r)
+    cum_prob = 0.0
+
+    ridx, bidx = 1, 1
+
+    while ridx <= n_r && bidx <= n_b
+        sr = sup_r[ridx]
+        sb = sup_b[bidx]
+
+        if sr == sb
+            prob = probs_r[ridx] - scale * probs_b[bidx]
+            new_probs[ridx] = prob
+            cum_prob += prob
+            ridx += 1
+            bidx += 1
+
+        elseif sr < sb
+            # state in brest but not in b_ref → prob_ref = 0
+            prob = probs_r[ridx]
+            new_probs[ridx] = prob
+            cum_prob += prob
+            ridx += 1
+
+        else
+            # state in b_ref but not in brest → irrelevant
+            bidx += 1
         end
     end
-    return idxs, weights
-end
 
-"""Computes all closest-belief weights for Bbao"""
-function get_closeness_weights_all(B, Bbao_data, Data) #TODO: can probably be combined with get_entropy_weights_all
-    B_idxs = Array{Vector{Int}}(undef, length(B))
-    B_weights = Array{Vector{Float64}}(undef, length(B))
-    for (bi, b) in enumerate(B)
-        if Bbao_data.B_in_Bbao[bi]
-            B_overlap = Bbao_data.B_overlap[bi]
-            idxs, weights = get_closeness_weight(b, B; B_overlap=B_overlap, Data=Data)
-            B_idxs[bi] = idxs; B_weights[bi] = weights
-        end
-    end 
-
-    Bbao_idxs = Array{Vector{Int}}(undef, length(Bbao_data.Bbao))
-    Bbao_weights = Array{Vector{Float64}}(undef, length(Bbao_data.Bbao))
-    for (bi, b) in enumerate(Bbao_data.Bbao)
-        B_overlap = Bbao_data.Bbao_overlap[bi]
-        idxs, weights = get_closeness_weight(b,B;  B_overlap=B_overlap, Data=Data)
-        Bbao_idxs[bi] = idxs; Bbao_weights[bi] = weights
+    # Remaining states in brest (no overlap with b_ref)
+    while ridx <= n_r
+        prob = probs_r[ridx]
+        new_probs[ridx] = prob
+        cum_prob += prob
+        ridx += 1
     end
-    return Weights_Data(B_idxs, B_weights,Bbao_idxs, Bbao_weights)
+
+    return DiscreteHashedBelief(b.state_list, new_probs ./ cum_prob)
 end
