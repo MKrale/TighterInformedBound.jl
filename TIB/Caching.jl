@@ -464,16 +464,25 @@ end
 
 """Compute a weighting for b using only the belief in B with the highest minratio, plus exterior beliefs"""
 function get_single_closeness_weights(b, Bidxs, Data::TIB_Data; values=nothing)
-    closest_bi, min_ratio = get_best_minratio(b, Data.B, Bidxs)    # TODO: try this iteratively -> if its better, test both (may imply 'improved sawtooth' is valuable more generally)
-    closest_b = Data.B[closest_bi]
-    weights, idxs = [min_ratio], [closest_bi]
-    for (s, ps) in weighted_iterator(b)
-        si = Data.S_dict[s]
-        this_weight = ps - (min_ratio * pdf(closest_b,s))
-        if this_weight != 0
-            push!(weights, this_weight)
-            push!(idxs, si)
-        end
+    weights, idxs = [], []
+
+    ### Find closest non-unit belief & subtract it from b
+    non_unit_beliefs = filter(bidx -> length(support(Data.B[bidx])) > 1, Bidxs)
+    if length(non_unit_beliefs) > 0
+        closest_bi, min_ratio = get_best_minratio(b, Data.B, non_unit_beliefs) 
+        push!(weights, min_ratio)
+        push!(idxs, closest_bi)
+        brest = subtract_scaled_belief(b, Data.B[closest_bi], min_ratio)
+        remaining_weight = 1.0-min_ratio
+    else
+        brest = b
+        remaining_weight = 1.0
+    end
+
+    ### Add unit beliefs to represent belief
+    for (s, ps) in weighted_iterator(brest)
+        push!(weights, ps * remaining_weight)
+        push!(idxs, Data.S_dict[s])
     end
     return idxs, weights
 end
@@ -483,20 +492,33 @@ function get_all_iterative_closeness_weights(Data::TIB_Data, Bbao_data::BBAO_Dat
 end
 
 function get_single_iterative_closeness_weights(b, Bidxs, Data::TIB_Data; values=nothing)
-    remaining_Bidxs = ones(Bool, length(Bidxs))
-    remaining_weight = 1.0
     weights, idxs = [], []
     brest = deepcopy(b)
-    while remaining_weight > 1e-5
-        ### Find current closest belief
-        closest_bi, min_ratio = get_best_minratio(brest, Data.B, Bidxs[remaining_Bidxs])
-        this_weight = remaining_weight * min_ratio
-        push!(idxs, closest_bi)
-        push!(weights, this_weight)
-        remaining_weight -= this_weight
+    remaining_weight = 1.0
 
-        ### Compute 'remaining' belief
-        brest = subtract_scaled_belief(brest, Data.B[closest_bi], min_ratio)
+    ### Iteratively find closest non-unit belief & 
+    non_unit_beliefs = filter(bidx -> length(support(Data.B[bidx])) > 1, Bidxs)
+    if length(non_unit_beliefs) > 0
+        brest = deepcopy(b)
+        remaining_weight = 1.0
+        this_weight = 1.0
+        while this_weight > 1e-5
+            ### Find current closest belief
+            closest_bi, min_ratio = get_best_minratio(brest, Data.B, non_unit_beliefs)
+            this_weight = remaining_weight * min_ratio
+            push!(idxs, closest_bi)
+            push!(weights, this_weight)
+            remaining_weight -= this_weight
+
+            ### Compute 'remaining' belief
+            brest = subtract_scaled_belief(brest, Data.B[closest_bi], min_ratio)
+        end
+    end
+
+    ### Add unit beliefs to represent belief
+    for (s, ps) in weighted_iterator(brest)
+        push!(weights, ps * remaining_weight)
+        push!(idxs, Data.S_dict[s])
     end
     return idxs, weights
 end
@@ -504,6 +526,7 @@ end
 """Returns the belief that has the lowest minratio with b (as well as that ratio)"""
 function get_best_minratio(b, B, Bidxs)
     best_bi, best_ratio = nothing, -Inf
+    best_bi_nonunit, best_ratio_nonunit = nothing, -Inf
     sup_b = support(b)
     n_sup_b = length(sup_b)
     for bpi in Bidxs
