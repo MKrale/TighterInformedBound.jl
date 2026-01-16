@@ -9,7 +9,7 @@ struct DiscreteHashedBelief{S}
     hash::UInt
 end
 
-function DiscreteHashedBelief(state_list::Vector{S}, probs::Vector{<:Float64}) where S
+function DiscreteHashedBelief{S}(state_list::Vector{S}, probs::Vector{<:Float64}) where S
     nonzero_els = findall(>(0),probs)
     state_list = state_list[nonzero_els]
     probs = Float64.(probs[nonzero_els])
@@ -17,17 +17,17 @@ function DiscreteHashedBelief(state_list::Vector{S}, probs::Vector{<:Float64}) w
     ordered_state_list = state_list[idxs]
     ordered_probs = probs[idxs]
     hash = makeDBhash(ordered_state_list, ordered_probs)
-    return DiscreteHashedBelief(ordered_state_list, ordered_probs, hash)
+    return DiscreteHashedBelief{S}(ordered_state_list, ordered_probs, hash)
 end
 
 #Note: This method should only be used when b is a belief, but currently this is not checked.
 # I don't see any way to do this though: the beliefs used throughout the POMDP framework do not have a consistent supertype (even though they should all be distributions...)
 # Maybe checking for the existance of a support/pdf function would be enough, but the way of doing this in Julia (method_exists()) seems to be removed and is the only thing I can find.
-function DiscreteHashedBelief(b::SparseCat{M,S}) where M where S 
-    return DiscreteHashedBelief(b.vals, b.probs)
+function DiscreteHashedBelief{S}(b::SparseCat{Vector{S},Vector{M}}) where M<:Float64 where S 
+    return DiscreteHashedBelief{S}(b.vals, b.probs)
 end
 
-function DiscreteHashedBelief(b::Distribution{F,S}) where F where S 
+function DiscreteHashedBelief{S}(b::Distribution{F,S}) where F where S 
     states, probs = [], Float64[]
     for (s,p) in weighted_iterator(b)
         if p>0
@@ -35,7 +35,7 @@ function DiscreteHashedBelief(b::Distribution{F,S}) where F where S
             push!(probs,p)
         end
     end
-    return DiscreteHashedBelief(states,probs)
+    return DiscreteHashedBelief{S}(states,probs)
 end
 
 
@@ -58,8 +58,8 @@ function POMDPs.pdf(d::DiscreteHashedBelief, s)
     end
     return 0
 end
-POMDPs.support(d::DiscreteHashedBelief) = d.state_list
-POMDPTools.weighted_iterator(b::DiscreteHashedBelief) = zip(b.state_list, b.probs)
+POMDPs.support(d::DiscreteHashedBelief{S}) where S = d.state_list
+POMDPTools.weighted_iterator(b::DiscreteHashedBelief{S}) where S = zip(b.state_list, b.probs)
 
 Base.length(d::DiscreteHashedBelief) = length(d.state_list)
 mean(d::DiscreteHashedBelief) = throw("Function not implemented")
@@ -92,22 +92,22 @@ Base.hash(x::DiscreteHashedBelief) = hash(x,UInt(0))
 #########################################
 
 """Struct for updating DiscreteHashedBelief"""
-struct DiscreteHashedBeliefUpdater <: Updater
-    model::POMDP
+struct DiscreteHashedBeliefUpdater{S,A,O} <: Updater
+    model::X where X<:POMDP{S,A,O}
 end
 
 """Given a distribution d, create a DiscreteHashedBelief"""
-function initialize_belief(bu::DiscreteHashedBeliefUpdater, d)
+function initialize_belief(bu::DiscreteHashedBeliefUpdater{Ss}, d) where Ss
     S,P = [], []
     for (s,p) in weighted_iterator(d)
         push!(S,s); push!(P,p)
     end
-    return DiscreteHashedBelief(S,P)
+    return DiscreteHashedBelief{S}(S,P)
 end
 
-function POMDPs.update(bu::DiscreteHashedBeliefUpdater, b::DiscreteHashedBelief,a,o)
+function POMDPs.update(bu::DiscreteHashedBeliefUpdater{S}, b::DiscreteHashedBelief{S},a,o) where S
     model = bu.model
-    bnext = Dict{Any, Float64}()
+    bnext = Dict{S, Float64}()
 
     ### Collect possible next states with transition probs
     for (s, ps) in weighted_iterator(b)
@@ -117,7 +117,7 @@ function POMDPs.update(bu::DiscreteHashedBeliefUpdater, b::DiscreteHashedBelief,
     end
 
     ### Alter weights according to obs
-    bnext_ = Dict{Any, Float64}()
+    bnext_ = Dict{S, Float64}()
     for (snext, psnext) in bnext
         po = pdf(observation(model,a,snext), o)
         bnext_[snext] = psnext * po
@@ -126,7 +126,7 @@ function POMDPs.update(bu::DiscreteHashedBeliefUpdater, b::DiscreteHashedBelief,
     states, probs = collect(keys(bnext_)), collect(values(bnext_))
     probs ./= sum(probs)
 
-    return DiscreteHashedBelief(states,probs)
+    return DiscreteHashedBelief{S}(states,probs)
 end
 
 #TODO: again, we never type-check b, but I don't know how to do this...

@@ -52,7 +52,7 @@ SOLVERS_REQUIRING_BBAO = [ETIBSolver, CTIBSolver, ICTIBSolver, OTIBSolver]
 verbose = false
 POMDPs.solve(solver::X, model::POMDP) where X<: TIBSolver = solve(solver, model; Data=nothing)
 """Computes policy for TIB-style policies"""
-function solve(solver::X, model::POMDP; Data::Union{TIB_Data,Nothing}=nothing) where X<:TIBSolver
+function solve(solver::X, model::POMDP{S,A,O}; Data::Union{TIB_Data{S},Nothing}=nothing) where X<:TIBSolver where S where A where O
     t0 = time()
 
     # 1 : Cash all relevant model data
@@ -62,7 +62,7 @@ function solve(solver::X, model::POMDP; Data::Union{TIB_Data,Nothing}=nothing) w
 
     # 2 : Compute Q-values bsoa beliefs
     Qs = precompute_Qs(model, Data, solver.precomp_solver)    # ∀ b ∈ B, contains QTIB value (initialized using QMDP)
-    Data = TIB_Data(Qs, Data)
+    Data = TIB_Data{S}(Qs, Data)
 
     # 3 : If OTIB or ETIB, precompute all beliefs after 2 steps
     # Bbao_data::Union{BBAO_Data, Nothing} = nothing
@@ -122,7 +122,7 @@ function solve(solver::X, model::POMDP; Data::Union{TIB_Data,Nothing}=nothing) w
         time_left = solver.max_time-(time()-t0)
         verbose && printdb("starting iteration $it (precision = $(factor * max_dif))")
         Qs, max_dif = get_Q(model, Qs,time_left, args...)
-        Data = TIB_Data(Qs, Data)
+        Data = TIB_Data{S}(Qs, Data)
 
         it += 1
         ### Normal convergence check
@@ -158,11 +158,10 @@ function solve(solver::X, model::POMDP; Data::Union{TIB_Data,Nothing}=nothing) w
 
     end
     t_it = time()- t0 - t_init - t_w
-    print("$(solver.precision), $(solver.max_iterations), $(solver.max_time)")
     verbose && printdb("Converged with precision $(max_dif * factor)")
     verbose && printdb("iteration time $t_it (avg over $it iterations: $(t_it/it))")
 
-    return pol(model, TIB_Data(Qs,Data))
+    return pol(model, TIB_Data{S}(Qs,Data))
 end
 
 #########################################
@@ -172,7 +171,7 @@ end
 ############ Q-value Precomputations ###################
 
 """Initializes Q-values for all belies in Data.B using solver."""
-function precompute_Qs(model::POMDP, Data::TIB_Data, solver::X ; getdata=false) where X<:Union{QMDPSolver_alt, FIBSolver_alt}
+function precompute_Qs(model::POMDP{S}, Data::TIB_Data{S}, solver::X ; getdata=false) where X<:Union{QMDPSolver_alt, FIBSolver_alt} where S
 	π = solve(solver, model; Data=Data)
     B, constants = Data.B, Data.constants
     Qs = zeros(Float64, length(B), constants.na)
@@ -184,11 +183,11 @@ function precompute_Qs(model::POMDP, Data::TIB_Data, solver::X ; getdata=false) 
             end
         end
     end
-    getdata ? (return TIB_Data(Qs, Data)) : (return Qs)
+    getdata ? (return TIB_Data{S}(Qs, Data)) : (return Qs)
 end
 
 """Initializes Q-values for all belies in Data.B using solver."""
-function precompute_Qs(model::POMDP, Data::TIB_Data, solver::X ; getdata=false) where X<: TIBSolver
+function precompute_Qs(model::POMDP{S}, Data::TIB_Data{S}, solver::X ; getdata=false) where X<: TIBSolver where S
 	π = solve(solver, model; Data=Data)
     B, constants = Data.B, Data.constants
     Qs = zeros(Float64, length(B), constants.na)
@@ -197,13 +196,13 @@ function precompute_Qs(model::POMDP, Data::TIB_Data, solver::X ; getdata=false) 
             Qs[b_idx, ai] = π.Data.Q[b_idx,ai]
         end
     end
-    getdata ? (return TIB_Data(Qs, Data)) : (return Qs)
+    getdata ? (return TIB_Data{S}(Qs, Data)) : (return Qs)
 end
 
 ############ TIB ###################
 
 """Performs one iteration of TIB"""
-function get_QTIB_Beliefset(model::POMDP, Q, timeleft, Data::TIB_Data)
+function get_QTIB_Beliefset(model::POMDP{S}, Q::Qtype, timeleft::Float64, Data::TIB_Data{S}) where S where Qtype <: AbstractArray{Float64,2}
     t0 = time()
     Qs_new = zero(Q) # TODO: this may be inefficient?
     for (b_idx,b) in enumerate(Data.B)
@@ -217,7 +216,7 @@ function get_QTIB_Beliefset(model::POMDP, Q, timeleft, Data::TIB_Data)
 end
 
 """Performs one iteration of TIB for the given belief-action pair"""
-function get_QTIB_ba(model::POMDP,b,a,Qs,B_idx,Br,SAO_probs, SAOs, constants::C; ai=nothing, bi=nothing, S_dict=nothing)
+function get_QTIB_ba(model::POMDP{S},b::DiscreteHashedBelief{S},a,Qs::Qtype,B_idx,Br,SAO_probs, SAOs, constants::C{S}; ai=nothing, bi=nothing, S_dict=nothing) where S where Qtype <: AbstractArray{Float64,2}
     isnothing(ai) && ( ai=findfirst(==(a), constants.A) )
     isnothing(bi) ? (Q = breward(model,b,a)) : (Q = Br[bi,ai])
     for oi in get_possible_obs(b,ai,SAOs, S_dict)
@@ -237,13 +236,13 @@ function get_QTIB_ba(model::POMDP,b,a,Qs,B_idx,Br,SAO_probs, SAOs, constants::C;
 end
 
 # Some different function definitions for convenience:
-get_QTIB_ba(model::POMDP,b,a,Q,D::TIB_Data; bi=nothing, ai=nothing) = get_QTIB_ba(model,b,a, Q, D.B_idx, D.Br, D.SAO_probs, D.SAOs, D.constants; bi=bi, ai=ai, S_dict=D.S_dict)
-get_QTIB_ba(model::POMDP,b,a,D::TIB_Data; bi=nothing, ai=nothing) = get_QTIB_ba(model,b,a, D.Q, D.B_idx, D.Br, D.SAO_probs, D.SAOs, D.constants; bi=bi, ai=ai, S_dict=D.S_dict)
+get_QTIB_ba(model::POMDP{S},b::DiscreteHashedBelief{S},a,Q,D::TIB_Data{S}; bi=nothing, ai=nothing) where S = get_QTIB_ba(model,b,a, Q, D.B_idx, D.Br, D.SAO_probs, D.SAOs, D.constants; bi=bi, ai=ai, S_dict=D.S_dict)
+get_QTIB_ba(model::POMDP{S},b::DiscreteHashedBelief{S},a,D::TIB_Data{S}; bi=nothing, ai=nothing) where S = get_QTIB_ba(model,b,a, D.Q, D.B_idx, D.Br, D.SAO_probs, D.SAOs, D.constants; bi=bi, ai=ai, S_dict=D.S_dict)
 
 ########## Heuristics with pre-computed weights (OTIB, ETIB, CTIB) ###########
 
 """Performs one iteration of ETIB"""
-function Get_Q_weights_Beliefset(model::POMDP,Q, timeleft, Data::TIB_Data, Bbao_data, Weights)
+function Get_Q_weights_Beliefset(model::POMDP{S}, Q::Qtype, timeleft, Data::TIB_Data{S}, Bbao_data::BBAO_Data{S}, Weights) where S where Qtype <: AbstractArray{Float64,2}
     Qs_new = zero(Q) # TODO: this may be inefficient?
     t0 = time()
     for (b_idx,b) in enumerate(Data.B)
@@ -257,10 +256,10 @@ function Get_Q_weights_Beliefset(model::POMDP,Q, timeleft, Data::TIB_Data, Bbao_
 end
 
 """Performs one iteration of ETIB for the given belief-action pair, using pre-computed weights"""
-function get_Q_weights_ba(model::POMDP,bi, ai, Qs, Data::TIB_Data, Bbao_data::BBAO_Data, Weights_data::Weights_Data)
+function get_Q_weights_ba(model::POMDP{S},bi::Int, ai::Int, Qs::Qtype, Data::TIB_Data{S}, Bbao_data::BBAO_Data{S}, Weights_data::Weights_Data) where S where Qtype <: AbstractArray{Float64,2}
     # SAOs, constants, S_dict = Data.SAOs, Data.constants, Data.S_dict
     Q = Data.Br[bi,ai]
-    Os = get_possible_obs( (true,bi) ,ai,Data,Bbao_data)
+    Os = get_possible_obs((true,bi),ai,Data,Bbao_data)
     for oi in Os
         o = Data.constants.O[oi]
         bao = get_bao(Bbao_data, bi, ai, oi, Data.B)
@@ -272,12 +271,12 @@ function get_Q_weights_ba(model::POMDP,bi, ai, Qs, Data::TIB_Data, Bbao_data::BB
 end
 
 """Performs one iteration of ETIB for the given belief-action pair, computing weights for b on the spot"""
-function get_Q_weights_ba(model::POMDP, b, a, Data::TIB_Data; weight_function = get_single_entropy_weights)
+function get_Q_weights_ba(model::POMDP{S,A,O}, b::DiscreteHashedBelief{S}, a, Data::TIB_Data{S}; weight_function = get_single_entropy_weights) where S where A where O
     ai = actionindex(model, a)
     Q = breward(model,b,a)
     for (oi, po) in get_possible_obs_probs(b,ai,Data.SAOs,Data.SAO_probs,Data.S_dict)
         o = Data.constants.O[oi]
-        bao = update(DiscreteHashedBeliefUpdater(model),b,a,o)
+        bao = update(DiscreteHashedBeliefUpdater{S,A,O}(model),b,a,o)
         _relevant_Bs, relevant_Bis = get_overlapping_beliefs(bao, Data.B)
         idxs, weights = weight_function(bao, relevant_Bis, Data)
         Qo = maximum( sum(weights .* Data.Q[idxs,:], dims=1) )
@@ -338,13 +337,13 @@ end
 
 # ETIB and CTIB essentially do the same, except with different ways of finding weights. 
 # Thus, we generalize as follows:
-action_value(π::ETIBPolicy, b) = action_value_preweights(π, b; weight_function=get_single_entropy_weights)
-action_value(π::CTIBPolicy, b) = action_value_preweights(π, b; weight_function=get_single_closeness_weights)
-action_value(π::ICTIBPolicy, b) = action_value_preweights(π, b; weight_function=get_single_iterative_closeness_weights)
-action_value(π::OTIBPolicy, b) = action_value_preweights(π, b; weight_function=get_single_optimal_weights)
-function action_value_preweights(π::X, b; weight_function = get_single_entropy_weights) where X<:TIBPolicy
+action_value(π::X, b::SparseCat{Vector{S}}) where X <:TIBPolicy where S = action_value(π, DiscreteHashedBelief{S}(b))
+action_value(π::ETIBPolicy, b::DiscreteHashedBelief{S}) where S = action_value_preweights(π, b; weight_function=get_single_entropy_weights)
+action_value(π::CTIBPolicy, b::DiscreteHashedBelief{S}) where S = action_value_preweights(π, b; weight_function=get_single_closeness_weights)
+action_value(π::ICTIBPolicy, b::DiscreteHashedBelief{S}) where S = action_value_preweights(π, b; weight_function=get_single_iterative_closeness_weights)
+action_value(π::OTIBPolicy, b::DiscreteHashedBelief{S}) where S = action_value_preweights(π, b; weight_function=get_single_optimal_weights)
+function action_value_preweights(π::X, b::DiscreteHashedBelief{S}; weight_function = get_single_entropy_weights) where X<:TIBPolicy where S
     trace = stacktrace()
-    b = DiscreteHashedBelief(b)
     model = π.model
     bestQ, bestA = -Inf, nothing
     for (ai,a) in enumerate(π.Data.constants.A)

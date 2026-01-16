@@ -21,7 +21,7 @@ struct QMDPPlanner_alt <: QS_table_policy
 end
 
 """Returns max_{s,a} R(s,a)"""
-get_max_r(m::POMDP) = get_max_r(m,states(m), actions(m))
+get_max_r(m::POMDP{S}) where S = get_max_r(m,states(m), actions(m))
 function get_max_r(m,S, A)
     maxr = 0
     for s in S
@@ -32,10 +32,10 @@ function get_max_r(m,S, A)
     return maxr 
 end
 
-POMDPs.solve(sol::QMDPSolver_alt, m::POMDP) = solve(sol,m)
+POMDPs.solve(sol::QMDPSolver_alt, m::POMDP{S}) where S = solve(sol,m)
 
 """Computes a QMDP policy using value iteration"""
-function solve(sol::QMDPSolver_alt, m::POMDP; C=nothing, S_dict=nothing)
+function solve(sol::QMDPSolver_alt, m::POMDP{S,A,O}; C=nothing, S_dict=nothing) where S where A where O
     # Intialization
     t0 = time()
     C isa Nothing && (C = get_constants(m))
@@ -50,14 +50,14 @@ function solve(sol::QMDPSolver_alt, m::POMDP; C=nothing, S_dict=nothing)
     factor = discount(m) / (1-discount(m))
 
     # Precompute T & R (in case they have slow implementations)
-    T = Array{DiscreteHashedBelief}(undef,C.na,C.ns)
+    T = Array{DiscreteHashedBelief{S}}(undef,C.na,C.ns)
     R = zeros(Float64, C.na, C.ns)
     for (si, s) in enumerate(C.S)
         for (ai, a) in enumerate(C.A)
-            T[ai,si] = DiscreteHashedBelief(transition(m,s,a))
+            T[ai,si] = DiscreteHashedBelief{S}(transition(m,s,a))
             R[ai,si] = reward(m,s,a)
         end
-    ends
+    end
     # Lets iterate!
     i=0
     largest_change = Inf
@@ -102,14 +102,14 @@ struct FIBPlanner_alt <: QS_table_policy
 end
 
 
-POMDPs.solve(sol::FIBSolver_alt, m::POMDP) = solve(sol,m;Data=nothing)
+POMDPs.solve(sol::FIBSolver_alt, m::POMDP{S}) where S = solve(sol,m;Data=nothing)
 
-function solve(sol::FIBSolver_alt, m::POMDP; Data = nothing)
+function solve(sol::FIBSolver_alt, m::POMDP{S,A,O}; Data::Union{TIB_Data{S}, Nothing} = nothing) where S where A where O
     # Initialization & cachin
     t0 = time()
     if Data isa Nothing
         C = get_constants(m)
-        S_dict = Dict{eltype(C.S),Int}( zip(C.S, 1:C.ns))
+        S_dict = Dict{S,Int}( zip(C.S, 1:C.ns))
 
         SAO_probs, SAOs = get_all_obs_probs(m, C)
 

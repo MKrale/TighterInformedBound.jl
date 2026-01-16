@@ -376,7 +376,7 @@ for (m_idx,(model, modelargs)) in enumerate(zip(envs, envargs))
         end       
 
         # fg = flamegraph(Profile.fetch(); norepl=true, combine=true)
-        # ProfileSVG.save("flamegraph.svg", fg; width=2400, fontsize=10, maxdepth=40, maxframes=10_000)
+        # ProfileSVG.save("flamegraph.svg", fg; width=3600, fontsize=10, maxdepth=40, maxframes=10_000)
 
         ### Policy simulation (very slow, so not used)
         #rs = []

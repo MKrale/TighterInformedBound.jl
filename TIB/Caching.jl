@@ -1,37 +1,38 @@
 # Contains code for all the caching required to make (E/O)TIB run efficiently
 
 """Struct containing parameter vectors & sizes, to prevent calling (possibly expensive) POMDP functions"""
-struct C
-    S; A; O 
-    ns; na; no
+struct C{S,A,O}
+    S::Vector{S}; A::Vector{A}; O::Vector{O} 
+    ns::Int; na::Int; no::Int
 end
-get_constants(model) = C( sort(collect(states(model))), sort(collect(actions(model))), sort(collect(observations(model))),
-                         length(states(model)), length(actions(model)), length(observations(model)))
-
+function get_constants(model::POMDP{S,A,O}) where S where A where O 
+    return C( sort(collect(states(model))), sort(collect(actions(model))), sort(collect(observations(model))),
+            length(states(model)), length(actions(model)), length(observations(model)))
+end
 
 #########################################
 #             TIB_Data:
 #########################################
 
 """Precomputed data used by TIB solvers & policies"""
-struct TIB_Data
-    Q::Union{Array{Float64,2}, Nothing}     # bi, ai -> Q
-    B::Vector                               # bi -> b
-    B_idx::Array{Int,3}                     # si,ai,oi -> bi
-    Br::Array{Float64,2}                    # bi -> reward
-    SAO_probs::Array{Float64,3}             # si,ai,oi -> p
-    SAOs::Array{Vector{Int},2}              # si,ai -> oi
-    S_dict::Dict{Any, Int}                  # s -> si
-    constants::C                     
+struct TIB_Data{S}
+    Q::Union{AbstractArray{Float64,2}, Nothing}     # bi, ai -> Q
+    B::Vector{DiscreteHashedBelief{S}}              # bi -> b
+    B_idx::AbstractArray{Int64,3}                     # si,ai,oi -> bi
+    Br::AbstractArray{Float64,2}                    # bi -> reward
+    SAO_probs::AbstractArray{Float64,3}             # si,ai,oi -> p
+    SAOs::AbstractArray{Vector{Int64},2}              # si,ai -> [oi]
+    S_dict::Dict{S, Int64}                            # s -> si
+    constants::C{S}                     
 end
 
-TIB_Data(Q::Array{Float64,2}, D::TIB_Data) = TIB_Data(Q,D.B, D.B_idx, D.Br, D.SAO_probs, D.SAOs, D.S_dict, D.constants) 
+TIB_Data{S}(Q::Array{Float64,2}, D::TIB_Data{S}) where S = TIB_Data{S}(Q,D.B, D.B_idx, D.Br, D.SAO_probs, D.SAOs, D.S_dict, D.constants) 
 
 """Precomputed data used by FIB & QMDP"""
-struct Simple_Data
+struct Simple_Data{S}
     Q::Union{Array{Float64,2}, Nothing}     # si, ai -> Q
     V::Union{Array{Float64,1}, Nothing}     # si -> V
-    S_dict::Dict{Any, Int}                  # s -> si
+    S_dict::Dict{S, Int}                  # s -> si
     constants::C
 end
 
@@ -39,12 +40,12 @@ end
 Computes the probabilities of each observation for each state-action pair. \n 
 Returns: SAO_probs ((s,a,o)->p), SAOs ((s,a) -> os with p>0)
 """
-function get_all_obs_probs(model::POMDP, constants::C)
+function get_all_obs_probs(model::POMDP{Ss, As, Os}, constants::C{Ss,As,Os}) where Ss where As where Os
     S,A,O = constants.S , constants.A, constants.O
     ns, na, no = constants.ns, constants.na, constants.no
-    O_dict = Dict( zip(O, 1:no))   
+    O_dict = Dict{Os, Int}( zip(O, 1:no))   
 
-    SAO_probs = zeros(no,ns,na)
+    SAO_probs = zeros(Float64, no,ns,na)
     SAOs = Array{Vector{Int}}(undef,ns,na)
     for si in 1:ns
         for ai in 1:na
@@ -53,7 +54,7 @@ function get_all_obs_probs(model::POMDP, constants::C)
     end
     for (si, s) in enumerate(constants.S)
         for (ai, a) in enumerate(constants.A)
-            obs_probs = Dict()
+            obs_probs = Dict{Int, Float64}()
             for (sp, psp) in weighted_iterator(transition(model,s,a))
                 for (o, po) in weighted_iterator(observation(model,a,sp))
                     oi = O_dict[o]
@@ -79,7 +80,7 @@ function get_obs_prob(model::POMDP, o,s,a)
     return p
 end
 """Computes the probability of an observation given a belief-action pair."""
-function get_obs_prob(model::POMDP, o, b::DiscreteHashedBelief, a) 
+function get_obs_prob(model::POMDP{S,A,O}, o, b::DiscreteHashedBelief{S}, a) where S where A where O 
     sum = 0
     for (s,p) in zip(b.state_list, b.probs)
         sum += p*get_obs_prob(model,o,s,a)
@@ -98,7 +99,7 @@ function get_possible_obs(b::DiscreteHashedBelief, ai, SAOs, S_dict)
     return collect(possible_os)
 end
 """Computes observations-prob dictionary of possible observations given a belief and action"""
-function get_possible_obs_probs(b::DiscreteHashedBelief, ai, SAOs,SAO_probs, S_dict)
+function get_possible_obs_probs(b::DiscreteHashedBelief{S}, ai, SAOs,SAO_probs, S_dict) where S
     possible_os = Dict{Int, Float64}()
     for (s, ps) in weighted_iterator(b)
         si = S_dict[s]
@@ -110,13 +111,13 @@ function get_possible_obs_probs(b::DiscreteHashedBelief, ai, SAOs,SAO_probs, S_d
 end
 
 """Constructs TIB_DATA from the given model"""
-function get_TIB_Data(model)
+function get_TIB_Data(model::POMDP{S}) where S
     constants = get_constants(model)
     SAO_probs, SAOs = get_all_obs_probs(model, constants)
     S_dict = Dict{eltype(constants.S),Int}( zip(constants.S, 1:constants.ns))                                   
     B, B_idx = get_belief_set(model, SAOs, constants)
     Br = get_Br(model, B, constants)
-    return TIB_Data(nothing,B,B_idx,Br,SAO_probs,SAOs,S_dict,constants)
+    return TIB_Data{S}(nothing,B,B_idx,Br,SAO_probs,SAOs,S_dict,constants)
 end
 
 """
@@ -124,24 +125,24 @@ Computes all (unique) one-step beliefs
 
 Returns: a vector with these beliefs, as well as a 3D array mapping (s,a,o)-indexes to these beliefs
 """
-function get_belief_set(model::POMDP, SAOs, constants::C)
+function get_belief_set(model::POMDP{Ss,As,Os}, SAOs, constants::C{Ss,As,Os}) where Ss where As where Os
     isnothing(constants) && throw("Not implemented error! (get_obs_probs)")
     S, A, O = constants.S, constants.A, constants.O
     ns,na,no = constants.ns, constants.na, constants.no
-    U = DiscreteHashedBeliefUpdater(model)
+    U = DiscreteHashedBeliefUpdater{Ss, As, Os}(model)
 
-    B = Array{DiscreteHashedBelief,1}()       
+    B = Array{DiscreteHashedBelief{Ss},1}()       
     B_idx = zeros(Int,ns,na,no)
     B_dict = Dict()   
 
     ### Initialize with unit beliefs and initial belief
     ### Note: technically we should ignore the unit beliefs for ETIB, but we currently do not
     for (si, s) in enumerate(S) 
-        bs = DiscreteHashedBelief([s],[1.0])
+        bs = DiscreteHashedBelief{Ss}([s],[1.0])
         push!(B, bs)
         B_dict[bs] = si
     end
-    b_init = DiscreteHashedBelief(initialstate(model))
+    b_init = DiscreteHashedBelief{Ss}(initialstate(model))
     k = get(B_dict, b_init, nothing)
     if isnothing(k)
         push!(B,b_init)
@@ -150,7 +151,7 @@ function get_belief_set(model::POMDP, SAOs, constants::C)
 
     # Loop through all 1-step transitions and records new beliefs
     for (si,s) in enumerate(S)
-        b_s = DiscreteHashedBelief([s],[1.0])
+        b_s = DiscreteHashedBelief{Ss}([s],[1.0])
         for (ai,a) in enumerate(A)
             for oi in SAOs[si,ai]
                 o = O[oi]
@@ -188,29 +189,29 @@ end
 """
 Pre-computed data regarding two-step beliefs, as used by ETIB, CTIB and OTIB
 """
-struct BBAO_Data
-    Bbao::Vector                                    # Vector of 2-step beliefs (excluding already-found 1-step beliefs!)
-    Bbao_idx::Array{Dict{Int,Tuple{Bool,Int}},2}    # bi, ai, oi -> bpi     : gives Bbao-index for each transition
-    BAO_probs::Array{Float64,3}                     # bi, ai, oi -> p       : gives probability of each transition
-    B_in_Bbao::BitVector                            # bi -> Bool            : is the one-step also a 2-step belief?
-    B_overlap::Array{Vector{Int}}                   # bi -> [bi]            : Gives vector of all beliefs who's support is a subset of the support of bi
-    Bbao_overlap::Array{Vector{Int}}                # bi -> [bi]            : Gives vector all beliefs who's support is a subset of the support of bi
-    # Valid_weights::Array{Dict{Int,Float64}}         # bi -> {(bi,p)}        : a valid initial weighting for each belief in Bbao
+struct BBAO_Data{S}
+    Bbao::Vector{DiscreteHashedBelief{S}}                   # Vector of 2-step beliefs (excluding already-found 1-step beliefs!)
+    Bbao_idx::Array{Dict{Int,Tuple{Bool,Int}},2}            # bi, ai, oi -> bpi     : gives Bbao-index for each transition
+    BAO_probs::AbstractArray{Float64,3}                     # bi, ai, oi -> p       : gives probability of each transition
+    B_in_Bbao::AbstractArray{Bool}                          # bi -> Bool            : is the one-step also a 2-step belief?
+    B_overlap::AbstractArray{Vector{Int}}                   # bi -> [bi]            : Gives vector of all beliefs who's support is a subset of the support of bi
+    Bbao_overlap::AbstractArray{Vector{Int}}                # bi -> [bi]            : Gives vector all beliefs who's support is a subset of the support of bi
+    # Valid_weights::Array{Dict{Int,Float64}}               # bi -> {(bi,p)}        : a valid initial weighting for each belief in Bbao
 end
 
 """Convenience function to get belief given transition"""
-function get_bao(Bbao_data::BBAO_Data, bi::Int, ai::Int, oi::Int, B)
-    in_B, baoi = Bbao_data.Bbao_idx[bi,ai][oi]
+function get_bao(Bbao_data::BBAO_Data{S}, bi::Int, ai::Int, oi::Int, B::Vector{DiscreteHashedBelief{S}}) where S
+    (in_B, baoi) = Bbao_data.Bbao_idx[bi,ai][oi]
     in_B ? (return B[baoi]) : (return Bbao_data.Bbao[baoi])
 end
 """Convenience function to get overlapping beliefs given transition"""
-function get_overlap(Bbao_data::BBAO_Data, bi::Int, ai::Int, oi::Int)
+function get_overlap(Bbao_data::BBAO_Data{S}, bi::Int, ai::Int, oi::Int) where S
     in_B, baoi = Bbao_data.Bbao_idx[bi,ai][oi]
     in_B ? (return Bbao_data.B_overlap[baoi]) : (return Bbao_data.Bbao_overlap[baoi])
 end
 
 """Computes all possible observations after the given belief-action pair"""
-function get_possible_obs(bi::Tuple{Bool, Int}, ai, Data::TIB_Data, Bbao_data::BBAO_Data)
+function get_possible_obs(bi::Tuple{Bool, Int}, ai, Data::TIB_Data{S}, Bbao_data::BBAO_Data{S}) where S
     if !first(bi)
         b = Data.B[last(bi)]
         possible_os = Set{Int}
@@ -225,22 +226,22 @@ function get_possible_obs(bi::Tuple{Bool, Int}, ai, Data::TIB_Data, Bbao_data::B
 end
 
 """Constructs BBAO_Data"""
-function get_Bbao(model, Data::TIB_Data, constants)
+function get_Bbao(model::POMDP{S,A,O}, Data::TIB_Data{S}, constants::C{S,A,O}) where S where A where O
 
     # Preperations:
     B = Data.B
     S_dict = Data.S_dict
-    O_dict = Dict( zip(constants.O, 1:constants.no) )
-    U = DiscreteHashedBeliefUpdater(model)
+    O_dict = Dict{O,Int}( zip(constants.O, 1:constants.no) )
+    U = DiscreteHashedBeliefUpdater{S, A, O}(model)
     nb = length(B)
 
-    Bbao = []
-    BAO_probs = zeros(constants.no,nb,constants.na)
+    Bbao = DiscreteHashedBelief{S}[]
+    BAO_probs = zeros(Float64, constants.no,nb,constants.na)
     B_in_Bboa = zeros(Bool, length(B))
     Bbao_valid_weights = Dict{Int,Float64}[]
     Bbao_idx = Array{Dict{Int, Tuple{Bool,Int}}}(undef, nb, constants.na)
 
-    Bs_found = Dict(zip(B, map( idx -> (true, idx), 1:length(B))))
+    Bs_found = Dict{DiscreteHashedBelief{S}, Tuple{Bool,Int}}(zip(B, map( idx -> (true, idx), 1:length(B))))
 
     # Record all two-step beliefs: reference B if it's already in there, otherwise add to Bbao
     for (bi,b) in enumerate(B)
@@ -275,7 +276,7 @@ function get_Bbao(model, Data::TIB_Data, constants)
     B_overlap = Array{Vector{Int}}(undef, nb)
     Bbao_overlap = Array{Vector{Int}}(undef, nbao)
     # For each belief, determine the state with the lowest index with non-zero support (speeds up overlap computations)
-    Bs_lowest_support_state = Dict()
+    Bs_lowest_support_state = Dict{Int, Vector{Int}}()
     for (bi, b) in enumerate(B)
         sidx_lowest = S_dict[support(b)[1]]
         if haskey(Bs_lowest_support_state, sidx_lowest)
@@ -318,7 +319,7 @@ function get_Bbao(model, Data::TIB_Data, constants)
 end
 
 """Returns true if the support of bp is a subset of the support of b"""
-function have_overlap(b,bp)
+function have_overlap(b::DiscreteHashedBelief{S},bp::DiscreteHashedBelief{S}) where S
     bidx, bpidx = 1, 1
     sup_b, sup_bp = support(b), support(bp)
     n_sup_b, n_sup_bp = length(sup_b), length(sup_bp)
@@ -336,8 +337,8 @@ function have_overlap(b,bp)
 end
 
 """Finds all beliefs in B where the support is a subset of that of b"""
-function get_overlapping_beliefs(b, B::Vector)
-    Bs, B_idxs = [], []
+function get_overlapping_beliefs(b::DiscreteHashedBelief{S}, B::Vector{DiscreteHashedBelief{S}}) where S
+    Bs, B_idxs = DiscreteHashedBelief{S}[], Int[]
     for (bpi, bp) in enumerate(B)
         if have_overlap(b,bp)
             push!(Bs, bp)
@@ -348,7 +349,7 @@ function get_overlapping_beliefs(b, B::Vector)
 end
 
 """Computes the state-entropy of a belief"""
-function get_entropy(b)
+function get_entropy(b::DiscreteHashedBelief{S}) where S
     entropy = 0
     for (s,p) in weighted_iterator(b)
         entropy += -log(p) * p
@@ -371,7 +372,7 @@ struct Weights_Data
 end
 
 """Convenience function to get weights for a given bi,ai,oi tuple."""
-function get_weights(Bbao_data::BBAO_Data, weights_data::Weights_Data, bi, ai, oi)
+function get_weights(Bbao_data::BBAO_Data{S}, weights_data::Weights_Data, bi::Int, ai::Int, oi::Int) where S
     in_B, baoi = Bbao_data.Bbao_idx[bi,ai][oi]
     if in_B
         return (weights_data.B_idxs[baoi], weights_data.B_weights[baoi])
@@ -380,7 +381,7 @@ function get_weights(Bbao_data::BBAO_Data, weights_data::Weights_Data, bi, ai, o
     end
 end
 
-function get_all_weights(B, Bbao_data::BBAO_Data, Data::TIB_Data, compute_single_weights=get_single_closeness_weights; values = nothing)
+function get_all_weights(B::Vector{DiscreteHashedBelief{S}}, Bbao_data::BBAO_Data{S}, Data::TIB_Data{S}, compute_single_weights=get_single_closeness_weights; values = nothing) where S
     B_idxs = Array{Vector{Int}}(undef, length(B))
     B_weights = Array{Vector{Float64}}(undef, length(B))
 
@@ -407,11 +408,11 @@ end
 
 ########## Entropy weights ##########
 
-function get_all_entropy_weights(Data::TIB_Data, Bbao_data::BBAO_Data; entropies=nothing) 
+function get_all_entropy_weights(Data::TIB_Data{S}, Bbao_data::BBAO_Data{S}; entropies=nothing) where S
     return get_all_weights(Data.B, Bbao_data, Data, get_single_entropy_weights; values = entropies)
 end
 
-function get_single_entropy_weights(b::DiscreteHashedBelief, Bidxs_overlap, Data::TIB_Data; model=nothing, values=nothing)
+function get_single_entropy_weights(b::DiscreteHashedBelief{S}, Bidxs_overlap, Data::TIB_Data; model=nothing, values=nothing) where S
     if model isa Nothing
         model = Model(Clp.Optimizer; add_bridges=false)
         set_silent(model)
@@ -458,12 +459,12 @@ end
 
 ########## Closest belief weights ##########
 
-function get_all_closeness_weights(Data::TIB_Data, Bbao_data::BBAO_Data)
+function get_all_closeness_weights(Data::TIB_Data{S}, Bbao_data::BBAO_Data{S}) where S
     return return get_all_weights(Data.B, Bbao_data, Data, get_single_closeness_weights)
 end
 
 """Compute a weighting for b using only the belief in B with the highest minratio, plus exterior beliefs"""
-function get_single_closeness_weights(b, Bidxs, Data::TIB_Data; values=nothing)
+function get_single_closeness_weights(b::DiscreteHashedBelief{S}, Bidxs::Vector{Int}, Data::TIB_Data{S}; values=nothing) where S
     weights, idxs = [], []
 
     ### Find closest non-unit belief & subtract it from b
@@ -487,11 +488,11 @@ function get_single_closeness_weights(b, Bidxs, Data::TIB_Data; values=nothing)
     return idxs, weights
 end
 
-function get_all_iterative_closeness_weights(Data::TIB_Data, Bbao_data::BBAO_Data)
+function get_all_iterative_closeness_weights(Data::TIB_Data{S}, Bbao_data::BBAO_Data{S}) where S
     return get_all_weights(Data.B, Bbao_data, Data, get_single_iterative_closeness_weights)
 end
 
-function get_single_iterative_closeness_weights(b, Bidxs, Data::TIB_Data; values=nothing)
+function get_single_iterative_closeness_weights(b::DiscreteHashedBelief{S}, Bidxs, Data::TIB_Data{S}; values=nothing) where S
     weights, idxs = [], []
     brest = deepcopy(b)
     remaining_weight = 1.0
@@ -524,7 +525,7 @@ function get_single_iterative_closeness_weights(b, Bidxs, Data::TIB_Data; values
 end
 
 """Returns the belief that has the lowest minratio with b (as well as that ratio)"""
-function get_best_minratio(b, B, Bidxs)
+function get_best_minratio(b::DiscreteHashedBelief{S}, B::Vector{DiscreteHashedBelief{S}}, Bidxs::Vector{Int}) where S
     best_bi, best_ratio = nothing, -Inf
     best_bi_nonunit, best_ratio_nonunit = nothing, -Inf
     sup_b = support(b)
@@ -558,7 +559,7 @@ function get_best_minratio(b, B, Bidxs)
     return best_bi, best_ratio
 end
 
-function subtract_scaled_belief(b, bmin, scale)
+function subtract_scaled_belief(b::DiscreteHashedBelief{S}, bmin::DiscreteHashedBelief{S}, scale::Float64) where S
     sup_r = support(b)
     probs_r = b.probs
     n_r = length(sup_r)
@@ -604,16 +605,16 @@ function subtract_scaled_belief(b, bmin, scale)
         ridx += 1
     end
 
-    return DiscreteHashedBelief(b.state_list, new_probs ./ cum_prob)
+    return DiscreteHashedBelief{S}(b.state_list, new_probs ./ cum_prob)
 end
 
 ########## optimal belief weights ##########
 
-function get_all_optimal_weights(Data::TIB_Data, Bbao_data::BBAO_Data; Qs=nothing)
+function get_all_optimal_weights(Data::TIB_Data{S}, Bbao_data::BBAO_Data{S}; Qs=nothing) where S
     return get_all_weights(Data.B, Bbao_data, Data, get_single_optimal_weights; values = Qs)
 end
 
-function get_single_optimal_weights(b, Bidxs, Data::TIB_Data; model=nothing, values=nothing, return_value=false)
+function get_single_optimal_weights(b::DiscreteHashedBelief{S}, Bidxs::Vector{Int}, Data::TIB_Data{S}; model=nothing, values=nothing, return_value=false) where S
     if model isa Nothing
         model = Model(Clp.Optimizer; add_bridges=false)
         set_silent(model)
