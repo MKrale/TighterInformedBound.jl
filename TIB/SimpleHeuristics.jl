@@ -39,10 +39,10 @@ function solve(sol::QMDPSolver_alt, m::POMDP; C=nothing, S_dict=nothing)
     # Intialization
     t0 = time()
     C isa Nothing && (C = get_constants(m))
-    S_dict isa Nothing && (S_dict = Dict( zip(C.S, 1:C.ns)))
+    S_dict isa Nothing && (S_dict = Dict{eltype(C.S),Int}( zip(C.S, 1:C.ns)))
 
-    Q = zeros(C.ns,C.na)
-    Qmax = zeros(C.ns)
+    Q = zeros(Float64, C.ns,C.na)
+    Qmax = zeros(Float64, C.ns)
     max_r = get_max_r(m,C.S, C.A)
     maxQ = max_r / (1-discount(m))
     Q[:,:] .= maxQ
@@ -51,24 +51,23 @@ function solve(sol::QMDPSolver_alt, m::POMDP; C=nothing, S_dict=nothing)
 
     # Precompute T & R (in case they have slow implementations)
     T = Array{DiscreteHashedBelief}(undef,C.na,C.ns)
-    R = zeros(C.na, C.ns)
+    R = zeros(Float64, C.na, C.ns)
     for (si, s) in enumerate(C.S)
         for (ai, a) in enumerate(C.A)
             T[ai,si] = DiscreteHashedBelief(transition(m,s,a))
             R[ai,si] = reward(m,s,a)
         end
-    end
-
+    ends
     # Lets iterate!
     i=0
     largest_change = Inf
 
     while (factor * largest_change > sol.precision) && (i < sol.max_iterations)
         i+=1
-        largest_change = 0
+        largest_change = 0.0
         for (si,s) in enumerate(C.S)
             for (ai,a) in enumerate(C.A)
-                Qnext = 0
+                Qnext = 0.0
                 for (sp, psp) in weighted_iterator(T[ai,si])
                     Qnext += psp * Qmax[S_dict[sp]]
                 end
@@ -110,7 +109,7 @@ function solve(sol::FIBSolver_alt, m::POMDP; Data = nothing)
     t0 = time()
     if Data isa Nothing
         C = get_constants(m)
-        S_dict = Dict( zip(C.S, 1:C.ns))
+        S_dict = Dict{eltype(C.S),Int}( zip(C.S, 1:C.ns))
 
         SAO_probs, SAOs = get_all_obs_probs(m, C)
 

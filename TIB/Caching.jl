@@ -113,7 +113,7 @@ end
 function get_TIB_Data(model)
     constants = get_constants(model)
     SAO_probs, SAOs = get_all_obs_probs(model, constants)
-    S_dict = Dict( zip(constants.S, 1:constants.ns))                                   
+    S_dict = Dict{eltype(constants.S),Int}( zip(constants.S, 1:constants.ns))                                   
     B, B_idx = get_belief_set(model, SAOs, constants)
     Br = get_Br(model, B, constants)
     return TIB_Data(nothing,B,B_idx,Br,SAO_probs,SAOs,S_dict,constants)
@@ -605,4 +605,49 @@ function subtract_scaled_belief(b, bmin, scale)
     end
 
     return DiscreteHashedBelief(b.state_list, new_probs ./ cum_prob)
+end
+
+########## optimal belief weights ##########
+
+function get_all_optimal_weights(Data::TIB_Data, Bbao_data::BBAO_Data; Qs=nothing)
+    return get_all_weights(Data.B, Bbao_data, Data, get_single_optimal_weights; values = Qs)
+end
+
+function get_single_optimal_weights(b, Bidxs, Data::TIB_Data; model=nothing, values=nothing, return_value=false)
+    if model isa Nothing
+        model = Model(Clp.Optimizer; add_bridges=false)
+        set_silent(model)
+        set_string_names_on_creation(model, false)
+    end
+
+    Qs = Data.Q[Bidxs, :]
+    B = Data.B[Bidxs]
+
+    @variable(model, 0.0 <= b_ps[1:length(B)] <= 1.0)
+    @variable(model, Qmax)
+
+    # Constraint 1: set must represent b
+    for (s, ps) in weighted_iterator(b)
+        Idx, Ps = [], []
+        for (bpi, bp) in enumerate(B)
+            p = pdf(bp,s)
+            if p > 0
+                push!(Idx, bpi)
+                push!(Ps, p)
+            end
+        end
+        length(Idx) > 0 && @constraint(model, sum(b_ps[Idx] .* Ps) == pdf(b,s) )
+    end
+
+    # Constraint 2: Qmax is Q of best action
+    for ai in 1:Data.constants.na
+        @constraint(model, Qmax >= sum(Qs[:,ai] .* b_ps))
+    end
+
+    @objective(model, Min, 1.0 * Qmax)
+    optimize!(model)
+    Q = objective_value(model)
+    return_value && (return Q)
+
+    return Bidxs, collect(JuMP.value.(b_ps))
 end

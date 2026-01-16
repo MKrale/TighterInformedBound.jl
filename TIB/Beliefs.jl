@@ -9,11 +9,13 @@ struct DiscreteHashedBelief{S}
     hash::UInt
 end
 
-function DiscreteHashedBelief(state_list::Vector, probs::Vector{<:Float64})
+function DiscreteHashedBelief(state_list::Vector{S}, probs::Vector{<:Float64}) where S
     nonzero_els = findall(>(0),probs)
-    state_list, probs = state_list[nonzero_els], probs[nonzero_els]
+    state_list = state_list[nonzero_els]
+    probs = Float64.(probs[nonzero_els])
     idxs = sortperm(state_list)
-    ordered_state_list, ordered_probs = state_list[idxs], probs[idxs]
+    ordered_state_list = state_list[idxs]
+    ordered_probs = probs[idxs]
     hash = makeDBhash(ordered_state_list, ordered_probs)
     return DiscreteHashedBelief(ordered_state_list, ordered_probs, hash)
 end
@@ -21,15 +23,19 @@ end
 #Note: This method should only be used when b is a belief, but currently this is not checked.
 # I don't see any way to do this though: the beliefs used throughout the POMDP framework do not have a consistent supertype (even though they should all be distributions...)
 # Maybe checking for the existance of a support/pdf function would be enough, but the way of doing this in Julia (method_exists()) seems to be removed and is the only thing I can find.
-function DiscreteHashedBelief(b) 
-    S,P = [], Float64[]
+function DiscreteHashedBelief(b::SparseCat{M,S}) where M where S 
+    return DiscreteHashedBelief(b.vals, b.probs)
+end
+
+function DiscreteHashedBelief(b::Distribution{F,S}) where F where S 
+    states, probs = [], Float64[]
     for (s,p) in weighted_iterator(b)
         if p>0
-            push!(S,s)
-            push!(P,p)
+            push!(states,s)
+            push!(probs,p)
         end
     end
-    return DiscreteHashedBelief(S,P)
+    return DiscreteHashedBelief(states,probs)
 end
 
 

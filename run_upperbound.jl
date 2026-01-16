@@ -5,6 +5,7 @@ using POMDPs
 using POMDPTools, POMDPFiles, ArgParse, JSON
 using Statistics, POMDPModels
 using Profile, FlameGraphs, ProfileSVG
+using InteractiveUtils
 
 include("TIB/TIB.jl")
 using .TIB
@@ -111,7 +112,7 @@ end
 if "OTIB" in solver_names
     push!(solvers, OTIBSolver)
     push!(solverargs, (name="TIBSolver (worst-case)", sargs=(max_iterations=heuristicsteps, precision=heuristicprecision, max_time=timeout), pargs=(), get_Q0=true))
-    push!(precomp_solverargs, ( sargs=(max_iterations=2, precomp_solver=ETIBSolver(max_iterations=2,precomp_solver=STIBSolver(max_iterations=2))), pargs=()))
+    push!(precomp_solverargs, ( sargs=(max_iterations=2, max_recomputes=0, precomp_solver=STIBSolver(max_iterations=2)), pargs=()))
 end
 if "SARSOP" in solver_names
     push!(solvers, NativeSARSOP_alt.SARSOPSolver)
