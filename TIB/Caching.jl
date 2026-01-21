@@ -16,17 +16,18 @@ end
 
 """Precomputed data used by TIB solvers & policies"""
 struct TIB_Data{S}
-    Q::Union{AbstractArray{Float64,2}, Nothing}     # bi, ai -> Q
+    Q::Union{Array{Float64,2}, Nothing}     # bi, ai -> Q
     B::Vector{DiscreteHashedBelief{S}}              # bi -> b
-    B_idx::AbstractArray{Int64,3}                     # si,ai,oi -> bi
-    Br::AbstractArray{Float64,2}                    # bi -> reward
-    SAO_probs::AbstractArray{Float64,3}             # si,ai,oi -> p
-    SAOs::AbstractArray{Vector{Int64},2}              # si,ai -> [oi]
+    B_idx::Array{Int64,3}                     # si,ai,oi -> bi
+    Br::Array{Float64,2}                    # bi -> reward
+    SAO_probs::Array{Float64,3}             # si,ai,oi -> p
+    SAOs::Array{Vector{Int64},2}              # si,ai -> [oi]
+    BAOs::Array{Vector{Int64}, 2}           # bi,ai -> [oi]
     S_dict::Dict{S, Int64}                            # s -> si
     constants::C{S}                     
 end
 
-TIB_Data{S}(Q::Array{Float64,2}, D::TIB_Data{S}) where S = TIB_Data{S}(Q,D.B, D.B_idx, D.Br, D.SAO_probs, D.SAOs, D.S_dict, D.constants) 
+TIB_Data{S}(Q::Array{Float64,2}, D::TIB_Data{S}) where S = TIB_Data{S}(Q,D.B, D.B_idx, D.Br, D.SAO_probs, D.SAOs, D.BAOs, D.S_dict, D.constants) 
 
 """Precomputed data used by FIB & QMDP"""
 struct Simple_Data{S}
@@ -87,27 +88,41 @@ function get_obs_prob(model::POMDP{S,A,O}, o, b::DiscreteHashedBelief{S}, a) whe
     end
     return sum
 end
+
 """Computes observations possible given a belief and action"""
-function get_possible_obs(b::DiscreteHashedBelief, ai, SAOs, S_dict)
-    possible_os = Set{Int}()
+function get_possible_obs(b::DiscreteHashedBelief{S}, ai, S_dict, SAOs) where S
+    os = Set{Int64}()
     for s in support(b)
         si = S_dict[s]
         for oi in SAOs[si,ai]
-            push!(possible_os, oi)
+            push!(os, oi)
         end
     end
-    return collect(possible_os)
+    return collect(os)
 end
+get_possible_obs(b::DiscreteHashedBelief{S}, ai, Data::TIB_Data{S}) where S = get_possible_obs(b::DiscreteHashedBelief{S}, ai, Data.S_dict, Data.SAOs)
+get_possible_obs(bi::Int, ai::Int, Data::TIB_Data) = Data.BAOs[bi,ai]
+
 """Computes observations-prob dictionary of possible observations given a belief and action"""
-function get_possible_obs_probs(b::DiscreteHashedBelief{S}, ai, SAOs,SAO_probs, S_dict) where S
+function get_possible_obs_probs(b::DiscreteHashedBelief{S}, ai, Data::TIB_Data{S}) where S
     possible_os = Dict{Int, Float64}()
     for (s, ps) in weighted_iterator(b)
-        si = S_dict[s]
-        for oi in SAOs[si,ai]
-            add_to_dict!(possible_os, oi, ps * SAO_probs[oi,si,ai])
+        si = Data.S_dict[s]
+        for oi in Data.SAOs[si,ai]
+            add_to_dict!(possible_os, oi, ps * Data.SAO_probs[oi,si,ai])
         end
     end
     return possible_os
+end
+
+function get_BAOs(B::Vector{DiscreteHashedBelief{S}}, S_dict, SAOs, constants::C{S}) where S
+    BAOs = Array{Vector{Int}}(undef,length(B),constants.na)
+    for (bi, b) in enumerate(B)
+        for ai in 1:constants.na
+            BAOs[bi,ai] = get_possible_obs(b,ai,S_dict,SAOs)
+        end
+    end
+    return BAOs
 end
 
 """Constructs TIB_DATA from the given model"""
@@ -117,7 +132,8 @@ function get_TIB_Data(model::POMDP{S}) where S
     S_dict = Dict{eltype(constants.S),Int}( zip(constants.S, 1:constants.ns))                                   
     B, B_idx = get_belief_set(model, SAOs, constants)
     Br = get_Br(model, B, constants)
-    return TIB_Data{S}(nothing,B,B_idx,Br,SAO_probs,SAOs,S_dict,constants)
+    BAOs = get_BAOs(B, S_dict, SAOs, constants)
+    return TIB_Data{S}(nothing,B,B_idx,Br,SAO_probs,SAOs, BAOs, S_dict,constants)
 end
 
 """
@@ -247,7 +263,7 @@ function get_Bbao(model::POMDP{S,A,O}, Data::TIB_Data{S}, constants::C{S,A,O}) w
     for (bi,b) in enumerate(B)
         for (ai, a) in enumerate(constants.A)
             Bbao_idx[bi,ai] = Dict{Int, Tuple{Bool, Int}}()
-            possible_obs = get_possible_obs_probs(b,ai,Data.SAOs, Data.SAO_probs, S_dict)
+            possible_obs = get_possible_obs_probs(b,ai,Data)
             for oi in keys(possible_obs)
                 BAO_probs[oi,bi,ai] = possible_obs[oi]
                 o = constants.O[oi]
@@ -545,7 +561,7 @@ function get_best_minratio(b::DiscreteHashedBelief{S}, B::Vector{DiscreteHashedB
             elseif sb < sbp
                 bidx += 1
             else
-                this_ratio = 0
+                this_ratio = 0.0
                 break
             end
         end

@@ -56,7 +56,7 @@ precision = parsed_args["precision"]
 path = parsed_args["path"]
 filename = parsed_args["filename"]
 solver_name = parsed_args["solvers"]
-solver_name == "" && (solver_name = ["standard","TIB","ETIB"])
+solver_name == "" && (solver_name = ["standard","TIB","ETIB","CTIB","MultiTIB"])
 discount = parsed_args["discount"]
 discount_str = string(discount)[3:end]
 sims = parsed_args["sims"]
@@ -108,7 +108,7 @@ if "ETIB" in solver_name
 end
 if "CTIB" in solver_name
     push!(solvers, NativeSARSOP_alt.SARSOPSolver)
-    h_solver = NativeSARSOP_alt.CTIBSolver(max_iterations=h_iterations, precision=h_precision)
+    h_solver = NativeSARSOP_alt.ICTIBSolver(max_iterations=h_iterations, precision=h_precision)
     push!(solverargs, (name="CTIB-SARSOP", sargs=( precision=precision, max_time=timeout, verbose=false, heuristic_solver=h_solver, use_only_Bs=onlyBs), pargs=()))
 
     precomp_h_solver = NativeSARSOP_alt.ETIBSolver(max_iterations=2)
@@ -116,13 +116,20 @@ if "CTIB" in solver_name
 end
 if "OTIB" in solver_name
     push!(solvers, NativeSARSOP_alt.SARSOPSolver)
-    h_solver = NativeSARSOP_alt.OTIBSolver(max_iterations=h_iterations, precision=h_precision)
+    h_solver = NativeSARSOP_alt.OTIBSolver(max_iterations=h_iterations, precision=h_precision, , dynamic_recompute=true, dynamic_precision=precision, max_recomputes=100)
     push!(solverargs, (name="OTIB-SARSOP", sargs=( precision=precision, max_time=timeout, verbose=false, heuristic_solver=h_solver, use_only_Bs=onlyBs), pargs=()))
 
     precomp_h_solver = NativeSARSOP_alt.OTIBSolver(max_iterations=2, precomp_solver=ETIBSolver(max_iterations=2,precomp_solver=STIBSolver(max_iterations=2)))
     push!(precomp_solvers, (sargs=(max_its = 2, verbose=false, heuristic_solver=precomp_h_solver),pargs=()))
 end
+if "MultiTIB" in solver_name
+    push!(solvers, NativeSARSOP_alt.SARSOPSolver)
+    h_solver = NativeSARSOP_alt.MultiTIBSolver(max_iterations=h_iterations, precision=h_precision)
+    push!(solverargs, (name="MultiTIB-SARSOP", sargs=( precision=precision, max_time=timeout, verbose=false, heuristic_solver=h_solver, use_only_Bs=onlyBs), pargs=()))
 
+    precomp_h_solver = NativeSARSOP_alt.ETIBSolver(max_iterations=2)
+    push!(precomp_solvers, (sargs=(max_its = 2, verbose=false, heuristic_solver=precomp_h_solver),pargs=()))
+end
 
 ##################################################################
 #                       Selecting env 

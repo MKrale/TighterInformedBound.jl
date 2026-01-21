@@ -54,7 +54,7 @@ timeout = parsed_args["timeout"]
 path = parsed_args["path"]
 filename = parsed_args["filename"]
 solver_names = [parsed_args["solvers"]]
-solver_names == ["All"] && (solver_names = ["TIB", "ETIB", "CTIB", "OTIB", "FIB", "SARSOP"])
+solver_names == ["All"] && (solver_names = ["TIB", "ETIB", "CTIB", "OTIB_precomp", "OTIB_dynamic", "MultiTIB_precomp", "MultiTIB_dynamic", "FIB", "SARSOP"])
 
 discount = parsed_args["discount"]
 discount_str = string(discount)[3:end]
@@ -109,10 +109,25 @@ if "ICTIB" in solver_names
     push!(solverargs, (name="TIBSolver (closeness, iterative)", sargs=(max_iterations=heuristicsteps, precision=heuristicprecision, max_time=timeout), pargs=(), get_Q0=true))
     push!(precomp_solverargs, ( sargs=(max_iterations=2, precomp_solver=STIBSolver(max_iterations=2)), pargs=()))    
 end
-if "OTIB" in solver_names
+if "OTIB_precomp" in solver_names
     push!(solvers, OTIBSolver)
-    push!(solverargs, (name="TIBSolver (worst-case)", sargs=(max_iterations=heuristicsteps, precision=heuristicprecision, max_time=timeout), pargs=(), get_Q0=true))
+    push!(solverargs, (name="TIBSolver (worst-case)", sargs=(max_iterations=heuristicsteps, precision=heuristicprecision, max_time=timeout, dynamic_recompute=false), pargs=(), get_Q0=true))
     push!(precomp_solverargs, ( sargs=(max_iterations=2, max_recomputes=0, precomp_solver=STIBSolver(max_iterations=2)), pargs=()))
+end
+if "OTIB_dynamic" in solver_names
+    push!(solvers, OTIBSolver)
+    push!(solverargs, (name="TIBSolver (worst-case)", sargs=(max_iterations=heuristicsteps, precision=heuristicprecision, max_time=timeout, dynamic_recompute=true, dynamic_precision=precision, max_recomputes=100), pargs=(), get_Q0=true))
+    push!(precomp_solverargs, ( sargs=(max_iterations=2, max_recomputes=0, precomp_solver=STIBSolver(max_iterations=2)), pargs=()))
+end
+if "MultiTIB_precomp" in solver_names
+    push!(solvers, MultiTIBSolver)
+    push!(solverargs, (name="TIBSolver (multi weights)", sargs=(max_iterations=heuristicsteps, precision=heuristicprecision, max_time=timeout, dynamic_recompute=false), pargs=(), get_Q0=true))
+    push!(precomp_solverargs, ( sargs=(max_iterations=2, max_recomputes = 0, precomp_solver=STIBSolver(max_iterations=2)), pargs=()))
+end
+if "MultiTIB_dynamic" in solver_names
+    push!(solvers, MultiTIBSolver)
+    push!(solverargs, (name="TIBSolver (multi weights)", sargs=(max_iterations=heuristicsteps, precision=heuristicprecision, max_time=timeout, dynamic_recompute=true, dynamic_precision=precision, max_recomputes=100), pargs=(), get_Q0=true))
+    push!(precomp_solverargs, ( sargs=(max_iterations=2, max_recomputes = 0, precomp_solver=STIBSolver(max_iterations=2)), pargs=()))
 end
 if "SARSOP" in solver_names
     push!(solvers, NativeSARSOP_alt.SARSOPSolver)
