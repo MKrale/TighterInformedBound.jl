@@ -116,7 +116,7 @@ if "CTIB" in solver_name
 end
 if "OTIB" in solver_name
     push!(solvers, NativeSARSOP_alt.SARSOPSolver)
-    h_solver = NativeSARSOP_alt.OTIBSolver(max_iterations=h_iterations, precision=h_precision, , dynamic_recompute=true, dynamic_precision=precision, max_recomputes=100)
+    h_solver = NativeSARSOP_alt.OTIBSolver(max_iterations=h_iterations, precision=h_precision, dynamic_recompute=true, dynamic_precision=h_precision, max_recomputes=100)
     push!(solverargs, (name="OTIB-SARSOP", sargs=( precision=precision, max_time=timeout, verbose=false, heuristic_solver=h_solver, use_only_Bs=onlyBs), pargs=()))
 
     precomp_h_solver = NativeSARSOP_alt.OTIBSolver(max_iterations=2, precomp_solver=ETIBSolver(max_iterations=2,precomp_solver=STIBSolver(max_iterations=2)))

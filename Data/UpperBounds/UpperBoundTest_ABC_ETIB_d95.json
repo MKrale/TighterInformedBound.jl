@@ -1,1 +1,1 @@
-{"env_full":"ABCModel","env_data":{},"solvetime":0.005878961,"lb":-1,"ub":0.5000000000000038,"solver":"TIBSolver (entropy)","simtime":-1.0,"ravg":-1.0,"env":"ABC"}
+{"env_full":"ABCModel","env_data":{},"solvetime":0.000300944,"lb":-1,"ub":0.613700000000005,"solver":"TIBSolver (standard)","simtime":-1.0,"ravg":-1.0,"env":"ABC"}

@@ -7,14 +7,14 @@ export ABC
 # function
 
 function T(s,a)
-    s=="terminal" && (return SparseCat(["terminal"], [1]))
-    (a=="a" || a=="b") && (return SparseCat(["terminal"], [1]))
+    s=="terminal" && (return SparseCat(["terminal"], [1.0]))
+    (a=="a" || a=="b") && (return SparseCat(["terminal"], [1.0]))
     s=="A" ? not_s = "B" : not_s = "A"
     return SparseCat([s,not_s], [0.8, 0.2])
 end
 
-R(s,a) = ( (s=="A" && a=="a") || (s=="B" && a=="b")) ? 1 : 0
-O(a,sp) = SparseCat(["nothing"],[1])
+R(s,a) = ( (s=="A" && a=="a") || (s=="B" && a=="b")) ? 1.0 : 0.0
+O(a,sp) = SparseCat(["nothing"],[1.0])
 
 ABC(;discount=0.95) = QuickPOMDP(
     states = ["A","B","terminal"],
