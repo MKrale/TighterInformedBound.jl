@@ -1,1 +1,1 @@
-{"env_full":"RockSample ()","env_data":{"na":8,"ns":201,"discount":0.95,"nbao":210,"no":3,"nb":202},"solvetime":0.594789702,"lb":-1,"ub":18.340299092828808,"solver":"FIB","simtime":-1.0,"ravg":-1.0,"env":"RockSample5"}
+{"env_full":"RockSample ()","env_data":{},"solvetime":0.608476593,"lb":-1,"ub":18.340299092828808,"solver":"FIB","simtime":-1.0,"ravg":-1.0,"env":"RockSample5"}

@@ -1,1 +1,1 @@
-{"env_full":"Tag","env_data":{"na":5,"ns":842,"discount":0.95,"nbao":6336,"no":30,"nb":2351},"solvetime":1203.312437653,"lb":-10.85245413713325,"ub":-6.126032985806714,"solver":"SARSOP","simtime":-1.0,"ravg":-1.0,"env":"Tag"}
+{"env_full":"Tag","env_data":{},"solvetime":1203.288509465,"lb":-10.837705428333521,"ub":-6.2071995450709165,"solver":"SARSOP","simtime":-1.0,"ravg":-1.0,"env":"Tag"}

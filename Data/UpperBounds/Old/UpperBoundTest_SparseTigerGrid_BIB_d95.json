@@ -1,1 +1,0 @@
-{"env_full":"TigerGrid","env_data":{"na":5,"ns":36,"discount":0.95,"nbao":100177,"no":36,"nb":1418},"solvetime":31.94582239,"lb":-1,"ub":2.5761564012485683,"solver":"BIBSolver (standard)","simtime":-1.0,"ravg":-1.0,"env":"SparseTigerGrid"}

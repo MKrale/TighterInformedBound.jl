@@ -1,1 +1,1 @@
-{"env_full":"K-out-of-N (3)","env_data":{"na":27,"ns":64,"discount":0.95,"nbao":4824,"no":64,"nb":499},"solvetime":1204.467730185,"lb":-2.6333988158664265,"ub":-2.0912334803670243,"solver":"SARSOP","simtime":-1.0,"ravg":-1.0,"env":"K-out-of-N3"}
+{"env_full":"K-out-of-N (3)","env_data":{},"solvetime":1208.043380669,"lb":-2.632632673758064,"ub":-2.0997275425263675,"solver":"SARSOP","simtime":-1.0,"ravg":-1.0,"env":"K-out-of-N3"}

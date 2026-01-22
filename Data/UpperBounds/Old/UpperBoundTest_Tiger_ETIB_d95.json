@@ -1,1 +1,1 @@
-{"env_full":"Tiger","env_data":{},"solvetime":0.003592403,"lb":-1,"ub":40.519791490747465,"solver":"TIBSolver (entropy)","simtime":-1.0,"ravg":-1.0,"env":"Tiger"}
+{"env_full":"Tiger","env_data":{},"solvetime":0.005354937,"lb":-1,"ub":40.51974513918177,"solver":"TIBSolver (entropy)","simtime":-1.0,"ravg":-1.0,"env":"Tiger"}

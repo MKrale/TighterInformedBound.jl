@@ -1,1 +1,0 @@
-{"env_full":"Frozen Lake (4)","env_data":{"na":6,"ns":17,"discount":0.95,"nbao":249,"no":17,"nb":61},"solvetime":0.120138518,"lb":0.38530434549851555,"ub":0.38900442824970505,"solver":"SARSOP","simtime":-1.0,"ravg":-1.0,"env":"FrozenLake4"}

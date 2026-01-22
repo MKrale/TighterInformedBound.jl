@@ -1,1 +1,0 @@
-{"env_full":"TigerGrid","env_data":{"na":5,"ns":36,"discount":0.95,"nbao":100177,"no":36,"nb":1418},"solvetime":0.003803293,"lb":-1,"ub":2.9819943100562942,"solver":"QMDP","simtime":-1.0,"ravg":-1.0,"env":"SparseTigerGrid"}

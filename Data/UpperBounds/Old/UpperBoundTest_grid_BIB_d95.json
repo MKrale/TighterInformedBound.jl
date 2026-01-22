@@ -1,1 +1,0 @@
-{"env_full":"Grid","env_data":{"na":5,"ns":36,"discount":0.95,"nbao":722,"no":36,"nb":152},"solvetime":2.078388519,"lb":-1,"ub":8.153721755257322,"solver":"BIBSolver (standard)","simtime":-1.0,"ravg":-1.0,"env":"grid"}

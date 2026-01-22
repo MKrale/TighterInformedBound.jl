@@ -1,1 +1,1 @@
-{"env_full":"K-out-of-N (2)","env_data":{"na":9,"ns":16,"discount":0.95,"nbao":230,"no":16,"nb":61},"solvetime":0.203804779,"lb":-1,"ub":-1.244721306949992,"solver":"FIB","simtime":-1.0,"ravg":-1.0,"env":"K-out-of-N2"}
+{"env_full":"K-out-of-N (2)","env_data":{},"solvetime":0.028503095,"lb":-1,"ub":-1.244721306949992,"solver":"FIB","simtime":-1.0,"ravg":-1.0,"env":"K-out-of-N2"}

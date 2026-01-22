@@ -1,1 +1,1 @@
-{"env_full":"Tag","env_data":{"na":5,"ns":842,"discount":0.95,"nbao":6336,"no":30,"nb":2351},"solvetime":6.814634505,"lb":-1,"ub":-4.753410695840749,"solver":"FIB","simtime":-1.0,"ravg":-1.0,"env":"Tag"}
+{"env_full":"Tag","env_data":{},"solvetime":5.436350807,"lb":-1,"ub":-4.753410695840749,"solver":"FIB","simtime":-1.0,"ravg":-1.0,"env":"Tag"}

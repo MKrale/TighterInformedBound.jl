@@ -1,1 +1,0 @@
-{"env_full":"SparseHallway1","env_data":{"na":5,"ns":60,"discount":0.95,"nbao":146665,"no":60,"nb":2170},"solvetime":515.464829585,"lb":-1,"ub":1.1742562934231118,"solver":"BIBSolver (entropy)","simtime":-1.0,"ravg":-1.0,"env":"SparseHallway1"}

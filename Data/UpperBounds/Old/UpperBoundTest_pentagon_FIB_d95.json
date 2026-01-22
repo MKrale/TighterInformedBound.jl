@@ -1,1 +1,1 @@
-{"env_full":"pentagon","env_data":{"na":4,"ns":212,"discount":0.95,"nbao":447124,"no":212,"nb":6028},"solvetime":4.98331918,"lb":-1,"ub":0.383845757190754,"solver":"FIB","simtime":-1.0,"ravg":-1.0,"env":"pentagon"}
+{"env_full":"pentagon","env_data":{},"solvetime":3.166899233,"lb":-1,"ub":0.383845757190754,"solver":"FIB","simtime":-1.0,"ravg":-1.0,"env":"pentagon"}

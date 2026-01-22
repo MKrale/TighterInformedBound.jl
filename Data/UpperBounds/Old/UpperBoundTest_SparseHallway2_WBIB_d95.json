@@ -1,1 +1,0 @@
-{"env_full":"SparseHallway2","env_data":{"na":5,"ns":92,"discount":0.95,"nbao":229126,"no":92,"nb":3411},"solvetime":1200.782462488,"lb":-1,"ub":0.9480337992788331,"solver":"BIBSolver (worst-case)","simtime":-1.0,"ravg":-1.0,"env":"SparseHallway2"}

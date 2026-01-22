@@ -1,1 +1,1 @@
-{"env_full":"TigerGrid","env_data":{},"solvetime":63.408665329,"lb":-1,"ub":2.576983994851725,"solver":"TIBSolver (closeness)","simtime":-1.0,"ravg":-1.0,"env":"SparseTigerGrid"}
+{"env_full":"TigerGrid","env_data":{},"solvetime":85.126803996,"lb":-1,"ub":2.5769811999167342,"solver":"TIBSolver (closeness)","simtime":-1.0,"ravg":-1.0,"env":"SparseTigerGrid"}

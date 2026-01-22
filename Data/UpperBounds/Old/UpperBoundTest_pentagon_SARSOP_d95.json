@@ -1,1 +1,1 @@
-{"env_full":"pentagon","env_data":{"na":4,"ns":212,"discount":0.95,"nbao":447124,"no":212,"nb":6028},"solvetime":1204.404332819,"lb":0.332127932437349,"ub":0.38135344644895836,"solver":"SARSOP","simtime":-1.0,"ravg":-1.0,"env":"pentagon"}
+{"env_full":"pentagon","env_data":{},"solvetime":1203.678992048,"lb":0.332127932437349,"ub":0.38135344644895836,"solver":"SARSOP","simtime":-1.0,"ravg":-1.0,"env":"pentagon"}

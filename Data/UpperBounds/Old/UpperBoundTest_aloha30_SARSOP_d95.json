@@ -1,1 +1,1 @@
-{"env_full":"aloha30","env_data":{"na":29,"ns":90,"discount":0.95,"nbao":201895,"no":90,"nb":2454},"solvetime":51.090070447,"lb":388.0767077146463,"ub":391.90570032810757,"solver":"SARSOP","simtime":-1.0,"ravg":-1.0,"env":"aloha30"}
+{"env_full":"aloha30","env_data":{},"solvetime":1244.505038623,"lb":388.90882261198254,"ub":391.3459130157324,"solver":"SARSOP","simtime":-1.0,"ravg":-1.0,"env":"aloha30"}

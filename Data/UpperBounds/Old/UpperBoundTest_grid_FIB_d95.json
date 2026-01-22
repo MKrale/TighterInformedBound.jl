@@ -1,1 +1,1 @@
-{"env_full":"Grid","env_data":{"na":5,"ns":36,"discount":0.95,"nbao":722,"no":36,"nb":152},"solvetime":0.177238003,"lb":-1,"ub":8.305478312783093,"solver":"FIB","simtime":-1.0,"ravg":-1.0,"env":"grid"}
+{"env_full":"Grid","env_data":{},"solvetime":0.020625562,"lb":-1,"ub":8.305478312783093,"solver":"FIB","simtime":-1.0,"ravg":-1.0,"env":"grid"}
