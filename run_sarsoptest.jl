@@ -162,7 +162,7 @@ if env_name == "Tiger"
 end
 if env_name == "RockSample5"
     map_size, rock_pos = (5,5), [(1,1), (3,3), (4,4)] # Default
-    rocksamplesmall = RockSample.RockSamplePOMDP(map_size, rock_pos)
+    rocksamplesmall = SparseTabularPOMDP(RockSample.RockSamplePOMDP(map_size, rock_pos))
     push!(envargs, (name="RockSample ()",))
     push!(envs, rocksamplesmall)
 end
@@ -174,7 +174,7 @@ end
 # end
 if env_name == "RockSample7"
     map_size, rock_pos = (7,7), [(1,2), (2,6), (3,3), (3,4), (4,7),(6,1),(6,4),(7,3)] # HSVI setting!
-    rocksamplelarge = RockSample.RockSamplePOMDP(map_size, rock_pos)
+    rocksamplelarge = SparseTabularPOMDP(RockSample.RockSamplePOMDP(map_size, rock_pos))
     push!(envargs, (name="RockSample (7,8)",))
     push!(envs, rocksamplelarge)
 end
@@ -189,44 +189,11 @@ if env_name == "K-out-of-N3"
     push!(envs, k_model3)
     push!(envargs, (name="K-out-of-N (3)",))
 end
-# UNUSED:
-# if env_name == "FrozenLake4"
-#     # Frozen Lake esque
-#     lakesmall = FrozenLakeSmall
-#     lakesmall.discount = discount
-#     push!(envs, lakesmall)
-#     push!(envargs, (name="Frozen Lake (4)",))
-# end
-# if env_name == "FrozenLake10"
-#     lakelarge = FrozenLakeLarge
-#     lakelarge.discount = discount
-#     push!(envs, lakelarge)
-#     push!(envargs, (name="Frozen Lake (10)",))
-# end
-# if env_name == "Hallway1"
-#     hallway1 = Hallway1
-#     hallway.discount = discount
-#     push!(envs, hallway1)
-#     push!(envargs, (name="Hallway1",))
-# end
-# if env_name == "Hallway2"
-#     hallway2 = Hallway2
-#     hallway2.discount = discount
-#     push!(envs, hallway2)
-#     push!(envargs, (name="Hallway2",))
-# end
-# if env_name == "MiniHallway"
-#     minihall = CustomMiniHallway
-#     minihall.discount = discount
-#     push!(envs, minihall)
-#     push!(envargs, (name="MiniHallway",))
-# end
-# if env_name == "TigerGrid"
-#     tigergrid = TigerGrid
-#     tigergrid.discount = discount
-#     push!(envs, tigergrid)
-#     push!(envargs, (name="TigerGrid",))
-# end
+if env_name == "HeavenOrHell"
+    model = HeavenOrHell(size=10)
+    push!(envs, SparseTabularPOMDP(model))
+    push!(envargs, (name="HeavenOrHell",))
+end
 if env_name == "SparseHallway1"
     hallway1 = SparseHallway1(discount=discount)
     push!(envs, hallway1)
@@ -282,6 +249,11 @@ if env_name == "sunysb"
     push!(envs, sunysb)
     push!(envargs, (name="sunysb",))
 end
+if env_name == "iff"
+    model = Sparse_iff(discount=discount)
+    push!(envs, model)
+    push!(envargs, (name="iff",))
+end
 if env_name == "grid"
     Grid = Sparse_Grid(discount=discount)
     push!(envs, Grid)
@@ -297,6 +269,13 @@ if env_name == "Tag"
     tag = SparseTabularPOMDP(tag)
     push!(envs, tag)
     push!(envargs, (name="Tag",))
+end
+if env_name == "DroneSurveilance"
+    using DroneSurveillance
+    drone = DroneSurveillancePOMDP()
+    drone = SparseTabularPOMDP(drone)
+    push!(envs, drone)
+    push!(envargs, (name="DroneSurveilance",))
 end
 
 env, env_arg = envs[1], envargs[1]

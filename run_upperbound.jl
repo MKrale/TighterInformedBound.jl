@@ -187,26 +187,13 @@ if env_name == "Tiger"
 end
 if env_name == "RockSample5"
     map_size, rock_pos = (5,5), [(1,1), (3,3), (4,4)] # Default
-    rocksamplesmall = RockSample.RockSamplePOMDP(map_size, rock_pos)
+    rocksamplesmall = SparseTabularPOMDP(RockSample.RockSamplePOMDP(map_size, rock_pos))
     push!(envargs, (name="RockSample ()",))
     push!(envs, rocksamplesmall)
 end
-### UNUSED (cause non-standard)
-# if env_name == "RockSample10"
-#     map_size, rock_pos = (10,10), [(2,3), (4,6), (7,4), (8,9) ] # Big Boy!
-#     rocksample10 = RockSample.RockSamplePOMDP(map_size, rock_pos)
-#     push!(envargs, (name="RockSample (10)",))
-#     push!(envs, rocksamplelarge)
-# end
-# if env_name == "RockSample11"
-#     map_size, rock_pos = (11,11), [(1,2), (2,7), (3,9), (4,2), (5,7), (5,10), (7,4), (8,8), (10,4) ] # Bigger Boy!
-#     rocksample11 = RockSample.RockSamplePOMDP(map_size, rock_pos)
-#     push!(envargs, (name="RockSample (11)",))
-#     push!(envs, rocksample11)
-# end
 if env_name == "RockSample7"
     map_size, rock_pos = (7,7), [(1,2), (2,6), (3,3), (3,4), (4,7),(6,1),(6,4),(7,3)] # HSVI setting!
-    rocksamplelarge = RockSample.RockSamplePOMDP(map_size, rock_pos)
+    rocksamplelarge = SparseTabularPOMDP(RockSample.RockSamplePOMDP(map_size, rock_pos))
     push!(envargs, (name="RockSample (7,8)",))
     push!(envs, rocksamplelarge)
 end
@@ -225,45 +212,6 @@ if env_name == "HeavenOrHell"
     push!(envs, SparseTabularPOMDP(model))
     push!(envargs, (name="HeavenOrHell",))
 end
-# UNUSED (cause non-standard for planning):
-# if env_name == "FrozenLake4"
-#     # Frozen Lake esque
-#     lakesmall = FrozenLakeSmall
-#     lakesmall.discount = discount
-#     push!(envs, SparseTabularPOMDP(lakesmall))
-#     push!(envargs, (name="Frozen Lake (4)",))
-# end
-# if env_name == "FrozenLake10"
-#     lakelarge = FrozenLakeLarge
-#     lakelarge.discount = discount
-#     push!(envs, SparseTabularPOMDP(lakelarge))
-#     push!(envargs, (name="Frozen Lake (10)",))
-# end
-# UNUSED (cause other implementation):
-# if env_name == "Hallway1"
-#     hallway1 = Hallway1
-#     hallway.discount = discount
-#     push!(envs, hallway1)
-#     push!(envargs, (name="Hallway1",))
-# end
-# if env_name == "Hallway2"
-#     hallway2 = Hallway2
-#     hallway2.discount = discount
-#     push!(envs, hallway2)
-#     push!(envargs, (name="Hallway2",))
-# end
-# if env_name == "MiniHallway"
-#     minihall = CustomMiniHallway
-#     minihall.discount = discount
-#     push!(envs, minihall)
-#     push!(envargs, (name="MiniHallway",))
-# end
-# if env_name == "TigerGrid"
-#     tigergrid = TigerGrid
-#     tigergrid.discount = discount
-#     push!(envs, tigergrid)
-#     push!(envargs, (name="TigerGrid",))
-# end
 if env_name == "SparseHallway1"
     hallway1 = SparseHallway1(discount=discount)
     push!(envs, hallway1)
@@ -368,9 +316,7 @@ time_online = zeros( nr_envs, nr_pols)
 
 verbose = true
 
-for (m_idx,(model, modelargs)) in enumerate(zip(envs, envargs))
-    test_get_three_step_beliefs(model)
-    
+for (m_idx,(model, modelargs)) in enumerate(zip(envs, envargs))   
     for (s_idx,(solver, solverarg)) in enumerate(zip(solvers, solverargs))
         
         ### Get Environment data (commented out for efficiency)
