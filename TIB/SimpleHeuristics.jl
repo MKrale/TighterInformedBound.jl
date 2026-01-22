@@ -23,7 +23,7 @@ end
 """Returns max_{s,a} R(s,a)"""
 get_max_r(m::POMDP{S}) where S = get_max_r(m,states(m), actions(m))
 function get_max_r(m,S, A)
-    maxr = 0
+    maxr = 0.0
     for s in S
         for a in A
             maxr = max(maxr, reward(m,s,a))

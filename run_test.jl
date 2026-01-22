@@ -162,14 +162,11 @@ import RockSample
 # This env is very difficult to work with for some reason, so we need to add the following:
 POMDPs.states(M::RockSample.RockSamplePOMDP) = map(si -> RockSample.state_from_index(M,si), 1:length(M))
 POMDPs.discount(M::RockSample.RockSamplePOMDP) = discount
+
 include("Environments/K-out-of-N.jl"); using .K_out_of_Ns
 include("Environments/Sparse_models/SparseModels.jl"); using .SparseModels
 
-include("Environments/HeavenOrHell.jl"); using .HeavenOrHellModel
-
 envs, envargs = [], []
-
-
 
 if env_name == "ABC"
     include("Environments/ABCModel.jl"); using .ABCModel
@@ -187,7 +184,7 @@ if env_name == "Tiger"
 end
 if env_name == "RockSample5"
     map_size, rock_pos = (5,5), [(1,1), (3,3), (4,4)] # Default
-    rocksamplesmall = RockSample.RockSamplePOMDP(map_size, rock_pos)
+    rocksamplesmall = SparseTabularPOMDP(RockSample.RockSamplePOMDP(map_size, rock_pos))
     push!(envargs, (name="RockSample ()",))
     push!(envs, rocksamplesmall)
 end
@@ -206,7 +203,7 @@ end
 # end
 if env_name == "RockSample7"
     map_size, rock_pos = (7,7), [(1,2), (2,6), (3,3), (3,4), (4,7),(6,1),(6,4),(7,3)] # HSVI setting!
-    rocksamplelarge = RockSample.RockSamplePOMDP(map_size, rock_pos)
+    rocksamplelarge = SparseTabularPOMDP(RockSample.RockSamplePOMDP(map_size, rock_pos))
     push!(envargs, (name="RockSample (7,8)",))
     push!(envs, rocksamplelarge)
 end
@@ -219,11 +216,6 @@ if env_name == "K-out-of-N3"
     k_model3 = K_out_of_N(N=3, K=3, discount=discount)
     push!(envs, SparseTabularPOMDP(k_model3))
     push!(envargs, (name="K-out-of-N (3)",))
-end
-if env_name == "HeavenOrHell"
-    model = HeavenOrHell(size=10)
-    push!(envs, SparseTabularPOMDP(model))
-    push!(envargs, (name="HeavenOrHell",))
 end
 # UNUSED (cause non-standard for planning):
 # if env_name == "FrozenLake4"
@@ -319,11 +311,6 @@ if env_name == "sunysb"
     push!(envs, sunysb)
     push!(envargs, (name="sunysb",))
 end
-if env_name == "iff"
-    model = Sparse_iff(discount=discount)
-    push!(envs, model)
-    push!(envargs, (name="iff",))
-end
 if env_name == "grid"
     Grid = Sparse_Grid(discount=discount)
     push!(envs, Grid)
@@ -339,13 +326,6 @@ if env_name == "Tag"
     tag = SparseTabularPOMDP(tag)
     push!(envs, tag)
     push!(envargs, (name="Tag",))
-end
-if env_name == "DroneSurveilance"
-    using DroneSurveillance
-    drone = DroneSurveillancePOMDP()
-    drone = SparseTabularPOMDP(drone)
-    push!(envs, drone)
-    push!(envargs, (name="DroneSurveilance",))
 end
 
 isempty(envs) && println("Warning: no envs selected!")
@@ -370,90 +350,91 @@ verbose = true
 
 for (m_idx,(model, modelargs)) in enumerate(zip(envs, envargs))
     test_get_three_step_beliefs(model)
-    
-    for (s_idx,(solver, solverarg)) in enumerate(zip(solvers, solverargs))
-        
-        ### Get Environment data (commented out for efficiency)
-        # constants = TIB.get_constants(model)
-        # SAO_probs, SAOs = TIB.get_all_obs_probs(model; constants)
-        # B, B_idx = TIB.get_belief_set(model, SAOs; constants)
-        # Br = TIB.get_Br(model, B, constants)
-        # Data = TIB.TIB_Data(zeros(2,2), B, B_idx,Br, SAO_probs, SAOs, Dict(zip(constants.S, 1:constants.ns)), constants)
-        # BBao_data = TIB.get_Bbao(model, Data, constants)
-        # env_data = Dict(
-        #     "ns" => constants.ns,
-        #     "na" => constants.na,
-        #     "no" => constants.no,
-        #     "nb" => length(B),
-        #     "nbao"=> length(BBao_data.Bbao) + length(B),
-        #     "discount"=> discount
-	    # )
-        env_data = Dict() # Comment out when you wan to get env info
-
-        # Precompile
-        if precompile
-            thissolver = solver(;precomp_solverargs[s_idx].sargs...)
-            _t = @elapsed begin
-                policy, info = POMDPTools.solve_info(thissolver, model; precomp_solverargs[s_idx].pargs...) 
-            end
-        end
-
-        # Compute policy & get upper bound
-        thissolver = solver(;solverarg.sargs...)
-	GC.gc()
-        t = @elapsed begin
-            # policy, info = POMDPTools.solve_info(thissolver, model; solverarg.pargs...) 
-            @profile policy, info = POMDPTools.solve_info(thissolver, model; solverarg.pargs...) 
-        end
-        if (info isa Nothing)
-            ub = POMDPs.value(policy, POMDPs.initialstate(model))
-            lb = -1
-        else
-            ub = info.ub
-            lb =  info.lb
-        end       
-
-        fg = flamegraph(Profile.fetch(); norepl=true, combine=true)
-        ProfileSVG.save("flamegraph.svg", fg; width=3600, fontsize=10, maxdepth=40, maxframes=10_000)
-
-        ### Policy simulation (very slow, so not used)
-        #rs = []
-        #t0_sims = time()
-        #for i=1:sims
-        #    rtot = 0
-        #    for (t,(b,s,a,o,r)) in enumerate(stepthrough(model,policy,"b,s,a,o,r";max_steps=steps))
-        #        rtot += POMDPs.discount(model)^(t-1) * r
-        #    end
-        #    push!(rs,rtot)
-        #end
-        #t_sims = time() - t0_sims
-        #rs_avg, rs_min, rs_max = mean(rs), minimum(rs), maximum(rs)
-	    rs_avg, rs_min, rs_max = -1.0, -1.0, -1.0   # Comment out when doing simulations
-        t_sims = -1.0                               # Comment out when doing simulations
-
-	    ### Writing data to files
-        data_dict = Dict(
-            "env" => env_name,
-            "env_full" => modelargs.name,
-            "env_data" => env_data,
-            "solver" => solverarg.name,
-            # Solving data
-            "solvetime" => t,
-            "ub" => ub,
-            "lb" => lb,
-            # Simulation data
-            "simtime" => t_sims,
-            "ravg" => rs_avg
-        )
-        json_str = JSON.json(data_dict)
-        verbose && println("In $(env_name), $(solver_names[s_idx]) found bound $ub in $(t)s.")
-        if filename == ""
-		thisfilename =  path * "UpperBoundTest_$(env_name)_$(solver_names[s_idx])_d$(discount_str).json"
-        else
-            thisfilename = path * filename * solverarg.name
-        end
-        open(thisfilename, "w") do file
-            write(file, json_str)
-        end
-    end
 end
+
+#     for (s_idx,(solver, solverarg)) in enumerate(zip(solvers, solverargs))
+        
+#         ### Get Environment data (commented out for efficiency)
+#         # constants = TIB.get_constants(model)
+#         # SAO_probs, SAOs = TIB.get_all_obs_probs(model; constants)
+#         # B, B_idx = TIB.get_belief_set(model, SAOs; constants)
+#         # Br = TIB.get_Br(model, B, constants)
+#         # Data = TIB.TIB_Data(zeros(2,2), B, B_idx,Br, SAO_probs, SAOs, Dict(zip(constants.S, 1:constants.ns)), constants)
+#         # BBao_data = TIB.get_Bbao(model, Data, constants)
+#         # env_data = Dict(
+#         #     "ns" => constants.ns,
+#         #     "na" => constants.na,
+#         #     "no" => constants.no,
+#         #     "nb" => length(B),
+#         #     "nbao"=> length(BBao_data.Bbao) + length(B),
+#         #     "discount"=> discount
+# 	    # )
+#         env_data = Dict() # Comment out when you wan to get env info
+
+#         # Precompile
+#         if precompile
+#             thissolver = solver(;precomp_solverargs[s_idx].sargs...)
+#             _t = @elapsed begin
+#                 policy, info = POMDPTools.solve_info(thissolver, model; precomp_solverargs[s_idx].pargs...) 
+#             end
+#         end
+
+#         # Compute policy & get upper bound
+#         thissolver = solver(;solverarg.sargs...)
+# 	GC.gc()
+#         t = @elapsed begin
+#             policy, info = POMDPTools.solve_info(thissolver, model; solverarg.pargs...) 
+#             # @profile policy, info = POMDPTools.solve_info(thissolver, model; solverarg.pargs...) 
+#         end
+#         if (info isa Nothing)
+#             ub = POMDPs.value(policy, POMDPs.initialstate(model))
+#             lb = -1
+#         else
+#             ub = info.ub
+#             lb =  info.lb
+#         end       
+
+#         # fg = flamegraph(Profile.fetch(); norepl=true, combine=true)
+#         # ProfileSVG.save("flamegraph.svg", fg; width=3600, fontsize=10, maxdepth=40, maxframes=10_000)
+
+#         ### Policy simulation (very slow, so not used)
+#         #rs = []
+#         #t0_sims = time()
+#         #for i=1:sims
+#         #    rtot = 0
+#         #    for (t,(b,s,a,o,r)) in enumerate(stepthrough(model,policy,"b,s,a,o,r";max_steps=steps))
+#         #        rtot += POMDPs.discount(model)^(t-1) * r
+#         #    end
+#         #    push!(rs,rtot)
+#         #end
+#         #t_sims = time() - t0_sims
+#         #rs_avg, rs_min, rs_max = mean(rs), minimum(rs), maximum(rs)
+# 	    rs_avg, rs_min, rs_max = -1.0, -1.0, -1.0   # Comment out when doing simulations
+#         t_sims = -1.0                               # Comment out when doing simulations
+
+# 	    ### Writing data to files
+#         data_dict = Dict(
+#             "env" => env_name,
+#             "env_full" => modelargs.name,
+#             "env_data" => env_data,
+#             "solver" => solverarg.name,
+#             # Solving data
+#             "solvetime" => t,
+#             "ub" => ub,
+#             "lb" => lb,
+#             # Simulation data
+#             "simtime" => t_sims,
+#             "ravg" => rs_avg
+#         )
+#         json_str = JSON.json(data_dict)
+#         verbose && println("In $(env_name), $(solver_names[s_idx]) found bound $ub in $(t)s.")
+#         if filename == ""
+# 		thisfilename =  path * "UpperBoundTest_$(env_name)_$(solver_names[s_idx])_d$(discount_str).json"
+#         else
+#             thisfilename = path * filename * solverarg.name
+#         end
+#         open(thisfilename, "w") do file
+#             write(file, json_str)
+#         end
+#     end
+# end

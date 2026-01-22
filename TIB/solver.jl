@@ -70,7 +70,7 @@ function solve(solver::X, model::POMDP{S,A,O}; Data::Union{TIB_Data{S},Nothing}=
     # 3 : If OTIB or ETIB, precompute all beliefs after 2 steps
     # Bbao_data::Union{BBAO_Data, Nothing} = nothing
     if any(map(solvertype -> solver isa solvertype, SOLVERS_REQUIRING_BBAO))
-        Bbao_data = get_Bbao(model, Data, Data.constants)
+        Bbao_data = get_Bbao(model, Data)
     end
     t_init = time() - t0
     verbose && printdb("general init time:", t_init)
@@ -176,8 +176,8 @@ end
 ############ Q-value Precomputations ###################
 
 """Initializes Q-values for all belies in Data.B using solver."""
-function precompute_Qs(model::POMDP{S}, Data::TIB_Data{S}, solver::X ; getdata=false) where X<:Union{QMDPSolver_alt, FIBSolver_alt} where S
-	π = solve(solver, model; Data=Data)
+function precompute_Qs(model::POMDP{S}, Data::TIB_Data{S}, solver::X) where X<:Union{QMDPSolver_alt, FIBSolver_alt} where S
+    π = solve(solver, model; Data=Data)
     B, constants = Data.B, Data.constants
     Qs = zeros(Float64, length(B), constants.na)
     for (b_idx, b) in enumerate(B)
@@ -188,11 +188,11 @@ function precompute_Qs(model::POMDP{S}, Data::TIB_Data{S}, solver::X ; getdata=f
             end
         end
     end
-    getdata ? (return TIB_Data{S}(Qs, Data)) : (return Qs)
+    return Qs
 end
 
 """Initializes Q-values for all belies in Data.B using solver."""
-function precompute_Qs(model::POMDP{S}, Data::TIB_Data{S}, solver::X ; getdata=false) where X<: TIBSolver where S
+function precompute_Qs(model::POMDP{S}, Data::TIB_Data{S}, solver::X) where X<: TIBSolver where S
 	π = solve(solver, model; Data=Data)
     B, constants = Data.B, Data.constants
     Qs = zeros(Float64, length(B), constants.na)
@@ -201,7 +201,7 @@ function precompute_Qs(model::POMDP{S}, Data::TIB_Data{S}, solver::X ; getdata=f
             Qs[b_idx, ai] = π.Data.Q[b_idx,ai]
         end
     end
-    getdata ? (return TIB_Data{S}(Qs, Data)) : (return Qs)
+    return Qs
 end
 
 ############ TIB ###################
@@ -310,6 +310,21 @@ function get_Q_weights_ba(model::POMDP{S,A,O}, b::DiscreteHashedBelief{S}, a, Da
         Q += po * discount(model) * Qo
     end
     return Q
+end
+
+########## TIB3 ###########
+
+function get_QTIB3_Beliefset(model::POMDP{S}, Q::Qtype, timeleft::Float64, Data::TIB_Data{S}, Bbao_data::BBAO_Data{S}) where S where Qtype <: AbstractArray{Float64,2}
+    t0 = time()
+    Qs_new = zero(Q)
+    for (b_idx,b) in enumerate(Data.B)
+        timeleft+t0-time() < 0 && (return Q, 0)
+        for (ai, a) in enumerate(Data.constants.A)
+            Qs_new[b_idx,ai] = get_QTIB_ba(model,b,a, Q, Data; bi=b_idx, ai=ai)
+        end
+    end
+    max_dif = maximum(map(abs, (Qs_new .- Q) ./ (Q.+1e-10)))
+    return Qs_new, max_dif
 end
 
 #########################################

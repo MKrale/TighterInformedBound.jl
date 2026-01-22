@@ -618,9 +618,7 @@ version = "1.6.0"
 
 [[deps.DroneSurveillance]]
 deps = ["Colors", "Compose", "LinearAlgebra", "POMDPTools", "POMDPs", "Parameters", "Random", "StaticArrays"]
-git-tree-sha1 = "2a856fb834473d3d413ce822e5f25e161df47b06"
-repo-rev = "master"
-repo-url = "https://github.com/JuliaPOMDP/DroneSurveillance.jl"
+git-tree-sha1 = "18a9ab7f83288119d9627f5fdf6ea4770b54e4e4"
 uuid = "63556450-714a-11e9-08e1-e368b701e279"
 version = "0.1.3"
 

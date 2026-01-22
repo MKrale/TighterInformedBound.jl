@@ -11,7 +11,7 @@ function get_constants(model::POMDP{S,A,O}) where S where A where O
 end
 
 #########################################
-#             TIB_Data:
+#             One-step beliefs:
 #########################################
 
 """Precomputed data used by TIB solvers & policies"""
@@ -199,7 +199,7 @@ function get_Br(model, B, constants::C)
 end
 
 #########################################
-#          Bbao_data:
+#          Two-step beliefs:
 #########################################
 
 """
@@ -212,7 +212,6 @@ struct BBAO_Data{S}
     B_in_Bbao::AbstractArray{Bool}                          # bi -> Bool            : is the one-step also a 2-step belief?
     B_overlap::AbstractArray{Vector{Int}}                   # bi -> [bi]            : Gives vector of all beliefs who's support is a subset of the support of bi
     Bbao_overlap::AbstractArray{Vector{Int}}                # bi -> [bi]            : Gives vector all beliefs who's support is a subset of the support of bi
-    # Valid_weights::Array{Dict{Int,Float64}}               # bi -> {(bi,p)}        : a valid initial weighting for each belief in Bbao
 end
 
 """Convenience function to get belief given transition"""
@@ -242,9 +241,10 @@ function get_possible_obs(bi::Tuple{Bool, Int}, ai, Data::TIB_Data{S}, Bbao_data
 end
 
 """Constructs BBAO_Data"""
-function get_Bbao(model::POMDP{S,A,O}, Data::TIB_Data{S}, constants::C{S,A,O}) where S where A where O
+function get_Bbao(model::POMDP{S,A,O}, Data::TIB_Data{S}) where S where A where O
 
     # Preperations:
+    constants = Data.constants
     B = Data.B
     S_dict = Data.S_dict
     O_dict = Dict{O,Int}( zip(constants.O, 1:constants.no) )
@@ -276,11 +276,6 @@ function get_Bbao(model::POMDP{S,A,O}, Data::TIB_Data{S}, constants::C{S,A,O}) w
                     else
                         push!(Bbao, bao)
                         k=length(Bbao)
-                        # valid_weights = Dict{Int, Float64}()
-                        # for (s,ps) in weighted_iterator(b)
-                        #     valid_weights[Data.B_idx[S_dict[s],ai,oi]] = ps
-                        # end
-                        # push!(Bbao_valid_weights, valid_weights)
                         Bbao_idx[bi,ai][oi] = (false, k)
                         Bs_found[bao] = (false, k)
                     end
@@ -374,297 +369,49 @@ function get_entropy(b::DiscreteHashedBelief{S}) where S
 end
 
 #########################################
-#               Weights:
+#          Three-step beliefs:
 #########################################
 
-"""Precomputed data for weighting"""
-struct Weights_Data
-    # We have seperate vectors for belief sets B and Bbao. 
-    # For each belief, vector ..._idx gives the index with non-zero weights, and ..._weights the corresponding weight.
-    B_idxs::Vector{Vector{Int}}
-    B_weights::Vector{Vector{Float64}}
-    Bbao_idxs::Vector{Vector{Int}}
-    Bbao_weights::Vector{Vector{Float64}}
+function print_model_info(model::POMDP{S}) where S
+    Data = get_TIB_Data(model)
+    Bbao_data = get_Bbao(model, Data)
+    three_step_beliefs = get_three_step_beliefs(model, Data, Bbao_data)
+    println("==================")
+    println("Model info:")
+    println("|S| = $(Data.constants.ns), |A| = $(Data.constants.na), |O| = $(Data.constants.no)")
+    println("|B1| = $(length(Data.B)), |B2| = $(length(Bbao_data.Bbao)), |B3| = $(length(three_step_beliefs))")
+    println("==================")
 end
 
-"""Convenience function to get weights for a given bi,ai,oi tuple."""
-function get_weights(Bbao_data::BBAO_Data{S}, weights_data::Weights_Data, bi::Int, ai::Int, oi::Int) where S
-    in_B, baoi = Bbao_data.Bbao_idx[bi,ai][oi]
-    if in_B
-        return (weights_data.B_idxs[baoi], weights_data.B_weights[baoi])
-    else
-        return (weights_data.Bbao_idxs[baoi], weights_data.Bbao_weights[baoi])
-    end
-end
-
-function get_all_weights(B::Vector{DiscreteHashedBelief{S}}, Bbao_data::BBAO_Data{S}, Data::TIB_Data{S}, compute_single_weights=get_single_closeness_weights; values = nothing) where S
-    B_idxs = Array{Vector{Int}}(undef, length(B))
-    B_weights = Array{Vector{Float64}}(undef, length(B))
-
-    ### Compute weights for all beliefs in B and Bbao
-    for (bi,b) in enumerate(B)
-        if Bbao_data.B_in_Bbao[bi]
-            relevant_belief_idxs = Bbao_data.B_overlap[bi]
-            idxs, weights = compute_single_weights(b, relevant_belief_idxs, Data; values=values)
-            B_idxs[bi] = idxs
-            B_weights[bi] = weights 
-        end
-    end
-
-    ### Compute weights for all beliefs in only Bbao
-    Bbao_idxs = Array{Vector{Int}}(undef, length(Bbao_data.Bbao))
-    Bbao_weights = Array{Vector{Float64}}(undef, length(Bbao_data.Bbao))
-    for (bi, b) in enumerate(Bbao_data.Bbao)
-        relevant_belief_idxs = Bbao_data.Bbao_overlap[bi]
-        idxs, weights = compute_single_weights(b, relevant_belief_idxs, Data; values=values)
-        Bbao_idxs[bi] = idxs; Bbao_weights[bi] = weights
-    end
-    return Weights_Data(B_idxs, B_weights,Bbao_idxs, Bbao_weights)
-end
-
-########## Entropy weights ##########
-
-function get_all_entropy_weights(Data::TIB_Data{S}, Bbao_data::BBAO_Data{S}; entropies=nothing) where S
-    return get_all_weights(Data.B, Bbao_data, Data, get_single_entropy_weights; values = entropies)
-end
-
-function get_single_entropy_weights(b::DiscreteHashedBelief{S}, Bidxs_overlap, Data::TIB_Data; model=nothing, values=nothing) where S
-    if model isa Nothing
-        model = Model(Clp.Optimizer; add_bridges=false)
-        set_silent(model)
-        set_string_names_on_creation(model, false)
-    end
-    B_overlap = map(bi -> Data.B[bi], Bidxs_overlap)
-    if values isa Nothing
-        B_entropies = map(b -> get_entropy(b), B_overlap)
-    else
-        B_entropies = values[Bidxs_overlap]
-    end
+function get_three_step_beliefs(model::POMDP{S,A,O}, Data::TIB_Data{S}, Bbao_data::BBAO_Data{S}) where S where A where O
     
-    @variable(model, 0.0 <= b_ps[1:length(B_overlap)] <= 1.0)
-    # Build the constraint that probabilities for each state match that of b
-    for (s, ps) in weighted_iterator(b)
-        Idx, Ps = [], []
-        for (bpi, bp) in enumerate(B_overlap)
-            p = pdf(bp, s)
-            if p > 0
-                push!(Idx, bpi)
-                push!(Ps,p)
+    constants = Data.constants
+    three_step_beliefs = DiscreteHashedBelief{S}[]
+    U = DiscreteHashedBeliefUpdater{S, A, O}(model)
+    
+    existing_beliefs = Dict{DiscreteHashedBelief{S}, Tuple{Int,Int}}()
+    for (bidx, b) in enumerate(Data.B)
+        existing_beliefs[b] = (1, bidx)
+    end
+    for (bidx, b) in enumerate(Bbao_data.Bbao)
+        existing_beliefs[b] = (2, bidx)
+    end
+
+    for (bidx, b) in enumerate(Bbao_data.Bbao)
+        for (aidx, a) in enumerate(Data.constants.A)
+            possible_obs = get_possible_obs_probs(b, aidx, Data)
+            for oidx in keys(possible_obs)
+                o = constants.O[oidx]
+                bao = POMDPs.update(U,b,a,o)
+                if length(support(bao)) > 0
+                    if !haskey(existing_beliefs, bao)
+                        push!(three_step_beliefs, bao)
+                        existing_beliefs[bao] = (3, length(three_step_beliefs))
+                    end
+                end
             end
         end
-        length(Idx) > 0 && @constraint(model, sum(b_ps[Idx[i]] * Ps[i] for i in 1:length(Idx)) == ps )
     end
-    @objective(model, Max, sum( b_ps.*B_entropies))
-    optimize!(model)
-
-    # Unpack weight & idxs from problem:
-    weights=[]
-    idxs = []
-    cumprob = 0.0
-    for (bpi,bp) in enumerate(B_overlap)
-        prob = Float64(JuMP.value(b_ps[bpi]))
-        if prob > 0.0
-            cumprob += prob
-            real_bpi = Bidxs_overlap[bpi]
-            push!(idxs, real_bpi)
-            push!(weights, prob)
-        end
-    end
-    return(idxs, weights)
+    return three_step_beliefs
 end
 
-########## Closest belief weights ##########
-
-function get_all_closeness_weights(Data::TIB_Data{S}, Bbao_data::BBAO_Data{S}) where S
-    return return get_all_weights(Data.B, Bbao_data, Data, get_single_closeness_weights)
-end
-
-"""Compute a weighting for b using only the belief in B with the highest minratio, plus exterior beliefs"""
-function get_single_closeness_weights(b::DiscreteHashedBelief{S}, Bidxs::Vector{Int}, Data::TIB_Data{S}; values=nothing) where S
-    weights, idxs = [], []
-
-    ### Find closest non-unit belief & subtract it from b
-    non_unit_beliefs = filter(bidx -> length(support(Data.B[bidx])) > 1, Bidxs)
-    if length(non_unit_beliefs) > 0
-        closest_bi, min_ratio = get_best_minratio(b, Data.B, non_unit_beliefs) 
-        push!(weights, min_ratio)
-        push!(idxs, closest_bi)
-        brest = subtract_scaled_belief(b, Data.B[closest_bi], min_ratio)
-        remaining_weight = 1.0-min_ratio
-    else
-        brest = b
-        remaining_weight = 1.0
-    end
-
-    ### Add unit beliefs to represent belief
-    for (s, ps) in weighted_iterator(brest)
-        push!(weights, ps * remaining_weight)
-        push!(idxs, Data.S_dict[s])
-    end
-    return idxs, weights
-end
-
-function get_all_iterative_closeness_weights(Data::TIB_Data{S}, Bbao_data::BBAO_Data{S}) where S
-    return get_all_weights(Data.B, Bbao_data, Data, get_single_iterative_closeness_weights)
-end
-
-function get_single_iterative_closeness_weights(b::DiscreteHashedBelief{S}, Bidxs, Data::TIB_Data{S}; values=nothing) where S
-    weights, idxs = [], []
-    brest = deepcopy(b)
-    remaining_weight = 1.0
-
-    ### Iteratively find closest non-unit belief & 
-    non_unit_beliefs = filter(bidx -> length(support(Data.B[bidx])) > 1, Bidxs)
-    if length(non_unit_beliefs) > 0
-        brest = deepcopy(b)
-        remaining_weight = 1.0
-        this_weight = 1.0
-        while this_weight > 1e-5
-            ### Find current closest belief
-            closest_bi, min_ratio = get_best_minratio(brest, Data.B, non_unit_beliefs)
-            this_weight = remaining_weight * min_ratio
-            push!(idxs, closest_bi)
-            push!(weights, this_weight)
-            remaining_weight -= this_weight
-
-            ### Compute 'remaining' belief
-            brest = subtract_scaled_belief(brest, Data.B[closest_bi], min_ratio)
-        end
-    end
-
-    ### Add unit beliefs to represent belief
-    for (s, ps) in weighted_iterator(brest)
-        push!(weights, ps * remaining_weight)
-        push!(idxs, Data.S_dict[s])
-    end
-    return idxs, weights
-end
-
-"""Returns the belief that has the lowest minratio with b (as well as that ratio)"""
-function get_best_minratio(b::DiscreteHashedBelief{S}, B::Vector{DiscreteHashedBelief{S}}, Bidxs::Vector{Int}) where S
-    best_bi, best_ratio = nothing, -Inf
-    best_bi_nonunit, best_ratio_nonunit = nothing, -Inf
-    sup_b = support(b)
-    n_sup_b = length(sup_b)
-    for bpi in Bidxs
-        bp = B[bpi]
-        this_ratio = Inf
-        sup_bp = support(bp)
-        n_sup_bp = length(sup_bp)
-        bidx, bpidx = 1, 1
-        while bidx <= n_sup_b && bpidx <= n_sup_bp
-            sb, sbp = sup_b[bidx], sup_bp[bpidx]
-            if sb == sbp
-                this_ratio = min(this_ratio, b.probs[bidx] / bp.probs[bpidx])
-                this_ratio <= best_ratio && break 
-                bidx += 1; bpidx += 1
-            elseif sb < sbp
-                bidx += 1
-            else
-                this_ratio = 0.0
-                break
-            end
-        end
-        (bidx > n_sup_b && bpidx <= n_sup_bp) && (this_ratio = 0.0)
-        if this_ratio > best_ratio
-            best_bi = bpi
-            best_ratio = this_ratio
-        end
-        best_ratio == 1 && break
-    end
-    return best_bi, best_ratio
-end
-
-function subtract_scaled_belief(b::DiscreteHashedBelief{S}, bmin::DiscreteHashedBelief{S}, scale::Float64) where S
-    sup_r = support(b)
-    probs_r = b.probs
-    n_r = length(sup_r)
-
-    sup_b = support(bmin)
-    probs_b = bmin.probs
-    n_b = length(sup_b)
-
-    new_probs = Vector{Float64}(undef, n_r)
-    cum_prob = 0.0
-
-    ridx, bidx = 1, 1
-
-    while ridx <= n_r && bidx <= n_b
-        sr = sup_r[ridx]
-        sb = sup_b[bidx]
-
-        if sr == sb
-            prob = probs_r[ridx] - scale * probs_b[bidx]
-            new_probs[ridx] = prob
-            cum_prob += prob
-            ridx += 1
-            bidx += 1
-
-        elseif sr < sb
-            # state in brest but not in b_ref → prob_ref = 0
-            prob = probs_r[ridx]
-            new_probs[ridx] = prob
-            cum_prob += prob
-            ridx += 1
-
-        else
-            # state in b_ref but not in brest → irrelevant
-            bidx += 1
-        end
-    end
-
-    # Remaining states in brest (no overlap with b_ref)
-    while ridx <= n_r
-        prob = probs_r[ridx]
-        new_probs[ridx] = prob
-        cum_prob += prob
-        ridx += 1
-    end
-
-    return DiscreteHashedBelief{S}(b.state_list, new_probs ./ cum_prob)
-end
-
-########## optimal belief weights ##########
-
-function get_all_optimal_weights(Data::TIB_Data{S}, Bbao_data::BBAO_Data{S}; Qs=nothing) where S
-    return get_all_weights(Data.B, Bbao_data, Data, get_single_optimal_weights; values = Qs)
-end
-
-function get_single_optimal_weights(b::DiscreteHashedBelief{S}, Bidxs::Vector{Int}, Data::TIB_Data{S}; model=nothing, values=nothing, return_value=false) where S
-    if model isa Nothing
-        model = Model(Clp.Optimizer; add_bridges=false)
-        set_silent(model)
-        set_string_names_on_creation(model, false)
-    end
-
-    Qs = Data.Q[Bidxs, :]
-    B = Data.B[Bidxs]
-
-    @variable(model, 0.0 <= b_ps[1:length(B)] <= 1.0)
-    @variable(model, Qmax)
-
-    # Constraint 1: set must represent b
-    for (s, ps) in weighted_iterator(b)
-        Idx, Ps = [], []
-        for (bpi, bp) in enumerate(B)
-            p = pdf(bp,s)
-            if p > 0
-                push!(Idx, bpi)
-                push!(Ps, p)
-            end
-        end
-        length(Idx) > 0 && @constraint(model, sum(b_ps[Idx] .* Ps) == pdf(b,s) )
-    end
-
-    # Constraint 2: Qmax is Q of best action
-    for ai in 1:Data.constants.na
-        @constraint(model, Qmax >= sum(Qs[:,ai] .* b_ps))
-    end
-
-    @objective(model, Min, 1.0 * Qmax)
-    optimize!(model)
-    Q = objective_value(model)
-    return_value && (return Q)
-
-    return Bidxs, collect(JuMP.value.(b_ps))
-end
