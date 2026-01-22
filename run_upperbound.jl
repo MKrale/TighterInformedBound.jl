@@ -388,7 +388,7 @@ for (m_idx,(model, modelargs)) in enumerate(zip(envs, envargs))
         #     "nbao"=> length(BBao_data.Bbao) + length(B),
         #     "discount"=> discount
 	    # )
-        env_data = Dict() # Comment out when you wan to get env info
+        env_data = Dict() # Comment out when you want to get env info
 
         # Precompile
         if precompile

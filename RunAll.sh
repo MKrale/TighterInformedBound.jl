@@ -8,38 +8,38 @@ processes=()
 discount="0.95"
 
 ## Small, UB
-for env in "ABC" "RockSample5" "Tiger" "K-out-of-N2" "HeavenOrHell" "grid" "DroneSurveilance" "iff" # QUICK, using precompile to minimize variance
+for env in "ABC" "RockSample5" "Tiger" "K-out-of-N2" "HeavenOrHell" "grid" "DroneSurveilance" "iff" "Tag" # QUICK, using precompile to minimize variance
 do
   thisrun="julia --project=. run_upperbound.jl --env $env --discount $discount"
   processes+=("$thisrun")
 done
 # Small, Sarsop
-for env in "ABC" "RockSample5" "Tiger" "K-out-of-N2" "HeavenOrHell" "grid" "DroneSurveilance" "iff" # QUICK
+for env in "ABC" "RockSample5" "Tiger" "K-out-of-N2" "HeavenOrHell" "grid" "DroneSurveilance" "iff" "Tag" # QUICK
 do
   processes+=("julia --project=. run_sarsoptest.jl --env $env --discount $discount --onlyBs true")
 done
 
 ##Large, UB
-for env in "RockSample7" "SparseHallway1" "SparseHallway2" "K-out-of-N3" "Tag" "SparseTigerGrid" "baseball" # LONG, not using precompile to save on computational cost
+for env in "RockSample7" "SparseHallway1" "SparseHallway2" "K-out-of-N3" "SparseTigerGrid" "baseball" # LONG, not using precompile to save on computational cost
 do
- processes+=("julia --project=. run_upperbound.jl --env $env --discount $discount")
+ processes+=("julia --project=. run_upperbound.jl --env $env --discount $discount --precompile false")
 done
 ### Large, Sarsop
-for env in "SparseHallway1" "SparseHallway2"  "RockSample7" "K-out-of-N3" "Tag" "SparseTigerGrid" "baseball # LONG
+for env in "SparseHallway1" "SparseHallway2"  "RockSample7" "K-out-of-N3" "SparseTigerGrid" "baseball" # LONG
 do
-processes+=("julia --project=. run_sarsoptest.jl --env $env --discount $discount --onlyBs true")
+  processes+=("julia --project=. run_sarsoptest.jl --env $env --discount $discount --onlyBs true --precompile false")
 done
 
 # ### Extra Large:
 
-# for env in "pentagon" "aloha30" "fourth" # LONGER
-# do
-#  processes+=("julia --project=. run_upperbound.jl --env $env --discount $discount")
-# done
-# for env in "pentagon" "aloha30" "fourth" # LONGER
-# do
-# processes+=("julia --project=. run_sarsoptest.jl --env $env --discount $discount --onlyBs true")
-# done
+for env in "pentagon" "aloha30" "fourth" # LONGER
+do
+ processes+=("julia --project=. run_upperbound.jl --env $env --discount $discount --precompile false")
+done
+for env in "pentagon" "aloha30" "fourth" # LONGER
+do
+processes+=("julia --project=. run_sarsoptest.jl --env $env --discount $discount --onlyBs true --precompile false")
+done
 
 printf "%s\n" "${processes[@]}" | parallel -j1
 wait
