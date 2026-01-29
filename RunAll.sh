@@ -10,35 +10,35 @@ discount="0.95"
 ## Small, UB
 for env in "ABC" "RockSample5" "Tiger" "K-out-of-N2" "HeavenOrHell" "grid" "DroneSurveilance" "iff" "Tag" # QUICK, using precompile to minimize variance
 do
-  thisrun="julia --project=. run_upperbound.jl --env $env --discount $discount"
+  thisrun="julia --project=. RunFiles/run_upperbound.jl --env $env --discount $discount"
   processes+=("$thisrun")
 done
 # Small, Sarsop
 for env in "ABC" "RockSample5" "Tiger" "K-out-of-N2" "HeavenOrHell" "grid" "DroneSurveilance" "iff" "Tag" # QUICK
 do
-  processes+=("julia --project=. run_sarsoptest.jl --env $env --discount $discount --onlyBs true")
+  processes+=("julia --project=. RunFiles/run_sarsoptest.jl --env $env --discount $discount --onlyBs true")
 done
 
 ##Large, UB
 for env in "RockSample7" "SparseHallway1" "SparseHallway2" "K-out-of-N3" "SparseTigerGrid" "baseball" # LONG, not using precompile to save on computational cost
 do
- processes+=("julia --project=. run_upperbound.jl --env $env --discount $discount --precompile false")
+ processes+=("julia --project=. RunFiles/run_upperbound.jl --env $env --discount $discount --precompile false")
 done
 ### Large, Sarsop
 for env in "SparseHallway1" "SparseHallway2"  "RockSample7" "K-out-of-N3" "SparseTigerGrid" "baseball" # LONG
 do
-  processes+=("julia --project=. run_sarsoptest.jl --env $env --discount $discount --onlyBs true --precompile false")
+  processes+=("julia --project=. RunFiles/run_sarsoptest.jl --env $env --discount $discount --onlyBs true --precompile false")
 done
 
 # ### Extra Large:
 
 for env in "pentagon" "aloha30" "fourth" # LONGER
 do
- processes+=("julia --project=. run_upperbound.jl --env $env --discount $discount --precompile false")
+ processes+=("julia --project=. RunFiles/run_upperbound.jl --env $env --discount $discount --precompile false")
 done
 for env in "pentagon" "aloha30" "fourth" # LONGER
 do
-processes+=("julia --project=. run_sarsoptest.jl --env $env --discount $discount --onlyBs true --precompile false")
+processes+=("julia --project=. RunFiles/run_sarsoptest.jl --env $env --discount $discount --onlyBs true --precompile false")
 done
 
 printf "%s\n" "${processes[@]}" | parallel -j1
@@ -54,7 +54,7 @@ wait
 #     for discount in $(seq 0.95 0.001 0.999);
 #     do
 #         start_time=$(date +%s)
-#         julia --project=. run_sarsoptest.jl --env $env --precompile true --path $folder_path --solvers $heuristic --discount $discount
+#         julia --project=. RunFiles/run_sarsoptest.jl --env $env --precompile true --path $folder_path --solvers $heuristic --discount $discount
 #         end_time=$(date +%s)
 #         elapsed_time=$((end_time - start_time))
 #         if [ $elapsed_time -gt 3600 ]; then 
