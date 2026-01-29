@@ -4,7 +4,7 @@
 #               Solver:
 #########################################
 
-verbose = false
+verbose = true
 
 abstract type TIBSolver <: Solver end
 
@@ -66,6 +66,7 @@ function solve(solver::X, model::POMDP{S,A,O}; Data::Union{TIB_Data{S},Nothing}=
     # 2 : Compute Q-values bsoa beliefs
     Qs = precompute_Qs(model, Data, solver.precomp_solver)    # ∀ b ∈ B, contains QTIB value (initialized using QMDP)
     Data = TIB_Data{S}(Qs, Data)
+    # println(Qs)
 
     # 3 : If OTIB or ETIB, precompute all beliefs after 2 steps
     # Bbao_data::Union{BBAO_Data, Nothing} = nothing

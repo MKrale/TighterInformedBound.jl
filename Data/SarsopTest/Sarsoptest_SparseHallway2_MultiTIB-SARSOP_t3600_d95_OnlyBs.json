@@ -1,1 +1,0 @@
-{"lbs":[0.018836614963823023],"times":[3880.6849060058594],"env":"SparseHallway2","ubs":[0.9221675869629796],"sim_r":null,"sim_rsigma":null,"solver":"MultiTIB-SARSOP","env_full":"SparseHallway2","final_lw":0.018836614963823023,"timeout":true,"runtime":3880.6849060058594,"final_ub":0.9221675869629796}

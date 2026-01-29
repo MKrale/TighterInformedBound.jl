@@ -26,6 +26,9 @@ end
 function DiscreteHashedBelief{S}(b::SparseCat{Vector{S},Vector{M}}) where M<:Float64 where S 
     return DiscreteHashedBelief{S}(b.vals, b.probs)
 end
+function DiscreteHashedBelief{Bool}(b::BoolDistribution)
+    return DiscreteHashedBelief{Bool}([true, false], [b.p, 1-b.p])
+end
 
 function DiscreteHashedBelief{S}(b::Distribution{F,S}) where F where S 
     states, probs = [], Float64[]

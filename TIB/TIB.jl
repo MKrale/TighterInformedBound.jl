@@ -7,13 +7,6 @@ module TIB
     const GRB_ENV=Gurobi.Env()
     redirect_stdout(oldstd)
 
-    # Convenience function for debugging
-    printdb(x) = print(x,"\n")
-    function printdb(x,y...)
-        print(x,", ")
-        printdb(y...)
-    end
-
     include("Beliefs.jl")
     export DiscreteHashedBelief, DiscreteHashedBeliefUpdater
     include("Caching.jl")
@@ -30,4 +23,6 @@ module TIB
     STIBSolver, OTIBSolver, ETIBSolver, CTIBSolver, ICTIBSolver, MultiTIBSolver
     STIBPolicy, OTIBPolicy, ETIBPolicy, CTIBPolicy, ICTIBPolicy, MultiTIBPolicy
     include("Convenience.jl")
+    export 
+    sparseTabularPOMDPFiniteReward
 end

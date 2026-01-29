@@ -262,7 +262,8 @@ function get_single_optimal_weights(b::DiscreteHashedBelief{S}, Bidxs::Vector{In
         set_string_names_on_creation(model, false)
     end
 
-    Qs = Data.Q[Bidxs, :]
+    MIN_Q_VALUE = -100_000
+    Qs = map(q -> max(MIN_Q_VALUE, q), Data.Q[Bidxs, :])
     B = Data.B[Bidxs]
 
     @variable(model, 0.0 <= b_ps[1:length(B)] <= 1.0)
