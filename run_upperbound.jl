@@ -116,7 +116,7 @@ if "OTIB_precomp" in solver_names
 end
 if "OTIB_dynamic" in solver_names
     push!(solvers, OTIBSolver)
-    push!(solverargs, (name="TIBSolver (worst-case)", sargs=(max_iterations=heuristicsteps, precision=heuristicprecision, max_time=timeout, dynamic_recompute=true, dynamic_precision=precision, max_recomputes=100), pargs=(), get_Q0=true))
+    push!(solverargs, (name="TIBSolver (worst-case)", sargs=(max_iterations=heuristicsteps, precision=heuristicprecision, max_time=timeout, dynamic_recompute=true, dynamic_precision=heuristicprecision, max_recomputes=100), pargs=(), get_Q0=true))
     push!(precomp_solverargs, ( sargs=(max_iterations=2, max_recomputes=0, precomp_solver=STIBSolver(max_iterations=2)), pargs=()))
 end
 if "MultiTIB_precomp" in solver_names
@@ -126,7 +126,7 @@ if "MultiTIB_precomp" in solver_names
 end
 if "MultiTIB_dynamic" in solver_names
     push!(solvers, MultiTIBSolver)
-    push!(solverargs, (name="TIBSolver (multi weights)", sargs=(max_iterations=heuristicsteps, precision=heuristicprecision, max_time=timeout, dynamic_recompute=true, dynamic_precision=precision, max_recomputes=100), pargs=(), get_Q0=true))
+    push!(solverargs, (name="TIBSolver (multi weights)", sargs=(max_iterations=heuristicsteps, precision=heuristicprecision, max_time=timeout, dynamic_recompute=true, dynamic_precision=heuristicprecision, max_recomputes=100), pargs=(), get_Q0=true))
     push!(precomp_solverargs, ( sargs=(max_iterations=2, max_recomputes = 0, precomp_solver=STIBSolver(max_iterations=2)), pargs=()))
 end
 if "SARSOP" in solver_names
@@ -348,8 +348,8 @@ for (m_idx,(model, modelargs)) in enumerate(zip(envs, envargs))
         thissolver = solver(;solverarg.sargs...)
 	GC.gc()
         t = @elapsed begin
-            # policy, info = POMDPTools.solve_info(thissolver, model; solverarg.pargs...) 
-            @profile policy, info = POMDPTools.solve_info(thissolver, model; solverarg.pargs...) 
+            policy, info = POMDPTools.solve_info(thissolver, model; solverarg.pargs...) 
+            # @profile policy, info = POMDPTools.solve_info(thissolver, model; solverarg.pargs...) 
         end
         if (info isa Nothing)
             ub = POMDPs.value(policy, POMDPs.initialstate(model))
@@ -359,8 +359,8 @@ for (m_idx,(model, modelargs)) in enumerate(zip(envs, envargs))
             lb =  info.lb
         end       
 
-        fg = flamegraph(Profile.fetch(); norepl=true, combine=true)
-        ProfileSVG.save("flamegraph.svg", fg; width=3600, fontsize=10, maxdepth=40, maxframes=10_000)
+        # fg = flamegraph(Profile.fetch(); norepl=true, combine=true)
+        # ProfileSVG.save("flamegraph.svg", fg; width=3600, fontsize=10, maxdepth=40, maxframes=10_000)
 
         ### Policy simulation (very slow, so not used)
         #rs = []
