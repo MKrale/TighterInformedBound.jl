@@ -214,7 +214,7 @@ for (m_idx,(model, modelargs)) in enumerate(zip(envs, envargs))
             policy, info = POMDPTools.solve_info(thissolver, model; solverarg.pargs...) 
             # @profile policy, info = POMDPTools.solve_info(thissolver, model; solverarg.pargs...) 
         end
-        if (info isa Nothing)
+        if !isdefined(info, :ub) || !isdefined(info, :lb)
             ub = POMDPs.value(policy, POMDPs.initialstate(model))
             lb = -1
         else
@@ -252,7 +252,8 @@ for (m_idx,(model, modelargs)) in enumerate(zip(envs, envargs))
             "lb" => lb,
             # Simulation data
             "simtime" => t_sims,
-            "ravg" => rs_avg
+            "ravg" => rs_avg,
+            "additional_info" => info
         )
         json_str = JSON.json(data_dict)
         verbose && println("In $(env_name), $(solverarg.name) found bound $ub in $(t)s.")

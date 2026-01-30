@@ -245,8 +245,8 @@ function subtract_scaled_belief(b::DiscreteHashedBelief{S}, bmin::DiscreteHashed
         cum_prob += prob
         ridx += 1
     end
-
-    return DiscreteHashedBelief{S}(b.state_list, new_probs ./ cum_prob)
+    cum_prob > 1e-10 ? (new_probs = new_probs ./ cum_prob) : (fill!(new_probs, 0.0))
+    return DiscreteHashedBelief{S}(b.state_list, new_probs)
 end
 
 ########## optimal belief weights ##########

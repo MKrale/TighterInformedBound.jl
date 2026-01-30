@@ -4,7 +4,7 @@
 #               Solver:
 #########################################
 
-verbose = false
+verbose = true
 
 abstract type TIBSolver <: Solver end
 
@@ -50,31 +50,47 @@ end
     precomp_solver          = STIBSolver(precision=1e-4, max_iterations=250, max_time=3600, precomp_solver=FIBSolver_alt(precision=1e-4, max_iterations=1000, max_time=3600))
 end
 
+struct TIB_solver_info
+    time::Float64
+    time_init::Float64
+    time_init_Qs::Float64
+    time_init_weights::Float64
+    time_iterating::Float64
+    nmbr_iterations::Int
+    nmbr_recomputes::Int
+    precesion::Float64
+end
 
 
 SOLVERS_REQUIRING_BBAO = [ETIBSolver, CTIBSolver, ICTIBSolver, OTIBSolver, MultiTIBSolver]
-POMDPs.solve(solver::X, model::POMDP) where X<: TIBSolver = solve(solver, model; Data=nothing)
-"""Computes policy for TIB-style policies"""
+POMDPs.solve(solver::X, model::POMDP) where X<: TIBSolver = solve_info(solver, model; Data=nothing)[1]
+POMDPTools.solve_info(solver::X, model::POMDP) where X<: TIBSolver = solve_info(solver, model; Data=nothing)
+
 function solve(solver::X, model::POMDP{S,A,O}; Data::Union{TIB_Data{S},Nothing}=nothing) where X<:TIBSolver where S where A where O
+    return solve_info(solver, model; Data)[1]
+end
+
+"""Computes policy for TIB-style policies"""
+function solve_info(solver::X, model::POMDP{S,A,O}; Data::Union{TIB_Data{S},Nothing}=nothing) where X<:TIBSolver where S where A where O
     t0 = time()
 
     # 1 : Cash all relevant model data
     if isnothing(Data) # This is the default case (only skipped when initializing with another TIB-style policy)
         Data::TIB_Data = get_TIB_Data(model)
     end
+    
+    # 3 : If OTIB or ETIB, precompute all beliefs after 2 steps
+    if any(map(solvertype -> solver isa solvertype, SOLVERS_REQUIRING_BBAO))
+        Bbao_data = get_Bbao(model, Data)
+    end
+    time_init = time() - t0
 
     # 2 : Compute Q-values bsoa beliefs
     Qs = precompute_Qs(model, Data, solver.precomp_solver)    # ∀ b ∈ B, contains QTIB value (initialized using QMDP)
     Data = TIB_Data{S}(Qs, Data)
-    # println(Qs)
+    time_Qs = time() - t0 - time_init
 
-    # 3 : If OTIB or ETIB, precompute all beliefs after 2 steps
-    # Bbao_data::Union{BBAO_Data, Nothing} = nothing
-    if any(map(solvertype -> solver isa solvertype, SOLVERS_REQUIRING_BBAO))
-        Bbao_data = get_Bbao(model, Data)
-    end
-    t_init = time() - t0
-    verbose && printdb("general init time:", t_init)
+    verbose && printdb("general init time:", (time() - t0))
 
     # 4 : If using ETIB, pre-compute entropy weights
     
@@ -96,8 +112,8 @@ function solve(solver::X, model::POMDP{S,A,O}; Data::Union{TIB_Data{S},Nothing}=
         Weights = [W_closeness, W_optimal, W_entropy]
     end
 
-    t_w = time() - t0 - t_init
-    verbose && printdb("weights calculation time:", t_w)
+    time_weights = time() - t0 - time_init - time_Qs
+    verbose && printdb("weights calculation time:", time_weights)
 
     # Lets be overly fancy! Define a function for computing Q, depending on the specific solver
     get_Q, args = identity, []
@@ -119,8 +135,8 @@ function solve(solver::X, model::POMDP{S,A,O}; Data::Union{TIB_Data{S},Nothing}=
     
     # 5 : Now iterate:
     it = 0
+    total_it = 0
     recomputes = 0
-    last_recompute = 0
     factor = discount(model) / (1-discount(model))
     max_dif = Inf
     while true
@@ -134,6 +150,7 @@ function solve(solver::X, model::POMDP{S,A,O}; Data::Union{TIB_Data{S},Nothing}=
         ### Normal convergence check
         if !(isdefined(solver, :dynamic_recompute)) || !(solver.dynamic_recompute)
             if it > solver.max_iterations || factor * max_dif < solver.precision || time()-t0 > solver.max_time
+                total_it = it
                 break
             end
 
@@ -143,6 +160,7 @@ function solve(solver::X, model::POMDP{S,A,O}; Data::Union{TIB_Data{S},Nothing}=
             if ((factor * max_dif < solver.dynamic_precision && it == 1)
                 || (it >  solver.max_iterations && recomputes >= solver.max_recomputes)
                 || time()-t0 > solver.max_time)
+                total_it += it
                 break
             ### Compute new weights if 1) converged for current weights, or 2) reached max iterations for weights
             elseif ( factor * max_dif < solver.dynamic_precision 
@@ -151,9 +169,9 @@ function solve(solver::X, model::POMDP{S,A,O}; Data::Union{TIB_Data{S},Nothing}=
                 Weights = get_all_optimal_weights(Data, Bbao_data)
                 args = (Data, Bbao_data, Weights)
                 max_dif = Inf
-                last_recompute = it
                 it = 0
                 recomputes += 1
+                total_it += it
             end
         
         elseif mod(i, solver.recompute_iterations) == 0
@@ -163,11 +181,22 @@ function solve(solver::X, model::POMDP{S,A,O}; Data::Union{TIB_Data{S},Nothing}=
         end
 
     end
-    t_it = time()- t0 - t_init - t_w
+    time_iterations = time() - t0 - time_init - time_Qs - time_weights
     verbose && printdb("Converged with precision $(max_dif * factor)")
-    verbose && printdb("iteration time $t_it (avg over $it iterations: $(t_it/it))")
+    verbose && printdb("iteration time $time_iterations (avg over $total_it iterations: $(time_iterations/total_it))")
 
-    return pol(model, TIB_Data{S}(Qs,Data))
+    info = TIB_solver_info(
+        time() - t0,
+        time_init,
+        time_Qs,
+        time_weights,
+        time_iterations,
+        total_it,
+        recomputes,
+        max_dif * factor
+    )
+
+    return pol(model, TIB_Data{S}(Qs,Data)), info
 end
 
 #########################################

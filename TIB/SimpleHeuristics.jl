@@ -9,7 +9,7 @@ abstract type QS_table_policy <: Policy end
 
 """QMDP Solver, reimplemented for efficiency"""
 @kwdef struct QMDPSolver_alt <: Solver
-    precision::AbstractFloat    = 1e-3      # (Approximate) precision at which the algorithm terminates
+    precision::AbstractFloat    = 1e-4      # (Approximate) precision at which the algorithm terminates
     max_time::Float64           = 600       # Timeout time for computations 
     max_iterations::Int         = 5_000     # Timeout nmbr. of iterations
 end
