@@ -109,7 +109,7 @@ if "CTIB" in solver_names
     push!(solverargs, (name="CTIB", sargs=(max_iterations=heuristicsteps, precision=heuristicprecision, max_time=timeout), pargs=(), get_Q0=true))
     push!(precomp_solverargs, ( sargs=(max_iterations=2, precomp_solver=STIBSolver(max_iterations=2)), pargs=()))    
 end
-if "OTIB_precomp" in solver_names
+if "OTIB_pre" in solver_names
     push!(solvers, OTIBSolver)
     push!(solverargs, (name="OTIB_pre", sargs=(max_iterations=heuristicsteps, precision=heuristicprecision, max_time=timeout, dynamic_recompute=false), pargs=(), get_Q0=true))
     push!(precomp_solverargs, ( sargs=(max_iterations=2, max_recomputes=0, precomp_solver=STIBSolver(max_iterations=2)), pargs=()))
