@@ -4,7 +4,7 @@
 #               Solver:
 #########################################
 
-verbose = true
+verbose = false
 
 abstract type TIBSolver <: Solver end
 
