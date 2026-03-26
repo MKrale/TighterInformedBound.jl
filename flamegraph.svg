@@ -1,455 +1,75 @@
 <?xml version="1.0" standalone="no"?>
 <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
-<svg version="1.1" width="3600" height="768" viewBox="0 0 3600 768"
-     xmlns="http://www.w3.org/2000/svg" id="fig-ee5ed1af07a041f9be56540cbcc87e7a">
+<svg version="1.1" width="3600" height="420" viewBox="0 0 3600 420"
+     xmlns="http://www.w3.org/2000/svg" id="fig-58b7e54f66b54e4a8bef6d5ae64406a2">
 <defs>
-    <clipPath id="fig-ee5ed1af07a041f9be56540cbcc87e7a-clip">
-        <rect x="0" y="0" width="3600" height="768"/>
+    <clipPath id="fig-58b7e54f66b54e4a8bef6d5ae64406a2-clip">
+        <rect x="0" y="0" width="3600" height="420"/>
     </clipPath>
 </defs>
 <style type="text/css">
-    #fig-ee5ed1af07a041f9be56540cbcc87e7a text {
+    #fig-58b7e54f66b54e4a8bef6d5ae64406a2 text {
         pointer-events: none;
         font-family: inherit;
         font-size: 10px;
         fill: #000000;
     }
-    text#fig-ee5ed1af07a041f9be56540cbcc87e7a-title {
+    text#fig-58b7e54f66b54e4a8bef6d5ae64406a2-title {
         font-size: 14px;
         fill: #000000;
         text-anchor: middle;
     }
-    #fig-ee5ed1af07a041f9be56540cbcc87e7a-bg {
+    #fig-58b7e54f66b54e4a8bef6d5ae64406a2-bg {
         fill: #FFFFFF;
     }
-    #fig-ee5ed1af07a041f9be56540cbcc87e7a-viewport rect, #fig-ee5ed1af07a041f9be56540cbcc87e7a-viewport path {
+    #fig-58b7e54f66b54e4a8bef6d5ae64406a2-viewport rect, #fig-58b7e54f66b54e4a8bef6d5ae64406a2-viewport path {
         vector-effect: non-scaling-stroke;
         fill-opacity: 1;
     }
-    #fig-ee5ed1af07a041f9be56540cbcc87e7a-viewport text {
+    #fig-58b7e54f66b54e4a8bef6d5ae64406a2-viewport text {
         stroke: #000000;
         stroke-width: 0;
         stroke-opacity: 0.35;
     }
-    #fig-ee5ed1af07a041f9be56540cbcc87e7a-viewport rect:hover, #fig-ee5ed1af07a041f9be56540cbcc87e7a-viewport path:hover {
+    #fig-58b7e54f66b54e4a8bef6d5ae64406a2-viewport rect:hover, #fig-58b7e54f66b54e4a8bef6d5ae64406a2-viewport path:hover {
         fill-opacity: 0.75;
         stroke: #000000;
         stroke-width: 0.5;
     }
-    #fig-ee5ed1af07a041f9be56540cbcc87e7a-viewport + rect {
+    #fig-58b7e54f66b54e4a8bef6d5ae64406a2-viewport + rect {
         fill: #FFFFFF;
         opacity: 0.8;
     }
-    text#fig-ee5ed1af07a041f9be56540cbcc87e7a-details{
+    text#fig-58b7e54f66b54e4a8bef6d5ae64406a2-details{
         fill: #000000;
     }
 </style>
-<g id="fig-ee5ed1af07a041f9be56540cbcc87e7a-frame" clip-path="url(#fig-ee5ed1af07a041f9be56540cbcc87e7a-clip)">
-<rect id="fig-ee5ed1af07a041f9be56540cbcc87e7a-bg" x="0" y="0" width="3600" height="768"/>
-<text id="fig-ee5ed1af07a041f9be56540cbcc87e7a-title" x="1800" y="20">Profile results</text>
-<g id="fig-ee5ed1af07a041f9be56540cbcc87e7a-viewport" transform="scale(1)">
-<rect x="36" y="612" width="3528" height="12" rx="2" fill="#E1B2FF" data-dinfo=""/>
-<text x="36" dx="4" y="621"> in :-1</text>
-<rect x="166.67" y="600" width="3136" height="12" rx="2" fill="#00B58B" data-dinfo="./"/>
-<text x="166.67" dx="4" y="609">_start in client.jl:531</text>
-<rect x="166.67" y="588" width="3136" height="12" rx="2" fill="#E1B2FF" data-dinfo="./"/>
-<text x="166.67" dx="4" y="597">exec_options in client.jl:323</text>
-<rect x="166.67" y="576" width="3136" height="12" rx="2" fill="#00B58B" data-dinfo="./"/>
-<text x="166.67" dx="4" y="585">include in Base.jl:557</text>
-<rect x="166.67" y="564" width="3136" height="12" rx="2" fill="#E1B2FF" data-dinfo="./"/>
-<text x="166.67" dx="4" y="573">_include in loading.jl:2794</text>
-<rect x="166.67" y="552" width="3136" height="12" rx="2" fill="#00B58B" data-dinfo="./"/>
-<text x="166.67" dx="4" y="561">include_string in loading.jl:2734</text>
-<rect x="166.67" y="540" width="3136" height="12" rx="2" fill="#E1B2FF" data-dinfo="./"/>
-<text x="166.67" dx="4" y="549">eval in boot.jl:430</text>
-<rect x="166.67" y="528" width="3136" height="12" rx="2" fill="#00B58B" data-dinfo="/home/merlijn/Backward_Informed_Bound/"/>
-<text x="166.67" dx="4" y="537">top-level scope in run_upperbound.jl:350</text>
-<rect x="166.67" y="516" width="3136" height="12" rx="2" fill="#E1B2FF" data-dinfo="./"/>
-<text x="166.67" dx="4" y="525">macro expansion in timing.jl:421</text>
-<rect x="166.67" y="504" width="3136" height="12" rx="2" fill="#00B58B" data-dinfo="/home/merlijn/Backward_Informed_Bound/"/>
-<text x="166.67" dx="4" y="513">macro expansion in run_upperbound.jl:352</text>
-<rect x="166.67" y="492" width="3136" height="12" rx="2" fill="#F3004D" data-dinfo="/cache/build/tester-amdci5-12/julialang/julia-release-1-dot-11/usr/share/julia/stdlib/v1.11/Profile/src/"/>
-<text x="166.67" dx="4" y="501">macro expansion in Profile.jl:58</text>
-<rect x="950.67" y="480" width="2352" height="12" rx="2" fill="#00B58B" data-dinfo="/home/merlijn/.julia/packages/POMDPTools/4nD6N/src/ModelTools/"/>
-<text x="950.67" dx="4" y="489">solve_info in info.jl:23</text>
-<rect x="950.67" y="468" width="2352" height="12" rx="2" fill="#E1B2FF" data-dinfo="/home/merlijn/Backward_Informed_Bound/TIB/"/>
-<text x="950.67" dx="4" y="477">solve in solver.jl:56</text>
-<rect x="950.67" y="456" width="2352" height="12" rx="2" fill="#00B58B" data-dinfo="/home/merlijn/Backward_Informed_Bound/TIB/"/>
-<text x="950.67" dx="4" y="465">solve in solver.jl:58</text>
-<rect x="950.67" y="444" width="522.66" height="12" rx="2" fill="#E1B2FF" data-dinfo="/home/merlijn/Backward_Informed_Bound/TIB/"/>
-<text x="950.67" dx="4" y="453">#solve#36 in solver.jl:83</text>
-<rect x="950.67" y="432" width="522.66" height="12" rx="2" fill="#00B58B" data-dinfo="/home/merlijn/Backward_Informed_Bound/TIB/"/>
-<text x="950.67" dx="4" y="441">get_all_entropy_weights in Weights.jl:52</text>
-<rect x="950.67" y="420" width="522.66" height="12" rx="2" fill="#E1B2FF" data-dinfo="/home/merlijn/Backward_Informed_Bound/TIB/"/>
-<text x="950.67" dx="4" y="429">#get_all_entropy_weights#8 in Weights.jl:53</text>
-<rect x="950.67" y="408" width="522.66" height="12" rx="2" fill="#00B58B" data-dinfo="/home/merlijn/Backward_Informed_Bound/TIB/"/>
-<text x="950.67" dx="4" y="417">get_all_weights in Weights.jl:25</text>
-<rect x="950.67" y="396" width="261.33" height="12" rx="2" fill="#E1B2FF" data-dinfo="/home/merlijn/Backward_Informed_Bound/TIB/"/>
-<text x="950.67" dx="4" y="405">#get_all_weights#7 in Weights.jl:33</text>
-<rect x="950.67" y="384" width="261.33" height="12" rx="2" fill="#00B58B" data-dinfo="/home/merlijn/Backward_Informed_Bound/TIB/"/>
-<text x="950.67" dx="4" y="393">get_single_entropy_weights in Weights.jl:56</text>
-<rect x="950.67" y="372" width="130.66" height="12" rx="2" fill="#E1B2FF" data-dinfo="/home/merlijn/Backward_Informed_Bound/TIB/"/>
-<text x="950.67" dx="4" y="381">#get_single_entropy_weights#9 in Weights.jl:58</text>
-<rect x="950.67" y="360" width="130.66" height="12" rx="2" fill="#00B58B" data-dinfo="/home/merlijn/.julia/packages/JuMP/7eD71/src/"/>
-<text x="950.67" dx="4" y="369">GenericModel in JuMP.jl:196</text>
-<rect x="950.67" y="348" width="130.66" height="12" rx="2" fill="#E1B2FF" data-dinfo="/home/merlijn/.julia/packages/JuMP/7eD71/src/"/>
-<text x="950.67" dx="4" y="357">#_#1 in JuMP.jl:204</text>
-<rect x="950.67" y="336" width="130.66" height="12" rx="2" fill="#00B58B" data-dinfo="/home/merlijn/.julia/packages/JuMP/7eD71/src/"/>
-<text x="950.67" dx="4" y="345">set_optimizer in optimizer_interface.jl:495</text>
-<rect x="950.67" y="324" width="130.66" height="12" rx="2" fill="#E1B2FF" data-dinfo="/home/merlijn/.julia/packages/JuMP/7eD71/src/"/>
-<text x="950.67" dx="4" y="333">#set_optimizer#104 in optimizer_interface.jl:512</text>
-<rect x="950.67" y="312" width="130.66" height="12" rx="2" fill="#00B58B" data-dinfo="/home/merlijn/.julia/packages/MathOptInterface/03Qtw/src/"/>
-<text x="950.67" dx="4" y="321">instantiate in instantiate.jl:162</text>
-<rect x="950.67" y="300" width="130.66" height="12" rx="2" fill="#E1B2FF" data-dinfo="/home/merlijn/.julia/packages/MathOptInterface/03Qtw/src/"/>
-<text x="950.67" dx="4" y="309">#instantiate#40 in instantiate.jl:177</text>
-<rect x="950.67" y="288" width="130.66" height="12" rx="2" fill="#00B58B" data-dinfo="/home/merlijn/.julia/packages/MathOptInterface/03Qtw/src/"/>
-<text x="950.67" dx="4" y="297">_instantiate_and_check in instantiate.jl:96</text>
-<rect x="950.67" y="276" width="130.66" height="12" rx="2" fill="#E1B2FF" data-dinfo="/home/merlijn/.julia/packages/Clp/BAhIw/src/MOI_wrapper/"/>
-<text x="950.67" dx="4" y="285">Optimizer in MOI_wrapper.jl:67</text>
-<rect x="950.67" y="264" width="130.66" height="12" rx="2" fill="#00B58B" data-dinfo="/home/merlijn/.julia/packages/Clp/BAhIw/src/"/>
-<text x="950.67" dx="4" y="273">Clp_newModel in libClp.jl:52</text>
-<rect x="1081.33" y="372" width="130.67" height="12" rx="2" fill="#6FDC91" data-dinfo="/home/merlijn/Backward_Informed_Bound/TIB/"/>
-<text x="1081.33" dx="4" y="381">#get_single_entropy_weights#9 in Weights.jl:83</text>
-<rect x="1081.33" y="360" width="130.67" height="12" rx="2" fill="#2CA3FF" data-dinfo="/home/merlijn/.julia/packages/JuMP/7eD71/src/"/>
-<text x="1081.33" dx="4" y="369">optimize! in optimizer_interface.jl:560</text>
-<rect x="1081.33" y="348" width="130.67" height="12" rx="2" fill="#6FDC91" data-dinfo="/home/merlijn/.julia/packages/JuMP/7eD71/src/"/>
-<text x="1081.33" dx="4" y="357">#optimize!#105 in optimizer_interface.jl:609</text>
-<rect x="1081.33" y="336" width="130.67" height="12" rx="2" fill="#2CA3FF" data-dinfo="/home/merlijn/.julia/packages/MathOptInterface/03Qtw/src/Utilities/"/>
-<text x="1081.33" dx="4" y="345">optimize! in cachingoptimizer.jl:370</text>
-<rect x="1081.33" y="324" width="130.67" height="12" rx="2" fill="#6FDC91" data-dinfo="/home/merlijn/.julia/packages/MathOptInterface/03Qtw/src/"/>
-<text x="1081.33" dx="4" y="333">optimize! in MathOptInterface.jl:121</text>
-<rect x="1081.33" y="312" width="130.67" height="12" rx="2" fill="#2CA3FF" data-dinfo="/home/merlijn/.julia/packages/Clp/BAhIw/src/MOI_wrapper/"/>
-<text x="1081.33" dx="4" y="321">copy_to in MOI_wrapper.jl:364</text>
-<rect x="1081.33" y="300" width="130.67" height="12" rx="2" fill="#6FDC91" data-dinfo="/home/merlijn/.julia/packages/MathOptInterface/03Qtw/src/Utilities/"/>
-<text x="1081.33" dx="4" y="309">copy_to in model.jl:127</text>
-<rect x="1081.33" y="288" width="130.67" height="12" rx="2" fill="#2CA3FF" data-dinfo="/home/merlijn/.julia/packages/MathOptInterface/03Qtw/src/Utilities/"/>
-<text x="1081.33" dx="4" y="297">default_copy_to in copy.jl:393</text>
-<rect x="1081.33" y="276" width="130.67" height="12" rx="2" fill="#6FDC91" data-dinfo="/home/merlijn/.julia/packages/MathOptInterface/03Qtw/src/Utilities/"/>
-<text x="1081.33" dx="4" y="285">_pass_constraints in copy.jl:258</text>
-<rect x="1081.33" y="264" width="130.67" height="12" rx="2" fill="#2CA3FF" data-dinfo="/home/merlijn/.julia/packages/MathOptInterface/03Qtw/src/"/>
-<text x="1081.33" dx="4" y="273">ListOfConstraintIndices in attributes.jl:1488</text>
-<rect x="1212" y="396" width="261.33" height="12" rx="2" fill="#6FDC91" data-dinfo="/home/merlijn/Backward_Informed_Bound/TIB/"/>
-<text x="1212" dx="4" y="405">#get_all_weights#7 in Weights.jl:44</text>
-<rect x="1212" y="384" width="261.33" height="12" rx="2" fill="#2CA3FF" data-dinfo="/home/merlijn/Backward_Informed_Bound/TIB/"/>
-<text x="1212" dx="4" y="393">get_single_entropy_weights in Weights.jl:56</text>
-<rect x="1212" y="372" width="261.33" height="12" rx="2" fill="#E1B2FF" data-dinfo="/home/merlijn/Backward_Informed_Bound/TIB/"/>
-<text x="1212" dx="4" y="381">#get_single_entropy_weights#9 in Weights.jl:83</text>
-<rect x="1212" y="360" width="261.33" height="12" rx="2" fill="#00B58B" data-dinfo="/home/merlijn/.julia/packages/JuMP/7eD71/src/"/>
-<text x="1212" dx="4" y="369">optimize! in optimizer_interface.jl:560</text>
-<rect x="1212" y="348" width="261.33" height="12" rx="2" fill="#E1B2FF" data-dinfo="/home/merlijn/.julia/packages/JuMP/7eD71/src/"/>
-<text x="1212" dx="4" y="357">#optimize!#105 in optimizer_interface.jl:609</text>
-<rect x="1212" y="336" width="130.67" height="12" rx="2" fill="#00B58B" data-dinfo="/home/merlijn/.julia/packages/MathOptInterface/03Qtw/src/Utilities/"/>
-<text x="1212" dx="4" y="345">optimize! in cachingoptimizer.jl:370</text>
-<rect x="1212" y="324" width="130.67" height="12" rx="2" fill="#E1B2FF" data-dinfo="/home/merlijn/.julia/packages/MathOptInterface/03Qtw/src/"/>
-<text x="1212" dx="4" y="333">optimize! in MathOptInterface.jl:121</text>
-<rect x="1212" y="312" width="130.67" height="12" rx="2" fill="#00B58B" data-dinfo="/home/merlijn/.julia/packages/Clp/BAhIw/src/MOI_wrapper/"/>
-<text x="1212" dx="4" y="321">copy_to in MOI_wrapper.jl:371</text>
-<rect x="1212" y="300" width="130.67" height="12" rx="2" fill="#E1B2FF" data-dinfo="/home/merlijn/.julia/packages/MathOptInterface/03Qtw/src/Utilities/copy/"/>
-<text x="1212" dx="4" y="309">setindex! in index_map.jl:87</text>
-<rect x="1212" y="288" width="130.67" height="12" rx="2" fill="#00B58B" data-dinfo="/home/merlijn/.julia/packages/MathOptInterface/03Qtw/src/Utilities/"/>
-<text x="1212" dx="4" y="297">setindex! in DoubleDicts.jl:222</text>
-<rect x="1212" y="276" width="130.67" height="12" rx="2" fill="#E1B2FF" data-dinfo="/home/merlijn/.julia/packages/MathOptInterface/03Qtw/src/Utilities/"/>
-<text x="1212" dx="4" y="285">getindex in DoubleDicts.jl:106</text>
-<rect x="1212" y="264" width="130.67" height="12" rx="2" fill="#00B58B" data-dinfo="/home/merlijn/.julia/packages/MathOptInterface/03Qtw/src/Utilities/"/>
-<text x="1212" dx="4" y="273">IndexDoubleDictInner in DoubleDicts.jl:98</text>
-<rect x="1212" y="252" width="130.67" height="12" rx="2" fill="#E1B2FF" data-dinfo="./"/>
-<text x="1212" dx="4" y="261">haskey in dict.jl:548</text>
-<rect x="1212" y="240" width="130.67" height="12" rx="2" fill="#00B58B" data-dinfo="./"/>
-<text x="1212" dx="4" y="249">ht_keyindex in dict.jl:0</text>
-<rect x="1342.67" y="336" width="130.66" height="12" rx="2" fill="#2CA3FF" data-dinfo="/home/merlijn/.julia/packages/MathOptInterface/03Qtw/src/Utilities/"/>
-<text x="1342.67" dx="4" y="345">optimize! in cachingoptimizer.jl:375</text>
-<rect x="1342.67" y="324" width="130.66" height="12" rx="2" fill="#6FDC91" data-dinfo="/home/merlijn/.julia/packages/MathOptInterface/03Qtw/src/Utilities/"/>
-<text x="1342.67" dx="4" y="333">_reverse_index_map in cachingoptimizer.jl:279</text>
-<rect x="1342.67" y="312" width="130.66" height="12" rx="2" fill="#C5312F" data-dinfo="/home/merlijn/.julia/packages/MathOptInterface/03Qtw/src/Utilities/"/>
-<text x="1342.67" dx="4" y="321">_reverse_dict in cachingoptimizer.jl:295</text>
-<rect x="1473.33" y="444" width="522.67" height="12" rx="2" fill="#6FDC91" data-dinfo="/home/merlijn/Backward_Informed_Bound/TIB/"/>
-<text x="1473.33" dx="4" y="453">#solve#36 in solver.jl:89</text>
-<rect x="1473.33" y="432" width="522.67" height="12" rx="2" fill="#2CA3FF" data-dinfo="/home/merlijn/Backward_Informed_Bound/TIB/"/>
-<text x="1473.33" dx="4" y="441">get_all_optimal_weights in Weights.jl:254</text>
-<rect x="1473.33" y="420" width="522.67" height="12" rx="2" fill="#6FDC91" data-dinfo="/home/merlijn/Backward_Informed_Bound/TIB/"/>
-<text x="1473.33" dx="4" y="429">#get_all_optimal_weights#22 in Weights.jl:255</text>
-<rect x="1473.33" y="408" width="522.67" height="12" rx="2" fill="#2CA3FF" data-dinfo="/home/merlijn/Backward_Informed_Bound/TIB/"/>
-<text x="1473.33" dx="4" y="417">get_all_weights in Weights.jl:25</text>
-<rect x="1473.33" y="396" width="261.34" height="12" rx="2" fill="#E1B2FF" data-dinfo="/home/merlijn/Backward_Informed_Bound/TIB/"/>
-<text x="1473.33" dx="4" y="405">#get_all_weights#7 in Weights.jl:33</text>
-<rect x="1473.33" y="384" width="261.34" height="12" rx="2" fill="#00B58B" data-dinfo="/home/merlijn/Backward_Informed_Bound/TIB/"/>
-<text x="1473.33" dx="4" y="393">get_single_optimal_weights in Weights.jl:258</text>
-<rect x="1473.33" y="372" width="261.34" height="12" rx="2" fill="#6FDC91" data-dinfo="/home/merlijn/Backward_Informed_Bound/TIB/"/>
-<text x="1473.33" dx="4" y="381">#get_single_optimal_weights#23 in Weights.jl:290</text>
-<rect x="1473.33" y="360" width="261.34" height="12" rx="2" fill="#2CA3FF" data-dinfo="/home/merlijn/.julia/packages/JuMP/7eD71/src/"/>
-<text x="1473.33" dx="4" y="369">optimize! in optimizer_interface.jl:560</text>
-<rect x="1473.33" y="348" width="261.34" height="12" rx="2" fill="#6FDC91" data-dinfo="/home/merlijn/.julia/packages/JuMP/7eD71/src/"/>
-<text x="1473.33" dx="4" y="357">#optimize!#105 in optimizer_interface.jl:609</text>
-<rect x="1473.33" y="336" width="261.34" height="12" rx="2" fill="#00B58B" data-dinfo="/home/merlijn/.julia/packages/MathOptInterface/03Qtw/src/Utilities/"/>
-<text x="1473.33" dx="4" y="345">optimize! in cachingoptimizer.jl:370</text>
-<rect x="1473.33" y="324" width="261.34" height="12" rx="2" fill="#E1B2FF" data-dinfo="/home/merlijn/.julia/packages/MathOptInterface/03Qtw/src/"/>
-<text x="1473.33" dx="4" y="333">optimize! in MathOptInterface.jl:121</text>
-<rect x="1473.33" y="312" width="130.67" height="12" rx="2" fill="#00B58B" data-dinfo="/home/merlijn/.julia/packages/Clp/BAhIw/src/MOI_wrapper/"/>
-<text x="1473.33" dx="4" y="321">copy_to in MOI_wrapper.jl:365</text>
-<rect x="1473.33" y="300" width="130.67" height="12" rx="2" fill="#6FDC91" data-dinfo="/home/merlijn/.julia/packages/Clp/BAhIw/src/MOI_wrapper/"/>
-<text x="1473.33" dx="4" y="309">copy_to in MOI_wrapper.jl:351</text>
-<rect x="1473.33" y="288" width="130.67" height="12" rx="2" fill="#2CA3FF" data-dinfo="/home/merlijn/.julia/packages/Clp/BAhIw/src/MOI_wrapper/"/>
-<text x="1473.33" dx="4" y="297">_index_map in MOI_wrapper.jl:312</text>
-<rect x="1473.33" y="276" width="130.67" height="12" rx="2" fill="#6FDC91" data-dinfo="/home/merlijn/.julia/packages/MathOptInterface/03Qtw/src/Utilities/"/>
-<text x="1473.33" dx="4" y="285">get in model.jl:373</text>
-<rect x="1473.33" y="264" width="130.67" height="12" rx="2" fill="#2CA3FF" data-dinfo="/home/merlijn/.julia/packages/MathOptInterface/03Qtw/src/Utilities/"/>
-<text x="1473.33" dx="4" y="273">get in matrix_of_constraints.jl:354</text>
-<rect x="1473.33" y="252" width="130.67" height="12" rx="2" fill="#6FDC91" data-dinfo="/home/merlijn/.julia/packages/MathOptInterface/03Qtw/src/Utilities/"/>
-<text x="1473.33" dx="4" y="261">get in product_of_sets.jl:281</text>
-<rect x="1473.33" y="240" width="130.67" height="12" rx="2" fill="#2CA3FF" data-dinfo="./"/>
-<text x="1473.33" dx="4" y="249">collect in array.jl:647</text>
-<rect x="1473.33" y="228" width="130.67" height="12" rx="2" fill="#E1B2FF" data-dinfo="./"/>
-<text x="1473.33" dx="4" y="237">_collect in array.jl:655</text>
-<rect x="1473.33" y="216" width="130.67" height="12" rx="2" fill="#00B58B" data-dinfo="./"/>
-<text x="1473.33" dx="4" y="225">iterate in generator.jl:45</text>
-<rect x="1473.33" y="204" width="130.67" height="12" rx="2" fill="#E1B2FF" data-dinfo="./"/>
-<text x="1473.33" dx="4" y="213">iterate in iterators.jl:548</text>
-<rect x="1473.33" y="192" width="130.67" height="12" rx="2" fill="#D42137" data-dinfo="./"/>
-<text x="1473.33" dx="4" y="201">#158 in none:0</text>
-<rect x="1604" y="312" width="130.67" height="12" rx="2" fill="#2CA3FF" data-dinfo="/home/merlijn/.julia/packages/Clp/BAhIw/src/MOI_wrapper/"/>
-<text x="1604" dx="4" y="321">copy_to in MOI_wrapper.jl:372</text>
-<rect x="1604" y="300" width="130.67" height="12" rx="2" fill="#F3004D" data-dinfo="/home/merlijn/.julia/packages/MathOptInterface/03Qtw/src/Utilities/"/>
-<text x="1604" dx="4" y="309">iterate in DoubleDicts.jl:401</text>
-<rect x="1734.67" y="396" width="261.33" height="12" rx="2" fill="#6FDC91" data-dinfo="/home/merlijn/Backward_Informed_Bound/TIB/"/>
-<text x="1734.67" dx="4" y="405">#get_all_weights#7 in Weights.jl:44</text>
-<rect x="1734.67" y="384" width="261.33" height="12" rx="2" fill="#2CA3FF" data-dinfo="/home/merlijn/Backward_Informed_Bound/TIB/"/>
-<text x="1734.67" dx="4" y="393">get_single_optimal_weights in Weights.jl:258</text>
-<rect x="1734.67" y="372" width="130.66" height="12" rx="2" fill="#E1B2FF" data-dinfo="/home/merlijn/Backward_Informed_Bound/TIB/"/>
-<text x="1734.67" dx="4" y="381">#get_single_optimal_weights#23 in Weights.jl:260</text>
-<rect x="1734.67" y="360" width="130.66" height="12" rx="2" fill="#00B58B" data-dinfo="/home/merlijn/.julia/packages/JuMP/7eD71/src/"/>
-<text x="1734.67" dx="4" y="369">GenericModel in JuMP.jl:196</text>
-<rect x="1734.67" y="348" width="130.66" height="12" rx="2" fill="#E1B2FF" data-dinfo="/home/merlijn/.julia/packages/JuMP/7eD71/src/"/>
-<text x="1734.67" dx="4" y="357">#_#1 in JuMP.jl:204</text>
-<rect x="1734.67" y="336" width="130.66" height="12" rx="2" fill="#2CA3FF" data-dinfo="/home/merlijn/.julia/packages/JuMP/7eD71/src/"/>
-<text x="1734.67" dx="4" y="345">set_optimizer in optimizer_interface.jl:495</text>
-<rect x="1734.67" y="324" width="130.66" height="12" rx="2" fill="#6FDC91" data-dinfo="/home/merlijn/.julia/packages/JuMP/7eD71/src/"/>
-<text x="1734.67" dx="4" y="333">#set_optimizer#104 in optimizer_interface.jl:512</text>
-<rect x="1734.67" y="312" width="130.66" height="12" rx="2" fill="#00B58B" data-dinfo="/home/merlijn/.julia/packages/MathOptInterface/03Qtw/src/"/>
-<text x="1734.67" dx="4" y="321">instantiate in instantiate.jl:162</text>
-<rect x="1734.67" y="300" width="130.66" height="12" rx="2" fill="#6FDC91" data-dinfo="/home/merlijn/.julia/packages/MathOptInterface/03Qtw/src/"/>
-<text x="1734.67" dx="4" y="309">#instantiate#40 in instantiate.jl:177</text>
-<rect x="1734.67" y="288" width="130.66" height="12" rx="2" fill="#00B58B" data-dinfo="/home/merlijn/.julia/packages/MathOptInterface/03Qtw/src/"/>
-<text x="1734.67" dx="4" y="297">_instantiate_and_check in instantiate.jl:96</text>
-<rect x="1734.67" y="276" width="130.66" height="12" rx="2" fill="#E1B2FF" data-dinfo="/home/merlijn/.julia/packages/Clp/BAhIw/src/MOI_wrapper/"/>
-<text x="1734.67" dx="4" y="285">Optimizer in MOI_wrapper.jl:67</text>
-<rect x="1734.67" y="264" width="130.66" height="12" rx="2" fill="#00B58B" data-dinfo="/home/merlijn/.julia/packages/Clp/BAhIw/src/"/>
-<text x="1734.67" dx="4" y="273">Clp_newModel in libClp.jl:52</text>
-<rect x="1865.33" y="372" width="130.67" height="12" rx="2" fill="#6FDC91" data-dinfo="/home/merlijn/Backward_Informed_Bound/TIB/"/>
-<text x="1865.33" dx="4" y="381">#get_single_optimal_weights#23 in Weights.jl:294</text>
-<rect x="1865.33" y="360" width="130.67" height="12" rx="2" fill="#2CA3FF" data-dinfo="./"/>
-<text x="1865.33" dx="4" y="369">materialize in broadcast.jl:872</text>
-<rect x="1865.33" y="348" width="130.67" height="12" rx="2" fill="#6FDC91" data-dinfo="./"/>
-<text x="1865.33" dx="4" y="357">copy in broadcast.jl:897</text>
-<rect x="1865.33" y="336" width="130.67" height="12" rx="2" fill="#00B58B" data-dinfo="./"/>
-<text x="1865.33" dx="4" y="345">copyto! in broadcast.jl:925</text>
-<rect x="1865.33" y="324" width="130.67" height="12" rx="2" fill="#E1B2FF" data-dinfo="./"/>
-<text x="1865.33" dx="4" y="333">copyto! in broadcast.jl:972</text>
-<rect x="1865.33" y="312" width="130.67" height="12" rx="2" fill="#2CA3FF" data-dinfo="./"/>
-<text x="1865.33" dx="4" y="321">macro expansion in simdloop.jl:77</text>
-<rect x="1865.33" y="300" width="130.67" height="12" rx="2" fill="#E1B2FF" data-dinfo="./"/>
-<text x="1865.33" dx="4" y="309">macro expansion in broadcast.jl:973</text>
-<rect x="1865.33" y="288" width="130.67" height="12" rx="2" fill="#2CA3FF" data-dinfo="./"/>
-<text x="1865.33" dx="4" y="297">getindex in broadcast.jl:610</text>
-<rect x="1865.33" y="276" width="130.67" height="12" rx="2" fill="#6FDC91" data-dinfo="./"/>
-<text x="1865.33" dx="4" y="285">_broadcast_getindex in broadcast.jl:651</text>
-<rect x="1865.33" y="264" width="130.67" height="12" rx="2" fill="#2CA3FF" data-dinfo="./"/>
-<text x="1865.33" dx="4" y="273">_broadcast_getindex_evalf in broadcast.jl:678</text>
-<rect x="1865.33" y="252" width="130.67" height="12" rx="2" fill="#E1B2FF" data-dinfo="/home/merlijn/.julia/packages/JuMP/7eD71/src/"/>
-<text x="1865.33" dx="4" y="261">value in variables.jl:2091</text>
-<rect x="1865.33" y="240" width="130.67" height="12" rx="2" fill="#00B58B" data-dinfo="/home/merlijn/.julia/packages/JuMP/7eD71/src/"/>
-<text x="1865.33" dx="4" y="249">#value#37 in variables.jl:2092</text>
-<rect x="1865.33" y="228" width="130.67" height="12" rx="2" fill="#6FDC91" data-dinfo="/home/merlijn/.julia/packages/JuMP/7eD71/src/"/>
-<text x="1865.33" dx="4" y="237">get in optimizer_interface.jl:1239</text>
-<rect x="1865.33" y="216" width="130.67" height="12" rx="2" fill="#2CA3FF" data-dinfo="/home/merlijn/.julia/packages/JuMP/7eD71/src/"/>
-<text x="1865.33" dx="4" y="225">_moi_get_result in optimizer_interface.jl:1199</text>
-<rect x="1865.33" y="204" width="130.67" height="12" rx="2" fill="#6FDC91" data-dinfo="/home/merlijn/.julia/packages/MathOptInterface/03Qtw/src/Utilities/"/>
-<text x="1865.33" dx="4" y="213">get in cachingoptimizer.jl:947</text>
-<rect x="1865.33" y="192" width="130.67" height="12" rx="2" fill="#2CA3FF" data-dinfo="/home/merlijn/.julia/packages/MathOptInterface/03Qtw/src/Utilities/"/>
-<text x="1865.33" dx="4" y="201">_throw_if_get_attribute_not_allowed in cachingoptimizer.jl:886</text>
-<rect x="1865.33" y="180" width="130.67" height="12" rx="2" fill="#E1B2FF" data-dinfo="/home/merlijn/.julia/packages/MathOptInterface/03Qtw/src/Utilities/"/>
-<text x="1865.33" dx="4" y="189">#_throw_if_get_attribute_not_allowed#183 in cachingoptimizer.jl:895</text>
-<rect x="1865.33" y="168" width="130.67" height="12" rx="2" fill="#00B58B" data-dinfo="./"/>
-<text x="1865.33" dx="4" y="177">isempty in essentials.jl:1121</text>
-<rect x="1865.33" y="156" width="130.67" height="12" rx="2" fill="#E1B2FF" data-dinfo="/home/merlijn/.julia/packages/MathOptInterface/03Qtw/src/Utilities/copy/"/>
-<text x="1865.33" dx="4" y="165">iterate in index_map.jl:105</text>
-<rect x="1865.33" y="144" width="130.67" height="12" rx="2" fill="#00B58B" data-dinfo="./"/>
-<text x="1865.33" dx="4" y="153">iterate in iterators.jl:1247</text>
-<rect x="1996" y="444" width="522.67" height="12" rx="2" fill="#E1B2FF" data-dinfo="/home/merlijn/Backward_Informed_Bound/TIB/"/>
-<text x="1996" dx="4" y="453">#solve#36 in solver.jl:92</text>
-<rect x="1996" y="432" width="522.67" height="12" rx="2" fill="#00B58B" data-dinfo="/home/merlijn/Backward_Informed_Bound/TIB/"/>
-<text x="1996" dx="4" y="441">get_all_optimal_weights in Weights.jl:254</text>
-<rect x="1996" y="420" width="522.67" height="12" rx="2" fill="#E1B2FF" data-dinfo="/home/merlijn/Backward_Informed_Bound/TIB/"/>
-<text x="1996" dx="4" y="429">#get_all_optimal_weights#22 in Weights.jl:255</text>
-<rect x="1996" y="408" width="522.67" height="12" rx="2" fill="#00B58B" data-dinfo="/home/merlijn/Backward_Informed_Bound/TIB/"/>
-<text x="1996" dx="4" y="417">get_all_weights in Weights.jl:25</text>
-<rect x="1996" y="396" width="392" height="12" rx="2" fill="#E1B2FF" data-dinfo="/home/merlijn/Backward_Informed_Bound/TIB/"/>
-<text x="1996" dx="4" y="405">#get_all_weights#7 in Weights.jl:33</text>
-<rect x="1996" y="384" width="392" height="12" rx="2" fill="#00B58B" data-dinfo="/home/merlijn/Backward_Informed_Bound/TIB/"/>
-<text x="1996" dx="4" y="393">get_single_optimal_weights in Weights.jl:258</text>
-<rect x="1996" y="372" width="392" height="12" rx="2" fill="#E1B2FF" data-dinfo="/home/merlijn/Backward_Informed_Bound/TIB/"/>
-<text x="1996" dx="4" y="381">#get_single_optimal_weights#23 in Weights.jl:290</text>
-<rect x="1996" y="360" width="392" height="12" rx="2" fill="#00B58B" data-dinfo="/home/merlijn/.julia/packages/JuMP/7eD71/src/"/>
-<text x="1996" dx="4" y="369">optimize! in optimizer_interface.jl:560</text>
-<rect x="1996" y="348" width="392" height="12" rx="2" fill="#E1B2FF" data-dinfo="/home/merlijn/.julia/packages/JuMP/7eD71/src/"/>
-<text x="1996" dx="4" y="357">#optimize!#105 in optimizer_interface.jl:609</text>
-<rect x="1996" y="336" width="392" height="12" rx="2" fill="#2CA3FF" data-dinfo="/home/merlijn/.julia/packages/MathOptInterface/03Qtw/src/Utilities/"/>
-<text x="1996" dx="4" y="345">optimize! in cachingoptimizer.jl:370</text>
-<rect x="1996" y="324" width="392" height="12" rx="2" fill="#6FDC91" data-dinfo="/home/merlijn/.julia/packages/MathOptInterface/03Qtw/src/"/>
-<text x="1996" dx="4" y="333">optimize! in MathOptInterface.jl:121</text>
-<rect x="1996" y="312" width="130.67" height="12" rx="2" fill="#00B58B" data-dinfo="/home/merlijn/.julia/packages/Clp/BAhIw/src/MOI_wrapper/"/>
-<text x="1996" dx="4" y="321">copy_to in MOI_wrapper.jl:364</text>
-<rect x="1996" y="300" width="130.67" height="12" rx="2" fill="#6FDC91" data-dinfo="/home/merlijn/.julia/packages/MathOptInterface/03Qtw/src/Utilities/"/>
-<text x="1996" dx="4" y="309">copy_to in model.jl:127</text>
-<rect x="1996" y="288" width="130.67" height="12" rx="2" fill="#00B58B" data-dinfo="/home/merlijn/.julia/packages/MathOptInterface/03Qtw/src/Utilities/"/>
-<text x="1996" dx="4" y="297">default_copy_to in copy.jl:391</text>
-<rect x="2126.67" y="312" width="261.33" height="12" rx="2" fill="#2CA3FF" data-dinfo="/home/merlijn/.julia/packages/Clp/BAhIw/src/MOI_wrapper/"/>
-<text x="2126.67" dx="4" y="321">copy_to in MOI_wrapper.jl:372</text>
-<rect x="2126.67" y="300" width="261.33" height="12" rx="2" fill="#F3004D" data-dinfo="/home/merlijn/.julia/packages/MathOptInterface/03Qtw/src/Utilities/"/>
-<text x="2126.67" dx="4" y="309">iterate in DoubleDicts.jl:401</text>
-<rect x="2388" y="396" width="130.67" height="12" rx="2" fill="#6FDC91" data-dinfo="/home/merlijn/Backward_Informed_Bound/TIB/"/>
-<text x="2388" dx="4" y="405">#get_all_weights#7 in Weights.jl:44</text>
-<rect x="2388" y="384" width="130.67" height="12" rx="2" fill="#2CA3FF" data-dinfo="/home/merlijn/Backward_Informed_Bound/TIB/"/>
-<text x="2388" dx="4" y="393">get_single_optimal_weights in Weights.jl:258</text>
-<rect x="2388" y="372" width="130.67" height="12" rx="2" fill="#6FDC91" data-dinfo="/home/merlijn/Backward_Informed_Bound/TIB/"/>
-<text x="2388" dx="4" y="381">#get_single_optimal_weights#23 in Weights.jl:290</text>
-<rect x="2388" y="360" width="130.67" height="12" rx="2" fill="#2CA3FF" data-dinfo="/home/merlijn/.julia/packages/JuMP/7eD71/src/"/>
-<text x="2388" dx="4" y="369">optimize! in optimizer_interface.jl:560</text>
-<rect x="2388" y="348" width="130.67" height="12" rx="2" fill="#6FDC91" data-dinfo="/home/merlijn/.julia/packages/JuMP/7eD71/src/"/>
-<text x="2388" dx="4" y="357">#optimize!#105 in optimizer_interface.jl:609</text>
-<rect x="2388" y="336" width="130.67" height="12" rx="2" fill="#00B58B" data-dinfo="/home/merlijn/.julia/packages/MathOptInterface/03Qtw/src/Utilities/"/>
-<text x="2388" dx="4" y="345">optimize! in cachingoptimizer.jl:370</text>
-<rect x="2388" y="324" width="130.67" height="12" rx="2" fill="#E1B2FF" data-dinfo="/home/merlijn/.julia/packages/MathOptInterface/03Qtw/src/"/>
-<text x="2388" dx="4" y="333">optimize! in MathOptInterface.jl:122</text>
-<rect x="2388" y="312" width="130.67" height="12" rx="2" fill="#00B58B" data-dinfo="/home/merlijn/.julia/packages/Clp/BAhIw/src/MOI_wrapper/"/>
-<text x="2388" dx="4" y="321">optimize! in MOI_wrapper.jl:382</text>
-<rect x="2388" y="300" width="130.67" height="12" rx="2" fill="#6FDC91" data-dinfo="/home/merlijn/.julia/packages/Clp/BAhIw/src/"/>
-<text x="2388" dx="4" y="309">Clp_initialSolveWithOptions in libClp.jl:736</text>
-<rect x="2518.67" y="444" width="392" height="12" rx="2" fill="#6FDC91" data-dinfo="/home/merlijn/Backward_Informed_Bound/TIB/"/>
-<text x="2518.67" dx="4" y="453">#solve#36 in solver.jl:94</text>
-<rect x="2518.67" y="432" width="392" height="12" rx="2" fill="#2CA3FF" data-dinfo="/home/merlijn/Backward_Informed_Bound/TIB/"/>
-<text x="2518.67" dx="4" y="441">get_all_entropy_weights in Weights.jl:52</text>
-<rect x="2518.67" y="420" width="392" height="12" rx="2" fill="#6FDC91" data-dinfo="/home/merlijn/Backward_Informed_Bound/TIB/"/>
-<text x="2518.67" dx="4" y="429">#get_all_entropy_weights#8 in Weights.jl:53</text>
-<rect x="2518.67" y="408" width="392" height="12" rx="2" fill="#2CA3FF" data-dinfo="/home/merlijn/Backward_Informed_Bound/TIB/"/>
-<text x="2518.67" dx="4" y="417">get_all_weights in Weights.jl:25</text>
-<rect x="2518.67" y="396" width="261.33" height="12" rx="2" fill="#E1B2FF" data-dinfo="/home/merlijn/Backward_Informed_Bound/TIB/"/>
-<text x="2518.67" dx="4" y="405">#get_all_weights#7 in Weights.jl:33</text>
-<rect x="2518.67" y="384" width="261.33" height="12" rx="2" fill="#00B58B" data-dinfo="/home/merlijn/Backward_Informed_Bound/TIB/"/>
-<text x="2518.67" dx="4" y="393">get_single_entropy_weights in Weights.jl:56</text>
-<rect x="2518.67" y="372" width="261.33" height="12" rx="2" fill="#E1B2FF" data-dinfo="/home/merlijn/Backward_Informed_Bound/TIB/"/>
-<text x="2518.67" dx="4" y="381">#get_single_entropy_weights#9 in Weights.jl:83</text>
-<rect x="2518.67" y="360" width="261.33" height="12" rx="2" fill="#00B58B" data-dinfo="/home/merlijn/.julia/packages/JuMP/7eD71/src/"/>
-<text x="2518.67" dx="4" y="369">optimize! in optimizer_interface.jl:560</text>
-<rect x="2518.67" y="348" width="261.33" height="12" rx="2" fill="#E1B2FF" data-dinfo="/home/merlijn/.julia/packages/JuMP/7eD71/src/"/>
-<text x="2518.67" dx="4" y="357">#optimize!#105 in optimizer_interface.jl:609</text>
-<rect x="2518.67" y="336" width="261.33" height="12" rx="2" fill="#2CA3FF" data-dinfo="/home/merlijn/.julia/packages/MathOptInterface/03Qtw/src/Utilities/"/>
-<text x="2518.67" dx="4" y="345">optimize! in cachingoptimizer.jl:370</text>
-<rect x="2518.67" y="324" width="261.33" height="12" rx="2" fill="#6FDC91" data-dinfo="/home/merlijn/.julia/packages/MathOptInterface/03Qtw/src/"/>
-<text x="2518.67" dx="4" y="333">optimize! in MathOptInterface.jl:121</text>
-<rect x="2518.67" y="312" width="130.66" height="12" rx="2" fill="#2CA3FF" data-dinfo="/home/merlijn/.julia/packages/Clp/BAhIw/src/MOI_wrapper/"/>
-<text x="2518.67" dx="4" y="321">copy_to in MOI_wrapper.jl:363</text>
-<rect x="2518.67" y="300" width="130.66" height="12" rx="2" fill="#E1B2FF" data-dinfo="/home/merlijn/.julia/packages/MathOptInterface/03Qtw/src/Utilities/"/>
-<text x="2518.67" dx="4" y="309">GenericModel in model.jl:36</text>
-<rect x="2518.67" y="288" width="130.66" height="12" rx="2" fill="#2CA3FF" data-dinfo="/home/merlijn/.julia/packages/MathOptInterface/03Qtw/src/Utilities/"/>
-<text x="2518.67" dx="4" y="297">MatrixOfConstraints in matrix_of_constraints.jl:97</text>
-<rect x="2518.67" y="276" width="130.66" height="12" rx="2" fill="#E1B2FF" data-dinfo="/home/merlijn/.julia/packages/MathOptInterface/03Qtw/src/Utilities/"/>
-<text x="2518.67" dx="4" y="285">empty! in matrix_of_constraints.jl:299</text>
-<rect x="2518.67" y="264" width="130.66" height="12" rx="2" fill="#00B58B" data-dinfo="./"/>
-<text x="2518.67" dx="4" y="273">collect in array.jl:801</text>
-<rect x="2518.67" y="252" width="130.66" height="12" rx="2" fill="#6FDC91" data-dinfo="./"/>
-<text x="2518.67" dx="4" y="261">collect_to_with_first! in array.jl:827</text>
-<rect x="2518.67" y="240" width="130.66" height="12" rx="2" fill="#2CA3FF" data-dinfo="./"/>
-<text x="2518.67" dx="4" y="249">collect_to! in array.jl:849</text>
-<rect x="2518.67" y="228" width="130.66" height="12" rx="2" fill="#E1B2FF" data-dinfo="./"/>
-<text x="2518.67" dx="4" y="237">iterate in generator.jl:48</text>
-<rect x="2518.67" y="216" width="130.66" height="12" rx="2" fill="#00B58B" data-dinfo="./"/>
-<text x="2518.67" dx="4" y="225">#163 in none:0</text>
-<rect x="2518.67" y="204" width="130.66" height="12" rx="2" fill="#F3004D" data-dinfo="./"/>
-<text x="2518.67" dx="4" y="213">getindex in array.jl:400</text>
-<rect x="2649.33" y="312" width="130.67" height="12" rx="2" fill="#00B58B" data-dinfo="/home/merlijn/.julia/packages/Clp/BAhIw/src/MOI_wrapper/"/>
-<text x="2649.33" dx="4" y="321">copy_to in MOI_wrapper.jl:370</text>
-<rect x="2780" y="396" width="130.67" height="12" rx="2" fill="#6FDC91" data-dinfo="/home/merlijn/Backward_Informed_Bound/TIB/"/>
-<text x="2780" dx="4" y="405">#get_all_weights#7 in Weights.jl:44</text>
-<rect x="2780" y="384" width="130.67" height="12" rx="2" fill="#2CA3FF" data-dinfo="/home/merlijn/Backward_Informed_Bound/TIB/"/>
-<text x="2780" dx="4" y="393">get_single_entropy_weights in Weights.jl:56</text>
-<rect x="2780" y="372" width="130.67" height="12" rx="2" fill="#6FDC91" data-dinfo="/home/merlijn/Backward_Informed_Bound/TIB/"/>
-<text x="2780" dx="4" y="381">#get_single_entropy_weights#9 in Weights.jl:83</text>
-<rect x="2780" y="360" width="130.67" height="12" rx="2" fill="#2CA3FF" data-dinfo="/home/merlijn/.julia/packages/JuMP/7eD71/src/"/>
-<text x="2780" dx="4" y="369">optimize! in optimizer_interface.jl:560</text>
-<rect x="2780" y="348" width="130.67" height="12" rx="2" fill="#6FDC91" data-dinfo="/home/merlijn/.julia/packages/JuMP/7eD71/src/"/>
-<text x="2780" dx="4" y="357">#optimize!#105 in optimizer_interface.jl:609</text>
-<rect x="2780" y="336" width="130.67" height="12" rx="2" fill="#00B58B" data-dinfo="/home/merlijn/.julia/packages/MathOptInterface/03Qtw/src/Utilities/"/>
-<text x="2780" dx="4" y="345">optimize! in cachingoptimizer.jl:375</text>
-<rect x="2780" y="324" width="130.67" height="12" rx="2" fill="#E1B2FF" data-dinfo="/home/merlijn/.julia/packages/MathOptInterface/03Qtw/src/Utilities/"/>
-<text x="2780" dx="4" y="333">_reverse_index_map in cachingoptimizer.jl:279</text>
-<rect x="2780" y="312" width="130.67" height="12" rx="2" fill="#2CA3FF" data-dinfo="/home/merlijn/.julia/packages/MathOptInterface/03Qtw/src/Utilities/"/>
-<text x="2780" dx="4" y="321">_reverse_dict in cachingoptimizer.jl:295</text>
-<rect x="2780" y="300" width="130.67" height="12" rx="2" fill="#6FDC91" data-dinfo="/home/merlijn/.julia/packages/MathOptInterface/03Qtw/src/Utilities/"/>
-<text x="2780" dx="4" y="309">_reverse_dict in cachingoptimizer.jl:301</text>
-<rect x="2780" y="288" width="130.67" height="12" rx="2" fill="#00B58B" data-dinfo="./"/>
-<text x="2780" dx="4" y="297">materialize in broadcast.jl:872</text>
-<rect x="2780" y="276" width="130.67" height="12" rx="2" fill="#6FDC91" data-dinfo="./"/>
-<text x="2780" dx="4" y="285">copy in broadcast.jl:897</text>
-<rect x="2780" y="264" width="130.67" height="12" rx="2" fill="#2CA3FF" data-dinfo="./"/>
-<text x="2780" dx="4" y="273">similar in broadcast.jl:223</text>
-<rect x="2780" y="252" width="130.67" height="12" rx="2" fill="#E1B2FF" data-dinfo="./"/>
-<text x="2780" dx="4" y="261">similar in broadcast.jl:224</text>
-<rect x="2780" y="240" width="130.67" height="12" rx="2" fill="#00B58B" data-dinfo="./"/>
-<text x="2780" dx="4" y="249">similar in abstractarray.jl:867</text>
-<rect x="2780" y="228" width="130.67" height="12" rx="2" fill="#6FDC91" data-dinfo="./"/>
-<text x="2780" dx="4" y="237">similar in abstractarray.jl:868</text>
-<rect x="2780" y="216" width="130.67" height="12" rx="2" fill="#2CA3FF" data-dinfo="./"/>
-<text x="2780" dx="4" y="225">Array in boot.jl:599</text>
-<rect x="2780" y="204" width="130.67" height="12" rx="2" fill="#6FDC91" data-dinfo="./"/>
-<text x="2780" dx="4" y="213">Array in boot.jl:591</text>
-<rect x="2780" y="192" width="130.67" height="12" rx="2" fill="#00B58B" data-dinfo="./"/>
-<text x="2780" dx="4" y="201">Array in boot.jl:578</text>
-<rect x="2780" y="180" width="130.67" height="12" rx="2" fill="#6FDC91" data-dinfo="./"/>
-<text x="2780" dx="4" y="189">GenericMemory in boot.jl:516</text>
-<rect x="2910.67" y="444" width="392" height="12" rx="2" fill="#E1B2FF" data-dinfo="/home/merlijn/Backward_Informed_Bound/TIB/"/>
-<text x="2910.67" dx="4" y="453">#solve#36 in solver.jl:150</text>
-<rect x="2910.67" y="432" width="392" height="12" rx="2" fill="#00B58B" data-dinfo="/home/merlijn/Backward_Informed_Bound/TIB/"/>
-<text x="2910.67" dx="4" y="441">get_all_optimal_weights in Weights.jl:254</text>
-<rect x="2910.67" y="420" width="392" height="12" rx="2" fill="#E1B2FF" data-dinfo="/home/merlijn/Backward_Informed_Bound/TIB/"/>
-<text x="2910.67" dx="4" y="429">#get_all_optimal_weights#22 in Weights.jl:255</text>
-<rect x="2910.67" y="408" width="392" height="12" rx="2" fill="#00B58B" data-dinfo="/home/merlijn/Backward_Informed_Bound/TIB/"/>
-<text x="2910.67" dx="4" y="417">get_all_weights in Weights.jl:25</text>
-<rect x="2910.67" y="396" width="261.33" height="12" rx="2" fill="#E1B2FF" data-dinfo="/home/merlijn/Backward_Informed_Bound/TIB/"/>
-<text x="2910.67" dx="4" y="405">#get_all_weights#7 in Weights.jl:33</text>
-<rect x="2910.67" y="384" width="261.33" height="12" rx="2" fill="#00B58B" data-dinfo="/home/merlijn/Backward_Informed_Bound/TIB/"/>
-<text x="2910.67" dx="4" y="393">get_single_optimal_weights in Weights.jl:258</text>
-<rect x="2910.67" y="372" width="261.33" height="12" rx="2" fill="#E1B2FF" data-dinfo="/home/merlijn/Backward_Informed_Bound/TIB/"/>
-<text x="2910.67" dx="4" y="381">#get_single_optimal_weights#23 in Weights.jl:290</text>
-<rect x="2910.67" y="360" width="261.33" height="12" rx="2" fill="#00B58B" data-dinfo="/home/merlijn/.julia/packages/JuMP/7eD71/src/"/>
-<text x="2910.67" dx="4" y="369">optimize! in optimizer_interface.jl:560</text>
-<rect x="2910.67" y="348" width="261.33" height="12" rx="2" fill="#E1B2FF" data-dinfo="/home/merlijn/.julia/packages/JuMP/7eD71/src/"/>
-<text x="2910.67" dx="4" y="357">#optimize!#105 in optimizer_interface.jl:609</text>
-<rect x="2910.67" y="336" width="261.33" height="12" rx="2" fill="#2CA3FF" data-dinfo="/home/merlijn/.julia/packages/MathOptInterface/03Qtw/src/Utilities/"/>
-<text x="2910.67" dx="4" y="345">optimize! in cachingoptimizer.jl:370</text>
-<rect x="2910.67" y="324" width="261.33" height="12" rx="2" fill="#6FDC91" data-dinfo="/home/merlijn/.julia/packages/MathOptInterface/03Qtw/src/"/>
-<text x="2910.67" dx="4" y="333">optimize! in MathOptInterface.jl:122</text>
-<rect x="2910.67" y="312" width="261.33" height="12" rx="2" fill="#00B58B" data-dinfo="/home/merlijn/.julia/packages/Clp/BAhIw/src/MOI_wrapper/"/>
-<text x="2910.67" dx="4" y="321">optimize! in MOI_wrapper.jl:382</text>
-<rect x="2910.67" y="300" width="261.33" height="12" rx="2" fill="#E1B2FF" data-dinfo="/home/merlijn/.julia/packages/Clp/BAhIw/src/"/>
-<text x="2910.67" dx="4" y="309">Clp_initialSolveWithOptions in libClp.jl:736</text>
-<rect x="3172" y="396" width="130.67" height="12" rx="2" fill="#6FDC91" data-dinfo="/home/merlijn/Backward_Informed_Bound/TIB/"/>
-<text x="3172" dx="4" y="405">#get_all_weights#7 in Weights.jl:44</text>
-<rect x="3172" y="384" width="130.67" height="12" rx="2" fill="#2CA3FF" data-dinfo="/home/merlijn/Backward_Informed_Bound/TIB/"/>
-<text x="3172" dx="4" y="393">get_single_optimal_weights in Weights.jl:258</text>
-<rect x="3172" y="372" width="130.67" height="12" rx="2" fill="#6FDC91" data-dinfo="/home/merlijn/Backward_Informed_Bound/TIB/"/>
-<text x="3172" dx="4" y="381">#get_single_optimal_weights#23 in Weights.jl:290</text>
-<rect x="3172" y="360" width="130.67" height="12" rx="2" fill="#2CA3FF" data-dinfo="/home/merlijn/.julia/packages/JuMP/7eD71/src/"/>
-<text x="3172" dx="4" y="369">optimize! in optimizer_interface.jl:560</text>
-<rect x="3172" y="348" width="130.67" height="12" rx="2" fill="#6FDC91" data-dinfo="/home/merlijn/.julia/packages/JuMP/7eD71/src/"/>
-<text x="3172" dx="4" y="357">#optimize!#105 in optimizer_interface.jl:609</text>
-<rect x="3172" y="336" width="130.67" height="12" rx="2" fill="#00B58B" data-dinfo="/home/merlijn/.julia/packages/MathOptInterface/03Qtw/src/Utilities/"/>
-<text x="3172" dx="4" y="345">optimize! in cachingoptimizer.jl:370</text>
-<rect x="3172" y="324" width="130.67" height="12" rx="2" fill="#E1B2FF" data-dinfo="/home/merlijn/.julia/packages/MathOptInterface/03Qtw/src/"/>
-<text x="3172" dx="4" y="333">optimize! in MathOptInterface.jl:121</text>
-<rect x="3172" y="312" width="130.67" height="12" rx="2" fill="#2CA3FF" data-dinfo="/home/merlijn/.julia/packages/Clp/BAhIw/src/MOI_wrapper/"/>
-<text x="3172" dx="4" y="321">copy_to in MOI_wrapper.jl:372</text>
-<rect x="3172" y="300" width="130.67" height="12" rx="2" fill="#E40041" data-dinfo="/home/merlijn/.julia/packages/MathOptInterface/03Qtw/src/Utilities/"/>
-<text x="3172" dx="4" y="309">iterate in DoubleDicts.jl:401</text>
+<g id="fig-58b7e54f66b54e4a8bef6d5ae64406a2-frame" clip-path="url(#fig-58b7e54f66b54e4a8bef6d5ae64406a2-clip)">
+<rect id="fig-58b7e54f66b54e4a8bef6d5ae64406a2-bg" x="0" y="0" width="3600" height="420"/>
+<text id="fig-58b7e54f66b54e4a8bef6d5ae64406a2-title" x="1800" y="20">Profile results</text>
+<g id="fig-58b7e54f66b54e4a8bef6d5ae64406a2-viewport" transform="scale(1)">
+<rect x="36" y="264" width="3528" height="12" rx="2" fill="#E1B2FF" data-dinfo=""/>
+<text x="36" dx="4" y="273"> in :-1</text>
+<rect x="36" y="252" width="3528" height="12" rx="2" fill="#00B58B" data-dinfo="./"/>
+<text x="36" dx="4" y="261">_start in client.jl:531</text>
+<rect x="36" y="240" width="3528" height="12" rx="2" fill="#E1B2FF" data-dinfo="./"/>
+<text x="36" dx="4" y="249">exec_options in client.jl:323</text>
+<rect x="36" y="228" width="3528" height="12" rx="2" fill="#00B58B" data-dinfo="./"/>
+<text x="36" dx="4" y="237">include in Base.jl:557</text>
+<rect x="36" y="216" width="3528" height="12" rx="2" fill="#E1B2FF" data-dinfo="./"/>
+<text x="36" dx="4" y="225">_include in loading.jl:2794</text>
+<rect x="36" y="204" width="3528" height="12" rx="2" fill="#00B58B" data-dinfo="./"/>
+<text x="36" dx="4" y="213">include_string in loading.jl:2734</text>
+<rect x="36" y="192" width="3528" height="12" rx="2" fill="#E1B2FF" data-dinfo="./"/>
+<text x="36" dx="4" y="201">eval in boot.jl:430</text>
+<rect x="36" y="180" width="3528" height="12" rx="2" fill="#00B58B" data-dinfo="/home/merlijn/GitRepos/Backward_Informed_Bound/RunFiles/"/>
+<text x="36" dx="4" y="189">top-level scope in run_upperbound.jl:234</text>
+<rect x="36" y="168" width="3528" height="12" rx="2" fill="#E1B2FF" data-dinfo="./"/>
+<text x="36" dx="4" y="177">macro expansion in timing.jl:421</text>
+<rect x="36" y="156" width="3528" height="12" rx="2" fill="#00B58B" data-dinfo="/home/merlijn/GitRepos/Backward_Informed_Bound/RunFiles/"/>
+<text x="36" dx="4" y="165">macro expansion in run_upperbound.jl:236</text>
+<rect x="36" y="144" width="3528" height="12" rx="2" fill="#F3004D" data-dinfo="/cache/build/tester-amdci5-12/julialang/julia-release-1-dot-11/usr/share/julia/stdlib/v1.11/Profile/src/"/>
+<text x="36" dx="4" y="153">macro expansion in Profile.jl:58</text>
 </g></g>
 <script><![CDATA[
 // Snap.svg 0.3.0
@@ -837,10 +457,10 @@ f+=g+"]",i[b]=f}return Function("val","return Snap.path.toString.call(["+i+"])")
 <script><![CDATA[
 if (typeof require === 'function' && define.amd) {
     require(['ProfileSVG'], function (ProfileSVG) {
-        ProfileSVG.initialize("fig-ee5ed1af07a041f9be56540cbcc87e7a");
+        ProfileSVG.initialize("fig-58b7e54f66b54e4a8bef6d5ae64406a2");
     });
 } else {
-    ProfileSVG.initialize("fig-ee5ed1af07a041f9be56540cbcc87e7a");
+    ProfileSVG.initialize("fig-58b7e54f66b54e4a8bef6d5ae64406a2");
 }
 ]]></script>
 </svg>

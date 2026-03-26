@@ -141,8 +141,6 @@ function get_single_iterative_closeness_weights(b::DiscreteHashedBelief{S}, Bidx
     ### Iteratively find closest non-unit belief & 
     non_unit_beliefs = filter(bidx -> length(support(Data.B[bidx])) > 1, Bidxs)
     if length(non_unit_beliefs) > 0
-        brest = deepcopy(b)
-        remaining_weight = 1.0
         this_weight = 1.0
         while this_weight > 1e-5
             ### Find current closest belief
@@ -293,4 +291,122 @@ function get_single_optimal_weights(b::DiscreteHashedBelief{S}, Bidxs::Vector{In
     return_value && (return Q)
 
     return Bidxs, collect(JuMP.value.(b_ps))
+end
+
+########## Sawtooth belief weights ##########
+
+function get_all_sawtooth_weights(Data::TIB_Data{S}, Bbao_data::BBAO_Data{S}; Qs=nothing) where S
+    return get_all_weights(Data.B, Bbao_data, Data, get_single_sawtooth_weights; values = Qs)
+end
+
+function get_single_sawtooth_weights(b::DiscreteHashedBelief{S}, Bidxs::Vector{Int}, Data::TIB_Data{S}; model=nothing, values=nothing, return_value=false) where S
+    
+    alpha_extremes = Data.Q[1:Data.constants.ns,:]
+    Vb = Float64[]
+    for ai in 1:Data.constants.na
+        push!(Vb, dot(b, alpha_extremes[:,ai]))
+    end
+    best_value, best_bidx, best_ratio = maximum(Vb), 1, 0.0
+    non_unit_beliefs = filter(bidx -> length(support(Data.B[bidx])) > 1, Bidxs)
+
+    for bp_idx in non_unit_beliefs
+        bp = Data.B[bp_idx]
+        ratio = min_ratio(b, bp)
+        for ai in 1:Data.constants.na
+            this_value = Vb[ai] + ratio * (Data.Q[bp_idx, ai] - dot(bp, alpha_extremes[:,ai]))
+            if this_value < best_value
+                best_value = this_value
+                best_bidx = bp_idx
+                best_ratio = ratio 
+            end
+        end
+    end
+    weights, idxs = [best_ratio], [best_bidx]
+    brest = subtract_scaled_belief(b, Data.B[best_bidx], best_ratio)
+    for (s, ps) in weighted_iterator(brest)
+        push!(weights, ps * (1-best_ratio))
+        push!(idxs, Data.S_dict[s])
+    end
+    return idxs, weights
+end
+
+function get_all_iterative_sawtooth_weights(Data::TIB_Data{S}, Bbao_data::BBAO_Data{S}; Qs=nothing) where S
+    return get_all_weights(Data.B, Bbao_data, Data, get_single_iterative_sawtooth_weights; values = Qs)
+end
+
+function get_single_iterative_sawtooth_weights(b::DiscreteHashedBelief{S}, Bidxs::Vector{Int}, Data::TIB_Data{S}; model=nothing, values=nothing, return_value=false) where S
+    
+    alpha_extremes = Data.Q[1:Data.constants.ns,:]
+    Vb = []
+    for ai in 1:Data.constants.na
+        push!(Vb, dot(b, alpha_extremes[:,ai]))
+    end
+    non_unit_beliefs = filter(bidx -> length(support(Data.B[bidx])) > 1, Bidxs)
+    best_idxs, best_weights = [], []
+    best_action_value = -Inf
+    
+    for ai in 1:Data.constants.na
+        best_ratio, remaining_weight = 1.0, 1.0
+        brest = deepcopy(b)
+        weights, idxs = [], []
+        while best_ratio > 1e-5
+            best_value, best_bidx, best_ratio = maximum(Vb), -1, 0.0
+            for bp_idx in non_unit_beliefs
+                bp = Data.B[bp_idx]
+                ratio = min_ratio(brest, bp)
+                this_value = Vb[ai] + ratio * (Data.Q[bp_idx, ai] - dot(bp, alpha_extremes[:,ai]))
+                if this_value < best_value
+                    best_value = this_value
+                    best_bidx = bp_idx
+                    best_ratio = ratio 
+                end
+            end
+            if best_ratio > 1e-5
+                this_weight = remaining_weight * best_ratio 
+                push!(idxs, best_bidx)
+                push!(weights, this_weight)
+                remaining_weight -= this_weight
+                brest = subtract_scaled_belief(brest, Data.B[best_bidx], best_ratio)
+                Vb = []
+                for ai in 1:Data.constants.na
+                    push!(Vb, dot(brest, alpha_extremes[:,ai]))
+                end
+                # println("$best_ratio, $brest, $(Data.B[best_bidx])")
+            end
+        end
+        for (s, ps) in weighted_iterator(brest)
+            push!(weights, ps * remaining_weight)
+            push!(idxs, Data.S_dict[s])
+        end
+        this_value = sum(idx -> weights[idx] * Data.Q[idxs[idx], ai], 1:length(idxs))
+        if this_value >= best_action_value 
+            best_action_value = this_value
+            best_idxs = idxs
+            best_weights = weights
+        end
+    end
+
+    # println("$(sum(best_weights)), $b, $(map(idx -> (best_weights[idx], Data.B[best_idxs[idx]]), 1:length(best_idxs)))")
+    return best_idxs, best_weights
+end
+
+function min_ratio(b::DiscreteHashedBelief{S},bp::DiscreteHashedBelief{S}) where S
+    minratio = Inf
+    bidx = 1
+    n_sup_b = length(b.state_list)
+    n_sup_bp = length(bp.state_list)
+    # n_sup_b != n_sup_bp && return 0.0
+    bidx, bpidx = 1, 1
+    while bidx <= n_sup_b && bpidx <= n_sup_bp
+        sb, sbp = b.state_list[bidx], bp.state_list[bpidx]
+        if sb == sbp
+            minratio = min(minratio, b.probs[bidx] / bp.probs[bpidx])
+            bidx += 1; bpidx += 1
+        elseif objectid(sb) < objectid(sbp)
+            bidx += 1
+        else
+            return 0.0
+        end
+    end
+    bidx >= n_sup_b && bpidx <= n_sup_bp ? (return 0.0) : (return minratio)
 end

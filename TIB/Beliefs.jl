@@ -134,3 +134,15 @@ end
 
 #TODO: again, we never type-check b, but I don't know how to do this...
 POMDPs.update(bu::DiscreteHashedBeliefUpdater, b, a, o) = update(bu, DiscreteHashedBelief(b),a,o) 
+
+#########################################
+#          Other
+#########################################
+
+function dot(b::DiscreteHashedBelief{Int64}, alpha::Vector{Float64})
+    product = 0.0
+    for (s, p) in weighted_iterator(b)
+        product += p * alpha[s]
+    end
+    return product
+end

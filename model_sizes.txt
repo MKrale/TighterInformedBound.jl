@@ -1,0 +1,196 @@
+==================
+Model info:
+|S| = 3, |A| = 3, |O| = 1
+|B1| = 6, |B2| = 2, |B3| = 2
+ & 3 & 3 & 1 & 6 & 2 & 2 
+ & 3 & 3 & 1 & 6 & 8 & 10 
+==================
+In ABC, QMDP found bound 0.9500000000000994 in 0.000150261s.
+==================
+Model info:
+|S| = 201, |A| = 8, |O| = 3
+|B1| = 202, |B2| = 8, |B3| = 44
+ & 201 & 8 & 3 & 202 & 8 & 44 
+ & 201 & 8 & 3 & 202 & 210 & 254 
+==================
+In RockSample5, QMDP found bound 18.340299092828815 in 0.013146399s.
+==================
+Model info:
+|S| = 2, |A| = 3, |O| = 2
+|B1| = 3, |B2| = 2, |B3| = 2
+ & 2 & 3 & 2 & 3 & 2 & 2 
+ & 2 & 3 & 2 & 3 & 5 & 7 
+==================
+In Tiger, QMDP found bound 188.99999999999983 in 4.0345e-5s.
+==================
+Model info:
+|S| = 16, |A| = 9, |O| = 16
+|B1| = 61, |B2| = 171, |B3| = 683
+ & 16 & 9 & 16 & 61 & 171 & 683 
+ & 16 & 9 & 16 & 61 & 232 & 915 
+==================
+In K-out-of-N2, QMDP found bound -0.9777144825569531 in 0.000422929s.
+==================
+Model info:
+|S| = 48, |A| = 4, |O| = 21
+|B1| = 49, |B2| = 2, |B3| = 2
+ & 48 & 4 & 21 & 49 & 2 & 2 
+ & 48 & 4 & 21 & 49 & 51 & 53 
+==================
+In HeavenOrHell, QMDP found bound -9.561792499119552 in 0.00036769s.
+==================
+Model info:
+|S| = 36, |A| = 5, |O| = 36
+|B1| = 152, |B2| = 567, |B3| = 2724
+ & 36 & 5 & 36 & 152 & 567 & 2724 
+ & 36 & 5 & 36 & 152 & 719 & 3443 
+==================
+In grid, QMDP found bound 8.372873604954467 in 0.000394626s.
+==================
+Model info:
+|S| = 626, |A| = 5, |O| = 6
+|B1| = 1347, |B2| = 3436, |B3| = 30906
+ & 626 & 5 & 6 & 1347 & 3436 & 30906 
+ & 626 & 5 & 6 & 1347 & 4783 & 35689 
+==================
+In DroneSurveilance, QMDP found bound 12.877753577663292 in 0.067342868s.
+==================
+Model info:
+|S| = 104, |A| = 4, |O| = 22
+|B1| = 1103, |B2| = 13212, |B3| = 177140
+ & 104 & 4 & 22 & 1103 & 13212 & 177140 
+ & 104 & 4 & 22 & 1103 & 14315 & 191455 
+==================
+In iff, QMDP found bound 7.5917197994842915 in 0.008176948s.
+==================
+Model info:
+|S| = 842, |A| = 5, |O| = 30
+|B1| = 2351, |B2| = 3969, |B3| = 12565
+ & 842 & 5 & 30 & 2351 & 3969 & 12565 
+ & 842 & 5 & 30 & 2351 & 6320 & 18885 
+==================
+In Tag, QMDP found bound -2.6890231716670003 in 0.118573812s.
+==================
+Model info:
+|S| = 12545, |A| = 13, |O| = 3
+|B1| = 12546, |B2| = 18, |B3| = 255
+ & 12545 & 13 & 3 & 12546 & 18 & 255 
+ & 12545 & 13 & 3 & 12546 & 12564 & 12819 
+==================
+In RockSample7, QMDP found bound 28.51416560681059 in 6.573213897s.
+==================
+Model info:
+|S| = 60, |A| = 5, |O| = 21
+|B1| = 2170, |B2| = 144837, |B3| = 10244054
+ & 60 & 5 & 21 & 2170 & 144837 & 10244054 
+ & 60 & 5 & 21 & 2170 & 147007 & 10391061 
+==================
+In SparseHallway1, QMDP found bound 1.4596047157240124 in 0.00227137s.
+==================
+Model info:
+|S| = 92, |A| = 5, |O| = 17
+|B1| = 3411, |B2| = 225840, |B3| = 15897995
+ & 92 & 5 & 17 & 3411 & 225840 & 15897995 
+ & 92 & 5 & 17 & 3411 & 229251 & 16127246 
+==================
+In SparseHallway2, QMDP found bound 1.141020358462876 in 0.003368242s.
+==================
+Model info:
+|S| = 64, |A| = 27, |O| = 64
+|B1| = 500, |B2| = 4347, |B3| = 56485
+ & 64 & 27 & 64 & 500 & 4347 & 56485 
+ & 64 & 27 & 64 & 500 & 4847 & 61332 
+==================
+In K-out-of-N3, QMDP found bound -1.4666720073890893 in 0.006005453s.
+==================
+Model info:
+|S| = 36, |A| = 5, |O| = 17
+|B1| = 1418, |B2| = 98259, |B3| = 6849021
+ & 36 & 5 & 17 & 1418 & 98259 & 6849021 
+ & 36 & 5 & 17 & 1418 & 99677 & 6948698 
+==================
+In SparseTigerGrid, QMDP found bound 2.981994310056294 in 0.00100918s.
+ERROR: LoadError: ParseError:
+# Error @ /home/merlijn/GitRepos/Backward_Informed_Bound/TIB/Weights.jl:316:1
+
+end
+└─┘ ── invalid identifier
+Stacktrace:
+ [1] top-level scope
+   @ ~/GitRepos/Backward_Informed_Bound/TIB/Weights.jl:316
+ [2] include(mod::Module, _path::String)
+   @ Base ./Base.jl:557
+ [3] include(x::String)
+   @ Main.TIB ~/GitRepos/Backward_Informed_Bound/TIB/TIB.jl:1
+ [4] top-level scope
+   @ ~/GitRepos/Backward_Informed_Bound/TIB/TIB.jl:14
+ [5] include(fname::String)
+   @ Main ./sysimg.jl:38
+ [6] top-level scope
+   @ ~/GitRepos/Backward_Informed_Bound/RunFiles/run_upperbound.jl:10
+in expression starting at /home/merlijn/GitRepos/Backward_Informed_Bound/TIB/Weights.jl:316
+in expression starting at /home/merlijn/GitRepos/Backward_Informed_Bound/TIB/TIB.jl:1
+in expression starting at /home/merlijn/GitRepos/Backward_Informed_Bound/RunFiles/run_upperbound.jl:10
+ERROR: LoadError: ParseError:
+# Error @ /home/merlijn/GitRepos/Backward_Informed_Bound/TIB/Weights.jl:316:1
+
+end
+└─┘ ── invalid identifier
+Stacktrace:
+ [1] top-level scope
+   @ ~/GitRepos/Backward_Informed_Bound/TIB/Weights.jl:316
+ [2] include(mod::Module, _path::String)
+   @ Base ./Base.jl:557
+ [3] include(x::String)
+   @ Main.TIB ~/GitRepos/Backward_Informed_Bound/TIB/TIB.jl:1
+ [4] top-level scope
+   @ ~/GitRepos/Backward_Informed_Bound/TIB/TIB.jl:14
+ [5] include(fname::String)
+   @ Main ./sysimg.jl:38
+ [6] top-level scope
+   @ ~/GitRepos/Backward_Informed_Bound/RunFiles/run_upperbound.jl:10
+in expression starting at /home/merlijn/GitRepos/Backward_Informed_Bound/TIB/Weights.jl:316
+in expression starting at /home/merlijn/GitRepos/Backward_Informed_Bound/TIB/TIB.jl:1
+in expression starting at /home/merlijn/GitRepos/Backward_Informed_Bound/RunFiles/run_upperbound.jl:10
+ERROR: LoadError: ParseError:
+# Error @ /home/merlijn/GitRepos/Backward_Informed_Bound/TIB/Weights.jl:316:1
+
+end
+└─┘ ── invalid identifier
+Stacktrace:
+ [1] top-level scope
+   @ ~/GitRepos/Backward_Informed_Bound/TIB/Weights.jl:316
+ [2] include(mod::Module, _path::String)
+   @ Base ./Base.jl:557
+ [3] include(x::String)
+   @ Main.TIB ~/GitRepos/Backward_Informed_Bound/TIB/TIB.jl:1
+ [4] top-level scope
+   @ ~/GitRepos/Backward_Informed_Bound/TIB/TIB.jl:14
+ [5] include(fname::String)
+   @ Main ./sysimg.jl:38
+ [6] top-level scope
+   @ ~/GitRepos/Backward_Informed_Bound/RunFiles/run_upperbound.jl:10
+in expression starting at /home/merlijn/GitRepos/Backward_Informed_Bound/TIB/Weights.jl:316
+in expression starting at /home/merlijn/GitRepos/Backward_Informed_Bound/TIB/TIB.jl:1
+in expression starting at /home/merlijn/GitRepos/Backward_Informed_Bound/RunFiles/run_upperbound.jl:10
+ERROR: LoadError: ParseError:
+# Error @ /home/merlijn/GitRepos/Backward_Informed_Bound/TIB/Weights.jl:342:4
+    bidx >= n_sup_b && bpidx <= n_sup_bp ? (return 0.0) : (return minratio)
+end
+#  └ ── Expected `end`
+Stacktrace:
+ [1] top-level scope
+   @ ~/GitRepos/Backward_Informed_Bound/TIB/Weights.jl:342
+ [2] include(mod::Module, _path::String)
+   @ Base ./Base.jl:557
+ [3] include(x::String)
+   @ Main.TIB ~/GitRepos/Backward_Informed_Bound/TIB/TIB.jl:1
+ [4] top-level scope
+   @ ~/GitRepos/Backward_Informed_Bound/TIB/TIB.jl:14
+ [5] include(fname::String)
+   @ Main ./sysimg.jl:38
+ [6] top-level scope
+   @ ~/GitRepos/Backward_Informed_Bound/RunFiles/run_upperbound.jl:10
+in expression starting at /home/merlijn/GitRepos/Backward_Informed_Bound/TIB/Weights.jl:342
+in expression starting at /home/merlijn/GitRepos/Backward_Informed_Bound/TIB/TIB.jl:1
+in expression starting at /home/merlijn/GitRepos/Backward_Informed_Bound/RunFiles/run_upperbound.jl:10

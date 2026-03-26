@@ -28,6 +28,24 @@ end
     precision::Float64      = 1e-4
     precomp_solver          = STIBSolver(precision=1e-4, max_iterations=250, max_time=3600, precomp_solver=FIBSolver_alt(precision=1e-4, max_iterations=1000, max_time=3600))
  end
+ @kwdef struct SawTIBSolver <: TIBSolver
+    dynamic_recompute       = true
+    dynamic_precision       = 1e-4
+    max_recomputes          = 50
+    max_iterations::Int64   = 250
+    max_time::Float64       = 3600
+    precision::Float64      = 1e-4
+    precomp_solver          = STIBSolver(precision=1e-4, max_iterations=250, max_time=3600, precomp_solver=FIBSolver_alt(precision=1e-4, max_iterations=1000, max_time=3600))
+ end
+  @kwdef struct ISawTIBSolver <: TIBSolver
+    dynamic_recompute       = true
+    dynamic_precision       = 1e-4
+    max_recomputes          = 50
+    max_iterations::Int64   = 250
+    max_time::Float64       = 3600
+    precision::Float64      = 1e-4
+    precomp_solver          = STIBSolver(precision=1e-4, max_iterations=250, max_time=3600, precomp_solver=FIBSolver_alt(precision=1e-4, max_iterations=1000, max_time=3600))
+ end
  @kwdef struct CTIBSolver <: TIBSolver
     max_iterations::Int64   = 250
     max_time::Float64       = 3600
@@ -61,8 +79,32 @@ struct TIB_solver_info
     precesion::Float64
 end
 
+function compute_weights(solver::X, Data::TIB_Data{S}, Bbao_data::BBAO_Data{S}) where X<:TIBSolver where S
+    if solver isa ETIBSolver
+        entropies = map(b -> get_entropy(b), Data.B)
+        Weights = get_all_entropy_weights(Data, Bbao_data; entropies=entropies)
+    elseif solver isa CTIBSolver
+        Weights = get_all_closeness_weights(Data, Bbao_data)
+    elseif solver isa ICTIBSolver
+        Weights = get_all_iterative_closeness_weights(Data, Bbao_data)
+    elseif solver isa OTIBSolver
+        Weights = get_all_optimal_weights(Data, Bbao_data)
+    elseif solver isa SawTIBSolver
+        Weights = get_all_sawtooth_weights(Data, Bbao_data)
+    elseif solver isa ISawTIBSolver
+        Weights = get_all_iterative_sawtooth_weights(Data, Bbao_data)
+    elseif solver isa MultiTIBSolver
+        W_closeness = get_all_iterative_closeness_weights(Data, Bbao_data)
+        W_optimal = get_all_optimal_weights(Data, Bbao_data)
+        entropies = map(b -> get_entropy(b), Data.B)
+        W_entropy = get_all_entropy_weights(Data, Bbao_data; entropies=entropies)
+        Weights = [W_closeness, W_optimal, W_entropy]
+    end
+    return Weights 
+end
 
-SOLVERS_REQUIRING_BBAO = [ETIBSolver, CTIBSolver, ICTIBSolver, OTIBSolver, MultiTIBSolver]
+
+SOLVERS_REQUIRING_BBAO = [ETIBSolver, CTIBSolver, ICTIBSolver, OTIBSolver, SawTIBSolver, ISawTIBSolver, MultiTIBSolver]
 POMDPs.solve(solver::X, model::POMDP) where X<: TIBSolver = solve_info(solver, model; Data=nothing)[1]
 POMDPTools.solve_info(solver::X, model::POMDP) where X<: TIBSolver = solve_info(solver, model; Data=nothing)
 
@@ -95,21 +137,8 @@ function solve_info(solver::X, model::POMDP{S,A,O}; Data::Union{TIB_Data{S},Noth
     # 4 : If using ETIB, pre-compute entropy weights
     
     # Weights::Union{Weights_Data, Nothing} = nothing
-    if solver isa ETIBSolver
-        entropies = map(b -> get_entropy(b), Data.B)
-        Weights = get_all_entropy_weights(Data, Bbao_data; entropies=entropies)
-    elseif solver isa CTIBSolver
-        Weights = get_all_closeness_weights(Data, Bbao_data)
-    elseif solver isa ICTIBSolver
-        Weights = get_all_iterative_closeness_weights(Data, Bbao_data)
-    elseif solver isa OTIBSolver
-        Weights = get_all_optimal_weights(Data, Bbao_data)
-    elseif solver isa MultiTIBSolver
-        W_closeness = get_all_iterative_closeness_weights(Data, Bbao_data)
-        W_optimal = get_all_optimal_weights(Data, Bbao_data)
-        entropies = map(b -> get_entropy(b), Data.B)
-        W_entropy = get_all_entropy_weights(Data, Bbao_data; entropies=entropies)
-        Weights = [W_closeness, W_optimal, W_entropy]
+    if !(solver isa STIBSolver)
+        Weights = compute_weights(solver, Data, Bbao_data)
     end
 
     time_weights = time() - t0 - time_init - time_Qs
@@ -121,6 +150,10 @@ function solve_info(solver::X, model::POMDP{S,A,O}; Data::Union{TIB_Data{S},Noth
         pol, get_Q, args = STIBPolicy, get_QTIB_Beliefset, (Data,)
     elseif solver isa OTIBSolver
         pol, get_Q, args = OTIBPolicy, Get_Q_weights_Beliefset, (Data, Bbao_data, Weights)
+    elseif solver isa SawTIBSolver
+        pol, get_Q, args = SawTIBPolicy, Get_Q_weights_Beliefset, (Data, Bbao_data, Weights)
+    elseif solver isa ISawTIBSolver
+        pol, get_Q, args = ISawTIBPolicy, Get_Q_weights_Beliefset, (Data, Bbao_data, Weights)
     elseif solver isa ETIBSolver
         pol, get_Q, args = ETIBPolicy, Get_Q_weights_Beliefset, (Data, Bbao_data, Weights)
     elseif solver isa CTIBSolver
@@ -166,7 +199,7 @@ function solve_info(solver::X, model::POMDP{S,A,O}; Data::Union{TIB_Data{S},Noth
             elseif ( factor * max_dif < solver.dynamic_precision 
                     || (it > solver.max_iterations && recomputes < solver.max_recomputes))             
                 verbose && printdb("Recomputing weights (precision = $(factor * max_dif)")
-                Weights = get_all_optimal_weights(Data, Bbao_data)
+                Weights = compute_weights(solver, Data, Bbao_data)
                 args = (Data, Bbao_data, Weights)
                 max_dif = Inf
                 it = 0
@@ -288,7 +321,7 @@ function Get_Q_weights_Beliefset(model::POMDP{S}, Q::Qtype, timeleft, Data::TIB_
     for (b_idx,b) in enumerate(Data.B)
         timeleft+t0-time() < 0 && (return Q, 0)
         for (ai, a) in enumerate(Data.constants.A)
-            Qs_new[b_idx,ai] = get_Q_weights_ba(model, b_idx, ai, Q, Data,  Bbao_data, Weights)
+            Qs_new[b_idx,ai] = min(Q[b_idx, ai], get_Q_weights_ba(model, b_idx, ai, Q, Data,  Bbao_data, Weights))
         end
     end
     max_dif = maximum(map(abs, (Qs_new .- Q) ./ (Q.+1e-10)))
@@ -374,6 +407,14 @@ struct OTIBPolicy <: TIBPolicy
     model::POMDP
     Data::TIB_Data
 end
+struct SawTIBPolicy <: TIBPolicy
+    model::POMDP
+    Data::TIB_Data
+end
+struct ISawTIBPolicy <: TIBPolicy
+    model::POMDP
+    Data::TIB_Data
+end
 struct ETIBPolicy <: TIBPolicy
     model::POMDP
     Data::TIB_Data
@@ -417,6 +458,8 @@ action_value(π::ETIBPolicy, b::DiscreteHashedBelief{S}) where S = action_value_
 action_value(π::CTIBPolicy, b::DiscreteHashedBelief{S}) where S = action_value_preweights(π, b; weight_function=get_single_closeness_weights)
 action_value(π::ICTIBPolicy, b::DiscreteHashedBelief{S}) where S = action_value_preweights(π, b; weight_function=get_single_iterative_closeness_weights)
 action_value(π::OTIBPolicy, b::DiscreteHashedBelief{S}) where S = action_value_preweights(π, b; weight_function=get_single_optimal_weights)
+action_value(π::SawTIBPolicy, b::DiscreteHashedBelief{S}) where S = action_value_preweights(π, b; weight_function=get_single_sawtooth_weights)
+action_value(π::ISawTIBPolicy, b::DiscreteHashedBelief{S}) where S = action_value_preweights(π, b; weight_function=get_single_iterative_sawtooth_weights)
 action_value(π::MultiTIBPolicy, b::DiscreteHashedBelief{S}) where S = action_value_preweights(π, b; weight_function=get_single_optimal_weights)
 function action_value_preweights(π::X, b::DiscreteHashedBelief{S}; weight_function = get_single_entropy_weights) where X<:TIBPolicy where S
     trace = stacktrace()

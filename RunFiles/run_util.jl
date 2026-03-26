@@ -2,6 +2,7 @@ include("../Environments/K-out-of-N.jl"); using .K_out_of_Ns
 include("../Environments/Sparse_models/SparseModels.jl"); using .SparseModels
 
 include("../Environments/ABCModel.jl"); using .ABCModel
+include("../Environments/HeavenOrHell.jl"); using .HeavenOrHellModel
 
 using TagPOMDPProblem
 Base.:(==)(s1::TagState, s2::TagState) = s1.r_pos == s2.r_pos && s1.t_pos == s2.t_pos

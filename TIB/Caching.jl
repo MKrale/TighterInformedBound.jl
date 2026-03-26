@@ -380,6 +380,8 @@ function print_model_info(model::POMDP{S}) where S
     println("Model info:")
     println("|S| = $(Data.constants.ns), |A| = $(Data.constants.na), |O| = $(Data.constants.no)")
     println("|B1| = $(length(Data.B)), |B2| = $(length(Bbao_data.Bbao)), |B3| = $(length(three_step_beliefs))")
+    println(" & $(Data.constants.ns) & $(Data.constants.na) & $(Data.constants.no) & $(length(Data.B)) & $(length(Bbao_data.Bbao)) & $(length(three_step_beliefs)) ")
+    println(" & $(Data.constants.ns) & $(Data.constants.na) & $(Data.constants.no) & $(length(Data.B)) & $(length(Bbao_data.Bbao)+length(Data.B)) & $(length(three_step_beliefs)+length(Data.B)+length(Bbao_data.Bbao)) ")
     println("==================")
 end
 

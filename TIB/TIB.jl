@@ -10,7 +10,7 @@ module TIB
     include("Beliefs.jl")
     export DiscreteHashedBelief, DiscreteHashedBeliefUpdater
     include("Caching.jl")
-    export test_get_three_step_beliefs
+    export print_model_info
     include("Weights.jl")
     # Both QMDP and FIB use alpha-vectors in the original version, which is slow...
     include("SimpleHeuristics.jl")
@@ -20,8 +20,8 @@ module TIB
 
     include("solver.jl")
     export
-    STIBSolver, OTIBSolver, ETIBSolver, CTIBSolver, ICTIBSolver, MultiTIBSolver
-    STIBPolicy, OTIBPolicy, ETIBPolicy, CTIBPolicy, ICTIBPolicy, MultiTIBPolicy
+    STIBSolver, OTIBSolver, SawTIBSolver, ISawTIBSolver, ETIBSolver, CTIBSolver, ICTIBSolver, MultiTIBSolver
+    STIBPolicy, OTIBPolicy, SawTIBPolicy, ISawTIBPolicy, ETIBPolicy, CTIBPolicy, ICTIBPolicy, MultiTIBPolicy
     include("Convenience.jl")
     export 
     sparseTabularPOMDPFiniteReward

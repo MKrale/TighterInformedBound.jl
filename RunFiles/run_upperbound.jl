@@ -119,6 +119,26 @@ if "OTIB" in solver_names
     push!(solverargs, (name="OTIB", sargs=(max_iterations=heuristicsteps, precision=heuristicprecision, max_time=timeout, dynamic_recompute=true, dynamic_precision=heuristicprecision, max_recomputes=100), pargs=(), get_Q0=true))
     push!(precomp_solverargs, ( sargs=(max_iterations=2, max_recomputes=0, precomp_solver=STIBSolver(max_iterations=2)), pargs=()))
 end
+if "SawTIB_pre" in solver_names
+    push!(solvers, SawTIBSolver)
+    push!(solverargs, (name="SawTIB_pre", sargs=(max_iterations=heuristicsteps, precision=heuristicprecision, max_time=timeout, dynamic_recompute=false), pargs=(), get_Q0=true))
+    push!(precomp_solverargs, ( sargs=(max_iterations=2, max_recomputes=0, precomp_solver=STIBSolver(max_iterations=2)), pargs=()))
+end
+if "SawTIB" in solver_names
+    push!(solvers, SawTIBSolver)
+    push!(solverargs, (name="SawTIB", sargs=(max_iterations=heuristicsteps, precision=heuristicprecision, max_time=timeout, dynamic_recompute=true, dynamic_precision=heuristicprecision, max_recomputes=100), pargs=(), get_Q0=true))
+    push!(precomp_solverargs, ( sargs=(max_iterations=2, max_recomputes=0, precomp_solver=STIBSolver(max_iterations=2)), pargs=()))
+end
+if "ISawTIB_pre" in solver_names
+    push!(solvers, ISawTIBSolver)
+    push!(solverargs, (name="ISawTIB_pre", sargs=(max_iterations=heuristicsteps, precision=heuristicprecision, max_time=timeout, dynamic_recompute=false), pargs=(), get_Q0=true))
+    push!(precomp_solverargs, ( sargs=(max_iterations=2, max_recomputes=0, precomp_solver=STIBSolver(max_iterations=2)), pargs=()))
+end
+if "ISawTIB" in solver_names
+    push!(solvers, ISawTIBSolver)
+    push!(solverargs, (name="ISawTIB", sargs=(max_iterations=heuristicsteps, precision=heuristicprecision, max_time=timeout, dynamic_recompute=true, dynamic_precision=heuristicprecision, max_recomputes=100), pargs=(), get_Q0=true))
+    push!(precomp_solverargs, ( sargs=(max_iterations=2, max_recomputes=0, precomp_solver=STIBSolver(max_iterations=2)), pargs=()))
+end
 if "MultiTIB_pre" in solver_names
     push!(solvers, MultiTIBSolver)
     push!(solverargs, (name="MultiTIB_pre", sargs=(max_iterations=heuristicsteps, precision=heuristicprecision, max_time=timeout, dynamic_recompute=false), pargs=(), get_Q0=true))
@@ -181,22 +201,8 @@ verbose = true
 
 for (m_idx,(model, modelargs)) in enumerate(zip(envs, envargs))   
     for (s_idx,(solver, solverarg)) in enumerate(zip(solvers, solverargs))
-        
-        ### Get Environment data (commented out for efficiency)
-        # constants = TIB.get_constants(model)
-        # SAO_probs, SAOs = TIB.get_all_obs_probs(model; constants)
-        # B, B_idx = TIB.get_belief_set(model, SAOs; constants)
-        # Br = TIB.get_Br(model, B, constants)
-        # Data = TIB.TIB_Data(zeros(2,2), B, B_idx,Br, SAO_probs, SAOs, Dict(zip(constants.S, 1:constants.ns)), constants)
-        # BBao_data = TIB.get_Bbao(model, Data, constants)
-        # env_data = Dict(
-        #     "ns" => constants.ns,
-        #     "na" => constants.na,
-        #     "no" => constants.no,
-        #     "nb" => length(B),
-        #     "nbao"=> length(BBao_data.Bbao) + length(B),
-        #     "discount"=> discount
-	    # )
+        # print("huh?")
+        print_model_info(model)
         env_data = Dict() # Comment out when you want to get env info
 
         # Precompile
@@ -211,8 +217,8 @@ for (m_idx,(model, modelargs)) in enumerate(zip(envs, envargs))
         thissolver = solver(;solverarg.sargs...)
 	GC.gc()
         t = @elapsed begin
-            policy, info = POMDPTools.solve_info(thissolver, model; solverarg.pargs...) 
-            # @profile policy, info = POMDPTools.solve_info(thissolver, model; solverarg.pargs...) 
+            # policy, info = POMDPTools.solve_info(thissolver, model; solverarg.pargs...) 
+            @profile policy, info = POMDPTools.solve_info(thissolver, model; solverarg.pargs...) 
         end
         if !isdefined(info, :ub) || !isdefined(info, :lb)
             ub = POMDPs.value(policy, POMDPs.initialstate(model))
@@ -222,8 +228,8 @@ for (m_idx,(model, modelargs)) in enumerate(zip(envs, envargs))
             lb =  info.lb
         end       
 
-        # fg = flamegraph(Profile.fetch(); norepl=true, combine=true)
-        # ProfileSVG.save("flamegraph.svg", fg; width=3600, fontsize=10, maxdepth=40, maxframes=10_000)
+        fg = flamegraph(Profile.fetch(); norepl=true, combine=true)
+        ProfileSVG.save("flamegraph.svg", fg; width=3600, fontsize=10, maxdepth=40, maxframes=10_000)
 
         ### Policy simulation (very slow, so not used)
         #rs = []
