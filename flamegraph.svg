@@ -1,75 +1,453 @@
 <?xml version="1.0" standalone="no"?>
 <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
-<svg version="1.1" width="3600" height="420" viewBox="0 0 3600 420"
-     xmlns="http://www.w3.org/2000/svg" id="fig-58b7e54f66b54e4a8bef6d5ae64406a2">
+<svg version="1.1" width="3600" height="612" viewBox="0 0 3600 612"
+     xmlns="http://www.w3.org/2000/svg" id="fig-84da0738192847f9a7f8f576dd9a8937">
 <defs>
-    <clipPath id="fig-58b7e54f66b54e4a8bef6d5ae64406a2-clip">
-        <rect x="0" y="0" width="3600" height="420"/>
+    <clipPath id="fig-84da0738192847f9a7f8f576dd9a8937-clip">
+        <rect x="0" y="0" width="3600" height="612"/>
     </clipPath>
 </defs>
 <style type="text/css">
-    #fig-58b7e54f66b54e4a8bef6d5ae64406a2 text {
+    #fig-84da0738192847f9a7f8f576dd9a8937 text {
         pointer-events: none;
         font-family: inherit;
         font-size: 10px;
         fill: #000000;
     }
-    text#fig-58b7e54f66b54e4a8bef6d5ae64406a2-title {
+    text#fig-84da0738192847f9a7f8f576dd9a8937-title {
         font-size: 14px;
         fill: #000000;
         text-anchor: middle;
     }
-    #fig-58b7e54f66b54e4a8bef6d5ae64406a2-bg {
+    #fig-84da0738192847f9a7f8f576dd9a8937-bg {
         fill: #FFFFFF;
     }
-    #fig-58b7e54f66b54e4a8bef6d5ae64406a2-viewport rect, #fig-58b7e54f66b54e4a8bef6d5ae64406a2-viewport path {
+    #fig-84da0738192847f9a7f8f576dd9a8937-viewport rect, #fig-84da0738192847f9a7f8f576dd9a8937-viewport path {
         vector-effect: non-scaling-stroke;
         fill-opacity: 1;
     }
-    #fig-58b7e54f66b54e4a8bef6d5ae64406a2-viewport text {
+    #fig-84da0738192847f9a7f8f576dd9a8937-viewport text {
         stroke: #000000;
         stroke-width: 0;
         stroke-opacity: 0.35;
     }
-    #fig-58b7e54f66b54e4a8bef6d5ae64406a2-viewport rect:hover, #fig-58b7e54f66b54e4a8bef6d5ae64406a2-viewport path:hover {
+    #fig-84da0738192847f9a7f8f576dd9a8937-viewport rect:hover, #fig-84da0738192847f9a7f8f576dd9a8937-viewport path:hover {
         fill-opacity: 0.75;
         stroke: #000000;
         stroke-width: 0.5;
     }
-    #fig-58b7e54f66b54e4a8bef6d5ae64406a2-viewport + rect {
+    #fig-84da0738192847f9a7f8f576dd9a8937-viewport + rect {
         fill: #FFFFFF;
         opacity: 0.8;
     }
-    text#fig-58b7e54f66b54e4a8bef6d5ae64406a2-details{
+    text#fig-84da0738192847f9a7f8f576dd9a8937-details{
         fill: #000000;
     }
 </style>
-<g id="fig-58b7e54f66b54e4a8bef6d5ae64406a2-frame" clip-path="url(#fig-58b7e54f66b54e4a8bef6d5ae64406a2-clip)">
-<rect id="fig-58b7e54f66b54e4a8bef6d5ae64406a2-bg" x="0" y="0" width="3600" height="420"/>
-<text id="fig-58b7e54f66b54e4a8bef6d5ae64406a2-title" x="1800" y="20">Profile results</text>
-<g id="fig-58b7e54f66b54e4a8bef6d5ae64406a2-viewport" transform="scale(1)">
-<rect x="36" y="264" width="3528" height="12" rx="2" fill="#E1B2FF" data-dinfo=""/>
-<text x="36" dx="4" y="273"> in :-1</text>
-<rect x="36" y="252" width="3528" height="12" rx="2" fill="#00B58B" data-dinfo="./"/>
-<text x="36" dx="4" y="261">_start in client.jl:531</text>
-<rect x="36" y="240" width="3528" height="12" rx="2" fill="#E1B2FF" data-dinfo="./"/>
-<text x="36" dx="4" y="249">exec_options in client.jl:323</text>
-<rect x="36" y="228" width="3528" height="12" rx="2" fill="#00B58B" data-dinfo="./"/>
-<text x="36" dx="4" y="237">include in Base.jl:557</text>
-<rect x="36" y="216" width="3528" height="12" rx="2" fill="#E1B2FF" data-dinfo="./"/>
-<text x="36" dx="4" y="225">_include in loading.jl:2794</text>
-<rect x="36" y="204" width="3528" height="12" rx="2" fill="#00B58B" data-dinfo="./"/>
-<text x="36" dx="4" y="213">include_string in loading.jl:2734</text>
-<rect x="36" y="192" width="3528" height="12" rx="2" fill="#E1B2FF" data-dinfo="./"/>
-<text x="36" dx="4" y="201">eval in boot.jl:430</text>
-<rect x="36" y="180" width="3528" height="12" rx="2" fill="#00B58B" data-dinfo="/home/merlijn/GitRepos/Backward_Informed_Bound/RunFiles/"/>
-<text x="36" dx="4" y="189">top-level scope in run_upperbound.jl:234</text>
-<rect x="36" y="168" width="3528" height="12" rx="2" fill="#E1B2FF" data-dinfo="./"/>
-<text x="36" dx="4" y="177">macro expansion in timing.jl:421</text>
-<rect x="36" y="156" width="3528" height="12" rx="2" fill="#00B58B" data-dinfo="/home/merlijn/GitRepos/Backward_Informed_Bound/RunFiles/"/>
-<text x="36" dx="4" y="165">macro expansion in run_upperbound.jl:236</text>
-<rect x="36" y="144" width="3528" height="12" rx="2" fill="#F3004D" data-dinfo="/cache/build/tester-amdci5-12/julialang/julia-release-1-dot-11/usr/share/julia/stdlib/v1.11/Profile/src/"/>
-<text x="36" dx="4" y="153">macro expansion in Profile.jl:58</text>
+<g id="fig-84da0738192847f9a7f8f576dd9a8937-frame" clip-path="url(#fig-84da0738192847f9a7f8f576dd9a8937-clip)">
+<rect id="fig-84da0738192847f9a7f8f576dd9a8937-bg" x="0" y="0" width="3600" height="612"/>
+<text id="fig-84da0738192847f9a7f8f576dd9a8937-title" x="1800" y="20">Profile results</text>
+<g id="fig-84da0738192847f9a7f8f576dd9a8937-viewport" transform="scale(1)">
+<rect x="36" y="456" width="3528.29" height="12" rx="2" fill="#E1B2FF" data-dinfo=""/>
+<text x="36" dx="4" y="465"> in :-1</text>
+<rect x="47.1" y="444" width="3517.19" height="12" rx="2" fill="#00B58B" data-dinfo="./"/>
+<text x="47.1" dx="4" y="453">_start in client.jl:531</text>
+<rect x="47.1" y="432" width="3517.19" height="12" rx="2" fill="#E1B2FF" data-dinfo="./"/>
+<text x="47.1" dx="4" y="441">exec_options in client.jl:323</text>
+<rect x="47.1" y="420" width="3517.19" height="12" rx="2" fill="#00B58B" data-dinfo="./"/>
+<text x="47.1" dx="4" y="429">include in Base.jl:557</text>
+<rect x="47.1" y="408" width="3517.19" height="12" rx="2" fill="#E1B2FF" data-dinfo="./"/>
+<text x="47.1" dx="4" y="417">_include in loading.jl:2794</text>
+<rect x="47.1" y="396" width="3517.19" height="12" rx="2" fill="#00B58B" data-dinfo="./"/>
+<text x="47.1" dx="4" y="405">include_string in loading.jl:2734</text>
+<rect x="47.1" y="384" width="3517.19" height="12" rx="2" fill="#E1B2FF" data-dinfo="./"/>
+<text x="47.1" dx="4" y="393">eval in boot.jl:430</text>
+<rect x="47.1" y="372" width="3517.19" height="12" rx="2" fill="#00B58B" data-dinfo="/home/merlijn/Backward_Informed_Bound/RunFiles/"/>
+<text x="47.1" dx="4" y="381">top-level scope in run_upperbound.jl:219</text>
+<rect x="47.1" y="360" width="3517.19" height="12" rx="2" fill="#E1B2FF" data-dinfo="./"/>
+<text x="47.1" dx="4" y="369">macro expansion in timing.jl:421</text>
+<rect x="47.1" y="348" width="3517.19" height="12" rx="2" fill="#00B58B" data-dinfo="/home/merlijn/Backward_Informed_Bound/RunFiles/"/>
+<text x="47.1" dx="4" y="357">macro expansion in run_upperbound.jl:221</text>
+<rect x="47.1" y="336" width="3517.19" height="12" rx="2" fill="#F3004D" data-dinfo="/cache/build/tester-amdci5-12/julialang/julia-release-1-dot-11/usr/share/julia/stdlib/v1.11/Profile/src/"/>
+<text x="47.1" dx="4" y="345">macro expansion in Profile.jl:58</text>
+<rect x="158.05" y="324" width="3406.24" height="12" rx="2" fill="#00B58B" data-dinfo="/home/merlijn/.julia/packages/POMDPTools/4nD6N/src/ModelTools/"/>
+<text x="158.05" dx="4" y="333">solve_info in info.jl:23</text>
+<rect x="158.05" y="312" width="3406.24" height="12" rx="2" fill="#E1B2FF" data-dinfo="/home/merlijn/Backward_Informed_Bound/TIB/"/>
+<text x="158.05" dx="4" y="321">solve in SimpleHeuristics.jl:35</text>
+<rect x="158.05" y="300" width="3406.24" height="12" rx="2" fill="#00B58B" data-dinfo="/home/merlijn/Backward_Informed_Bound/TIB/"/>
+<text x="158.05" dx="4" y="309">solve in SimpleHeuristics.jl:38</text>
+<rect x="158.05" y="288" width="11.09" height="12" rx="2" fill="#E1B2FF" data-dinfo="./"/>
+<text x="158.05" dx="4" y="297">getindex in dict.jl:475</text>
+<rect x="169.14" y="288" width="122.05" height="12" rx="2" fill="#6FDC91" data-dinfo="./"/>
+<text x="169.14" dx="4" y="297">#solve#39 in essentials.jl:0</text>
+<rect x="302.29" y="288" width="321.76" height="12" rx="2" fill="#E1B2FF" data-dinfo="/home/merlijn/Backward_Informed_Bound/TIB/"/>
+<text x="302.29" dx="4" y="297">#solve#39 in SimpleHeuristics.jl:57</text>
+<rect x="302.29" y="276" width="321.76" height="12" rx="2" fill="#00B58B" data-dinfo="/home/merlijn/.julia/packages/POMDPTools/4nD6N/src/ModelTools/"/>
+<text x="302.29" dx="4" y="285">transition in sparse_tabular.jl:289</text>
+<rect x="302.29" y="264" width="33.28" height="12" rx="2" fill="#E1B2FF" data-dinfo="/cache/build/tester-amdci5-12/julialang/julia-release-1-dot-11/usr/share/julia/stdlib/v1.11/SparseArrays/src/"/>
+<text x="302.29" dx="4" y="273">findnz in sparsevector.jl:907</text>
+<rect x="302.29" y="252" width="33.28" height="12" rx="2" fill="#00B58B" data-dinfo="./"/>
+<text x="302.29" dx="4" y="261">Array in boot.jl:578</text>
+<rect x="302.29" y="240" width="33.28" height="12" rx="2" fill="#FFA000" data-dinfo="./"/>
+<text x="302.29" dx="4" y="249">GenericMemory in boot.jl:516</text>
+<rect x="335.57" y="264" width="288.48" height="12" rx="2" fill="#6FDC91" data-dinfo="/cache/build/tester-amdci5-12/julialang/julia-release-1-dot-11/usr/share/julia/stdlib/v1.11/SparseArrays/src/"/>
+<text x="335.57" dx="4" y="273">getindex in sparsevector.jl:692</text>
+<rect x="335.57" y="252" width="44.38" height="12" rx="2" fill="#2CA3FF" data-dinfo="./"/>
+<text x="335.57" dx="4" y="261">getindex in sort.jl:0</text>
+<rect x="379.95" y="252" width="33.29" height="12" rx="2" fill="#00B58B" data-dinfo="/cache/build/tester-amdci5-12/julialang/julia-release-1-dot-11/usr/share/julia/stdlib/v1.11/SparseArrays/src/"/>
+<text x="379.95" dx="4" y="261">getindex in sparsevector.jl:0</text>
+<rect x="413.24" y="252" width="11.09" height="12" rx="2" fill="#2CA3FF" data-dinfo="/cache/build/tester-amdci5-12/julialang/julia-release-1-dot-11/usr/share/julia/stdlib/v1.11/SparseArrays/src/"/>
+<text x="413.24" dx="4" y="261">getindex in sparsevector.jl:705</text>
+<rect x="413.24" y="240" width="11.09" height="12" rx="2" fill="#6FDC91" data-dinfo="./"/>
+<text x="413.24" dx="4" y="249">getindex in array.jl:3077</text>
+<rect x="413.24" y="228" width="11.09" height="12" rx="2" fill="#00B58B" data-dinfo="./"/>
+<text x="413.24" dx="4" y="237">_getindex in range.jl:938</text>
+<rect x="413.24" y="216" width="11.09" height="12" rx="2" fill="#E1B2FF" data-dinfo="./"/>
+<text x="413.24" dx="4" y="225">+ in int.jl:87</text>
+<rect x="424.33" y="252" width="22.19" height="12" rx="2" fill="#00B58B" data-dinfo="/cache/build/tester-amdci5-12/julialang/julia-release-1-dot-11/usr/share/julia/stdlib/v1.11/SparseArrays/src/"/>
+<text x="424.33" dx="4" y="261">getindex in sparsevector.jl:707</text>
+<rect x="424.33" y="240" width="22.19" height="12" rx="2" fill="#E1B2FF" data-dinfo="./"/>
+<text x="424.33" dx="4" y="249">getindex in essentials.jl:917</text>
+<rect x="446.52" y="252" width="11.1" height="12" rx="2" fill="#2CA3FF" data-dinfo="/cache/build/tester-amdci5-12/julialang/julia-release-1-dot-11/usr/share/julia/stdlib/v1.11/SparseArrays/src/"/>
+<text x="446.52" dx="4" y="261">getindex in sparsevector.jl:708</text>
+<rect x="446.52" y="240" width="11.1" height="12" rx="2" fill="#6FDC91" data-dinfo="./"/>
+<text x="446.52" dx="4" y="249">getindex in essentials.jl:917</text>
+<rect x="457.62" y="252" width="11.09" height="12" rx="2" fill="#00B58B" data-dinfo="/cache/build/tester-amdci5-12/julialang/julia-release-1-dot-11/usr/share/julia/stdlib/v1.11/SparseArrays/src/"/>
+<text x="457.62" dx="4" y="261">getindex in sparsevector.jl:709</text>
+<rect x="457.62" y="240" width="11.09" height="12" rx="2" fill="#E1B2FF" data-dinfo="./"/>
+<text x="457.62" dx="4" y="249">&lt;= in int.jl:514</text>
+<rect x="468.71" y="252" width="77.67" height="12" rx="2" fill="#2CA3FF" data-dinfo="/cache/build/tester-amdci5-12/julialang/julia-release-1-dot-11/usr/share/julia/stdlib/v1.11/SparseArrays/src/"/>
+<text x="468.71" dx="4" y="261">getindex in sparsevector.jl:711</text>
+<rect x="468.71" y="240" width="22.19" height="12" rx="2" fill="#6FDC91" data-dinfo="./"/>
+<text x="468.71" dx="4" y="249">+ in int.jl:87</text>
+<rect x="490.9" y="240" width="55.48" height="12" rx="2" fill="#E1B2FF" data-dinfo="./"/>
+<text x="490.9" dx="4" y="249">searchsortedfirst in sort.jl:303</text>
+<rect x="490.9" y="228" width="55.48" height="12" rx="2" fill="#2CA3FF" data-dinfo="./"/>
+<text x="490.9" dx="4" y="237">#searchsortedfirst#4 in sort.jl:303</text>
+<rect x="490.9" y="216" width="55.48" height="12" rx="2" fill="#6FDC91" data-dinfo="./"/>
+<text x="490.9" dx="4" y="225">searchsortedfirst in sort.jl:301</text>
+<rect x="490.9" y="204" width="11.1" height="12" rx="2" fill="#00B58B" data-dinfo="./"/>
+<text x="490.9" dx="4" y="213">searchsortedfirst in int.jl:0</text>
+<rect x="502" y="204" width="11.1" height="12" rx="2" fill="#2CA3FF" data-dinfo="./"/>
+<text x="502" dx="4" y="213">searchsortedfirst in sort.jl:183</text>
+<rect x="502" y="192" width="11.1" height="12" rx="2" fill="#E1B2FF" data-dinfo="./"/>
+<text x="502" dx="4" y="201">&gt;&gt;&gt; in int.jl:530</text>
+<rect x="513.1" y="204" width="22.19" height="12" rx="2" fill="#00B58B" data-dinfo="./"/>
+<text x="513.1" dx="4" y="213">searchsortedfirst in sort.jl:184</text>
+<rect x="513.1" y="192" width="22.19" height="12" rx="2" fill="#6FDC91" data-dinfo="./"/>
+<text x="513.1" dx="4" y="201">+ in int.jl:87</text>
+<rect x="535.29" y="204" width="11.09" height="12" rx="2" fill="#2CA3FF" data-dinfo="./"/>
+<text x="535.29" dx="4" y="213">searchsortedfirst in sort.jl:185</text>
+<rect x="535.29" y="192" width="11.09" height="12" rx="2" fill="#E1B2FF" data-dinfo="./"/>
+<text x="535.29" dx="4" y="201">getindex in subarray.jl:343</text>
+<rect x="535.29" y="180" width="11.09" height="12" rx="2" fill="#00B58B" data-dinfo="./"/>
+<text x="535.29" dx="4" y="189">getindex in essentials.jl:917</text>
+<rect x="546.38" y="252" width="22.19" height="12" rx="2" fill="#00B58B" data-dinfo="/cache/build/tester-amdci5-12/julialang/julia-release-1-dot-11/usr/share/julia/stdlib/v1.11/SparseArrays/src/"/>
+<text x="546.38" dx="4" y="261">getindex in sparsevector.jl:713</text>
+<rect x="546.38" y="240" width="22.19" height="12" rx="2" fill="#6FDC91" data-dinfo="./"/>
+<text x="546.38" dx="4" y="249">push! in array.jl:1261</text>
+<rect x="546.38" y="228" width="22.19" height="12" rx="2" fill="#00B58B" data-dinfo="./"/>
+<text x="546.38" dx="4" y="237">_growend! in array.jl:1116</text>
+<rect x="546.38" y="216" width="22.19" height="12" rx="2" fill="#E1B2FF" data-dinfo="./"/>
+<text x="546.38" dx="4" y="225">#133 in array.jl:1129</text>
+<rect x="546.38" y="204" width="22.19" height="12" rx="2" fill="#00B58B" data-dinfo="./"/>
+<text x="546.38" dx="4" y="213">array_new_memory in array.jl:1058</text>
+<rect x="546.38" y="192" width="11.1" height="12" rx="2" fill="#6FDC91" data-dinfo="./"/>
+<text x="546.38" dx="4" y="201">GenericMemory in boot.jl:512</text>
+<rect x="557.48" y="192" width="11.09" height="12" rx="2" fill="#FFA000" data-dinfo="./"/>
+<text x="557.48" dx="4" y="201">GenericMemory in boot.jl:516</text>
+<rect x="568.57" y="252" width="55.48" height="12" rx="2" fill="#2CA3FF" data-dinfo="/cache/build/tester-amdci5-12/julialang/julia-release-1-dot-11/usr/share/julia/stdlib/v1.11/SparseArrays/src/"/>
+<text x="568.57" dx="4" y="261">getindex in sparsevector.jl:719</text>
+<rect x="568.57" y="240" width="55.48" height="12" rx="2" fill="#E1B2FF" data-dinfo="./"/>
+<text x="568.57" dx="4" y="249">iterate in range.jl:908</text>
+<rect x="568.57" y="228" width="22.19" height="12" rx="2" fill="#2CA3FF" data-dinfo="./"/>
+<text x="568.57" dx="4" y="237">== in promotion.jl:639</text>
+<rect x="624.05" y="288" width="1131.71" height="12" rx="2" fill="#6FDC91" data-dinfo="/home/merlijn/Backward_Informed_Bound/TIB/"/>
+<text x="624.05" dx="4" y="297">#solve#39 in SimpleHeuristics.jl:71</text>
+<rect x="624.05" y="276" width="44.38" height="12" rx="2" fill="#2CA3FF" data-dinfo="./"/>
+<text x="624.05" dx="4" y="285">getindex in abstractarray.jl:0</text>
+<rect x="668.43" y="276" width="33.28" height="12" rx="2" fill="#00B58B" data-dinfo="./"/>
+<text x="668.43" dx="4" y="285">getindex in array.jl:930</text>
+<rect x="668.43" y="264" width="11.09" height="12" rx="2" fill="#E1B2FF" data-dinfo="./"/>
+<text x="668.43" dx="4" y="273">_to_linear_index in abstractarray.jl:1347</text>
+<rect x="668.43" y="252" width="11.09" height="12" rx="2" fill="#00B58B" data-dinfo="./"/>
+<text x="668.43" dx="4" y="261">_sub2ind in abstractarray.jl:3048</text>
+<rect x="668.43" y="240" width="11.09" height="12" rx="2" fill="#6FDC91" data-dinfo="./"/>
+<text x="668.43" dx="4" y="249">_sub2ind in abstractarray.jl:3064</text>
+<rect x="668.43" y="228" width="11.09" height="12" rx="2" fill="#00B58B" data-dinfo="./"/>
+<text x="668.43" dx="4" y="237">_sub2ind_recurse in abstractarray.jl:3080</text>
+<rect x="668.43" y="216" width="11.09" height="12" rx="2" fill="#6FDC91" data-dinfo="./"/>
+<text x="668.43" dx="4" y="225">_sub2ind_recurse in abstractarray.jl:3080</text>
+<rect x="668.43" y="204" width="11.09" height="12" rx="2" fill="#2CA3FF" data-dinfo="./"/>
+<text x="668.43" dx="4" y="213">* in int.jl:88</text>
+<rect x="679.52" y="264" width="22.19" height="12" rx="2" fill="#6FDC91" data-dinfo="./"/>
+<text x="679.52" dx="4" y="273">getindex in essentials.jl:917</text>
+<rect x="701.71" y="276" width="1054.05" height="12" rx="2" fill="#2CA3FF" data-dinfo="./"/>
+<text x="701.71" dx="4" y="285">iterate in iterators.jl:426</text>
+<rect x="701.71" y="264" width="1054.05" height="12" rx="2" fill="#E1B2FF" data-dinfo="./"/>
+<text x="701.71" dx="4" y="273">_zip_iterate_all in iterators.jl:436</text>
+<rect x="701.71" y="252" width="11.1" height="12" rx="2" fill="#2CA3FF" data-dinfo="./"/>
+<text x="701.71" dx="4" y="261">_zip_iterate_some in array.jl:0</text>
+<rect x="712.81" y="252" width="388.33" height="12" rx="2" fill="#00B58B" data-dinfo="./"/>
+<text x="712.81" dx="4" y="261">_zip_iterate_some in iterators.jl:444</text>
+<rect x="712.81" y="240" width="388.33" height="12" rx="2" fill="#E1B2FF" data-dinfo="./"/>
+<text x="712.81" dx="4" y="249">iterate in array.jl:902</text>
+<rect x="712.81" y="228" width="388.33" height="12" rx="2" fill="#2CA3FF" data-dinfo="./"/>
+<text x="712.81" dx="4" y="237">iterate in array.jl:902</text>
+<rect x="712.81" y="216" width="22.19" height="12" rx="2" fill="#E1B2FF" data-dinfo="./"/>
+<text x="712.81" dx="4" y="225">getindex in essentials.jl:917</text>
+<rect x="1101.14" y="252" width="654.62" height="12" rx="2" fill="#2CA3FF" data-dinfo="./"/>
+<text x="1101.14" dx="4" y="261">_zip_iterate_some in iterators.jl:446</text>
+<rect x="1101.14" y="240" width="654.62" height="12" rx="2" fill="#6FDC91" data-dinfo="./"/>
+<text x="1101.14" dx="4" y="249">_zip_iterate_some in iterators.jl:444</text>
+<rect x="1101.14" y="228" width="654.62" height="12" rx="2" fill="#00B58B" data-dinfo="./"/>
+<text x="1101.14" dx="4" y="237">iterate in array.jl:902</text>
+<rect x="1101.14" y="216" width="654.62" height="12" rx="2" fill="#6FDC91" data-dinfo="./"/>
+<text x="1101.14" dx="4" y="225">iterate in array.jl:902</text>
+<rect x="1101.14" y="204" width="543.67" height="12" rx="2" fill="#00B58B" data-dinfo="./"/>
+<text x="1101.14" dx="4" y="213">getindex in essentials.jl:917</text>
+<rect x="1755.76" y="288" width="932" height="12" rx="2" fill="#E1B2FF" data-dinfo="/home/merlijn/Backward_Informed_Bound/TIB/"/>
+<text x="1755.76" dx="4" y="297">#solve#39 in SimpleHeuristics.jl:72</text>
+<rect x="1755.76" y="276" width="110.95" height="12" rx="2" fill="#00B58B" data-dinfo="./"/>
+<text x="1755.76" dx="4" y="285">getindex in dict.jl:475</text>
+<rect x="1866.71" y="276" width="543.67" height="12" rx="2" fill="#2CA3FF" data-dinfo="./"/>
+<text x="1866.71" dx="4" y="285">getindex in dict.jl:476</text>
+<rect x="1866.71" y="264" width="55.48" height="12" rx="2" fill="#6FDC91" data-dinfo="./"/>
+<text x="1866.71" dx="4" y="273">ht_keyindex in dict.jl:0</text>
+<rect x="1922.19" y="264" width="33.29" height="12" rx="2" fill="#E1B2FF" data-dinfo="./"/>
+<text x="1922.19" dx="4" y="273">ht_keyindex in dict.jl:237</text>
+<rect x="1922.19" y="252" width="33.29" height="12" rx="2" fill="#00B58B" data-dinfo="./"/>
+<text x="1922.19" dx="4" y="261">isempty in dict.jl:705</text>
+<rect x="1922.19" y="240" width="33.29" height="12" rx="2" fill="#E1B2FF" data-dinfo="./"/>
+<text x="1922.19" dx="4" y="249">== in promotion.jl:639</text>
+<rect x="1955.48" y="264" width="11.09" height="12" rx="2" fill="#6FDC91" data-dinfo="./"/>
+<text x="1955.48" dx="4" y="273">ht_keyindex in dict.jl:238</text>
+<rect x="1955.48" y="252" width="11.09" height="12" rx="2" fill="#2CA3FF" data-dinfo="./"/>
+<text x="1955.48" dx="4" y="261">getproperty in Base.jl:49</text>
+<rect x="1966.57" y="264" width="288.48" height="12" rx="2" fill="#E1B2FF" data-dinfo="./"/>
+<text x="1966.57" dx="4" y="273">ht_keyindex in dict.jl:242</text>
+<rect x="1966.57" y="252" width="221.91" height="12" rx="2" fill="#00B58B" data-dinfo="./"/>
+<text x="1966.57" dx="4" y="261">hashindex in dict.jl:128</text>
+<rect x="1966.57" y="240" width="221.91" height="12" rx="2" fill="#6FDC91" data-dinfo="./"/>
+<text x="1966.57" dx="4" y="249">hash in hashing.jl:28</text>
+<rect x="1966.57" y="228" width="221.91" height="12" rx="2" fill="#2CA3FF" data-dinfo="./"/>
+<text x="1966.57" dx="4" y="237">hash in hashing.jl:86</text>
+<rect x="1966.57" y="216" width="221.91" height="12" rx="2" fill="#E1B2FF" data-dinfo="./"/>
+<text x="1966.57" dx="4" y="225">hash_uint64 in hashing.jl:77</text>
+<rect x="1966.57" y="204" width="55.48" height="12" rx="2" fill="#2CA3FF" data-dinfo="./"/>
+<text x="1966.57" dx="4" y="213">hash_64_64 in hashing.jl:44</text>
+<rect x="1966.57" y="192" width="11.1" height="12" rx="2" fill="#6FDC91" data-dinfo="./"/>
+<text x="1966.57" dx="4" y="201">+ in int.jl:87</text>
+<rect x="1977.67" y="192" width="33.28" height="12" rx="2" fill="#E1B2FF" data-dinfo="./"/>
+<text x="1977.67" dx="4" y="201">&lt;&lt; in int.jl:536</text>
+<rect x="1977.67" y="180" width="33.28" height="12" rx="2" fill="#2CA3FF" data-dinfo="./"/>
+<text x="1977.67" dx="4" y="189">&lt;&lt; in int.jl:529</text>
+<rect x="2010.95" y="192" width="11.1" height="12" rx="2" fill="#6FDC91" data-dinfo="./"/>
+<text x="2010.95" dx="4" y="201">~ in int.jl:321</text>
+<rect x="2022.05" y="204" width="22.19" height="12" rx="2" fill="#00B58B" data-dinfo="./"/>
+<text x="2022.05" dx="4" y="213">hash_64_64 in hashing.jl:45</text>
+<rect x="2022.05" y="192" width="22.19" height="12" rx="2" fill="#E1B2FF" data-dinfo="./"/>
+<text x="2022.05" dx="4" y="201">&gt;&gt; in int.jl:534</text>
+<rect x="2022.05" y="180" width="22.19" height="12" rx="2" fill="#00B58B" data-dinfo="./"/>
+<text x="2022.05" dx="4" y="189">&gt;&gt; in int.jl:528</text>
+<rect x="2044.24" y="204" width="33.28" height="12" rx="2" fill="#2CA3FF" data-dinfo="./"/>
+<text x="2044.24" dx="4" y="213">hash_64_64 in hashing.jl:47</text>
+<rect x="2044.24" y="192" width="33.28" height="12" rx="2" fill="#6FDC91" data-dinfo="./"/>
+<text x="2044.24" dx="4" y="201">&gt;&gt; in int.jl:534</text>
+<rect x="2044.24" y="180" width="33.28" height="12" rx="2" fill="#2CA3FF" data-dinfo="./"/>
+<text x="2044.24" dx="4" y="189">&gt;&gt; in int.jl:528</text>
+<rect x="2077.52" y="204" width="22.19" height="12" rx="2" fill="#00B58B" data-dinfo="./"/>
+<text x="2077.52" dx="4" y="213">hash_64_64 in hashing.jl:48</text>
+<rect x="2077.52" y="192" width="22.19" height="12" rx="2" fill="#E1B2FF" data-dinfo="./"/>
+<text x="2077.52" dx="4" y="201">+ in operators.jl:596</text>
+<rect x="2077.52" y="180" width="22.19" height="12" rx="2" fill="#00B58B" data-dinfo="./"/>
+<text x="2077.52" dx="4" y="189">+ in int.jl:87</text>
+<rect x="2099.71" y="204" width="22.19" height="12" rx="2" fill="#2CA3FF" data-dinfo="./"/>
+<text x="2099.71" dx="4" y="213">hash_64_64 in hashing.jl:49</text>
+<rect x="2099.71" y="192" width="22.19" height="12" rx="2" fill="#6FDC91" data-dinfo="./"/>
+<text x="2099.71" dx="4" y="201">&gt;&gt; in int.jl:534</text>
+<rect x="2099.71" y="180" width="22.19" height="12" rx="2" fill="#2CA3FF" data-dinfo="./"/>
+<text x="2099.71" dx="4" y="189">&gt;&gt; in int.jl:528</text>
+<rect x="2121.9" y="204" width="66.58" height="12" rx="2" fill="#00B58B" data-dinfo="./"/>
+<text x="2121.9" dx="4" y="213">hash_64_64 in hashing.jl:50</text>
+<rect x="2121.9" y="192" width="66.58" height="12" rx="2" fill="#E1B2FF" data-dinfo="./"/>
+<text x="2121.9" dx="4" y="201">+ in int.jl:87</text>
+<rect x="2188.48" y="252" width="11.09" height="12" rx="2" fill="#2CA3FF" data-dinfo="./"/>
+<text x="2188.48" dx="4" y="261">hashindex in dict.jl:129</text>
+<rect x="2188.48" y="240" width="11.09" height="12" rx="2" fill="#E1B2FF" data-dinfo="./"/>
+<text x="2188.48" dx="4" y="249">- in int.jl:86</text>
+<rect x="2199.57" y="252" width="55.48" height="12" rx="2" fill="#00B58B" data-dinfo="./"/>
+<text x="2199.57" dx="4" y="261">hashindex in dict.jl:130</text>
+<rect x="2199.57" y="240" width="55.48" height="12" rx="2" fill="#6FDC91" data-dinfo="./"/>
+<text x="2199.57" dx="4" y="249">_shorthash7 in dict.jl:122</text>
+<rect x="2199.57" y="228" width="22.19" height="12" rx="2" fill="#00B58B" data-dinfo="./"/>
+<text x="2199.57" dx="4" y="237">&gt;&gt; in int.jl:534</text>
+<rect x="2199.57" y="216" width="22.19" height="12" rx="2" fill="#6FDC91" data-dinfo="./"/>
+<text x="2199.57" dx="4" y="225">&gt;&gt; in int.jl:528</text>
+<rect x="2221.76" y="228" width="33.29" height="12" rx="2" fill="#2CA3FF" data-dinfo="./"/>
+<text x="2221.76" dx="4" y="237">| in int.jl:372</text>
+<rect x="2255.05" y="264" width="66.57" height="12" rx="2" fill="#6FDC91" data-dinfo="./"/>
+<text x="2255.05" dx="4" y="273">ht_keyindex in dict.jl:246</text>
+<rect x="2255.05" y="252" width="66.57" height="12" rx="2" fill="#2CA3FF" data-dinfo="./"/>
+<text x="2255.05" dx="4" y="261">isslotempty in dict.jl:133</text>
+<rect x="2255.05" y="240" width="11.09" height="12" rx="2" fill="#E1B2FF" data-dinfo="./"/>
+<text x="2255.05" dx="4" y="249">getindex in essentials.jl:399</text>
+<rect x="2266.14" y="240" width="55.48" height="12" rx="2" fill="#6FDC91" data-dinfo="./"/>
+<text x="2266.14" dx="4" y="249">== in promotion.jl:639</text>
+<rect x="2321.62" y="264" width="11.09" height="12" rx="2" fill="#E1B2FF" data-dinfo="./"/>
+<text x="2321.62" dx="4" y="273">ht_keyindex in dict.jl:247</text>
+<rect x="2321.62" y="252" width="11.09" height="12" rx="2" fill="#00B58B" data-dinfo="./"/>
+<text x="2321.62" dx="4" y="261">== in promotion.jl:639</text>
+<rect x="2332.71" y="264" width="11.1" height="12" rx="2" fill="#6FDC91" data-dinfo="./"/>
+<text x="2332.71" dx="4" y="273">ht_keyindex in dict.jl:249</text>
+<rect x="2343.81" y="264" width="66.57" height="12" rx="2" fill="#E1B2FF" data-dinfo="./"/>
+<text x="2343.81" dx="4" y="273">ht_keyindex in dict.jl:255</text>
+<rect x="2343.81" y="252" width="44.38" height="12" rx="2" fill="#2CA3FF" data-dinfo="./"/>
+<text x="2343.81" dx="4" y="261">+ in int.jl:87</text>
+<rect x="2388.19" y="252" width="22.19" height="12" rx="2" fill="#00B58B" data-dinfo="./"/>
+<text x="2388.19" dx="4" y="261">&gt; in operators.jl:379</text>
+<rect x="2388.19" y="240" width="22.19" height="12" rx="2" fill="#E1B2FF" data-dinfo="./"/>
+<text x="2388.19" dx="4" y="249">&lt; in int.jl:83</text>
+<rect x="2410.38" y="276" width="177.52" height="12" rx="2" fill="#00B58B" data-dinfo="./"/>
+<text x="2410.38" dx="4" y="285">getindex in dict.jl:477</text>
+<rect x="2410.38" y="264" width="110.95" height="12" rx="2" fill="#6FDC91" data-dinfo="./"/>
+<text x="2410.38" dx="4" y="273">getindex in essentials.jl:399</text>
+<rect x="2521.33" y="264" width="22.19" height="12" rx="2" fill="#E1B2FF" data-dinfo="./"/>
+<text x="2521.33" dx="4" y="273">&lt; in int.jl:83</text>
+<rect x="2587.9" y="276" width="77.67" height="12" rx="2" fill="#2CA3FF" data-dinfo="./"/>
+<text x="2587.9" dx="4" y="285">+ in float.jl:491</text>
+<rect x="2687.76" y="288" width="44.38" height="12" rx="2" fill="#6FDC91" data-dinfo="/home/merlijn/Backward_Informed_Bound/TIB/"/>
+<text x="2687.76" dx="4" y="297">#solve#39 in SimpleHeuristics.jl:73</text>
+<rect x="2687.76" y="276" width="44.38" height="12" rx="2" fill="#00B58B" data-dinfo="./"/>
+<text x="2687.76" dx="4" y="285">iterate in iterators.jl:427</text>
+<rect x="2687.76" y="264" width="44.38" height="12" rx="2" fill="#6FDC91" data-dinfo="./"/>
+<text x="2687.76" dx="4" y="273">_zip_iterate_all in iterators.jl:436</text>
+<rect x="2687.76" y="252" width="33.29" height="12" rx="2" fill="#2CA3FF" data-dinfo="./"/>
+<text x="2687.76" dx="4" y="261">_zip_iterate_some in iterators.jl:444</text>
+<rect x="2687.76" y="240" width="33.29" height="12" rx="2" fill="#6FDC91" data-dinfo="./"/>
+<text x="2687.76" dx="4" y="249">iterate in array.jl:902</text>
+<rect x="2687.76" y="228" width="33.29" height="12" rx="2" fill="#00B58B" data-dinfo="./"/>
+<text x="2687.76" dx="4" y="237">&lt; in int.jl:513</text>
+<rect x="2721.05" y="252" width="11.09" height="12" rx="2" fill="#00B58B" data-dinfo="./"/>
+<text x="2721.05" dx="4" y="261">_zip_iterate_some in iterators.jl:446</text>
+<rect x="2721.05" y="240" width="11.09" height="12" rx="2" fill="#E1B2FF" data-dinfo="./"/>
+<text x="2721.05" dx="4" y="249">_zip_iterate_some in iterators.jl:444</text>
+<rect x="2721.05" y="228" width="11.09" height="12" rx="2" fill="#2CA3FF" data-dinfo="./"/>
+<text x="2721.05" dx="4" y="237">iterate in array.jl:902</text>
+<rect x="2721.05" y="216" width="11.09" height="12" rx="2" fill="#E1B2FF" data-dinfo="./"/>
+<text x="2721.05" dx="4" y="225">getindex in essentials.jl:917</text>
+<rect x="2732.14" y="288" width="22.19" height="12" rx="2" fill="#E1B2FF" data-dinfo="/home/merlijn/Backward_Informed_Bound/TIB/"/>
+<text x="2732.14" dx="4" y="297">#solve#39 in SimpleHeuristics.jl:74</text>
+<rect x="2732.14" y="276" width="22.19" height="12" rx="2" fill="#2CA3FF" data-dinfo="./"/>
+<text x="2732.14" dx="4" y="285">+ in float.jl:491</text>
+<rect x="2754.33" y="288" width="377.24" height="12" rx="2" fill="#6FDC91" data-dinfo="/home/merlijn/Backward_Informed_Bound/TIB/"/>
+<text x="2754.33" dx="4" y="297">#solve#39 in SimpleHeuristics.jl:75</text>
+<rect x="2754.33" y="276" width="22.19" height="12" rx="2" fill="#00B58B" data-dinfo="./"/>
+<text x="2754.33" dx="4" y="285">getindex in array.jl:930</text>
+<rect x="2754.33" y="264" width="22.19" height="12" rx="2" fill="#E1B2FF" data-dinfo="./"/>
+<text x="2754.33" dx="4" y="273">_to_linear_index in abstractarray.jl:1347</text>
+<rect x="2754.33" y="252" width="22.19" height="12" rx="2" fill="#2CA3FF" data-dinfo="./"/>
+<text x="2754.33" dx="4" y="261">_sub2ind in abstractarray.jl:3048</text>
+<rect x="2754.33" y="240" width="22.19" height="12" rx="2" fill="#6FDC91" data-dinfo="./"/>
+<text x="2754.33" dx="4" y="249">_sub2ind in abstractarray.jl:3064</text>
+<rect x="2754.33" y="228" width="22.19" height="12" rx="2" fill="#00B58B" data-dinfo="./"/>
+<text x="2754.33" dx="4" y="237">_sub2ind_recurse in abstractarray.jl:3080</text>
+<rect x="2754.33" y="216" width="22.19" height="12" rx="2" fill="#6FDC91" data-dinfo="./"/>
+<text x="2754.33" dx="4" y="225">_sub2ind_recurse in abstractarray.jl:3080</text>
+<rect x="2754.33" y="204" width="22.19" height="12" rx="2" fill="#2CA3FF" data-dinfo="./"/>
+<text x="2754.33" dx="4" y="213">* in int.jl:88</text>
+<rect x="2776.52" y="276" width="11.1" height="12" rx="2" fill="#2CA3FF" data-dinfo="./"/>
+<text x="2776.52" dx="4" y="285">+ in float.jl:491</text>
+<rect x="2787.62" y="276" width="11.09" height="12" rx="2" fill="#00B58B" data-dinfo="./"/>
+<text x="2787.62" dx="4" y="285">- in float.jl:492</text>
+<rect x="2798.71" y="276" width="166.43" height="12" rx="2" fill="#2CA3FF" data-dinfo="./"/>
+<text x="2798.71" dx="4" y="285">abs in float.jl:692</text>
+<rect x="2965.14" y="276" width="33.29" height="12" rx="2" fill="#00B58B" data-dinfo="./"/>
+<text x="2965.14" dx="4" y="285">max in math.jl:838</text>
+<rect x="2965.14" y="264" width="33.29" height="12" rx="2" fill="#6FDC91" data-dinfo="./"/>
+<text x="2965.14" dx="4" y="273">- in float.jl:492</text>
+<rect x="2998.43" y="276" width="110.95" height="12" rx="2" fill="#2CA3FF" data-dinfo="./"/>
+<text x="2998.43" dx="4" y="285">max in math.jl:839</text>
+<rect x="2998.43" y="264" width="33.28" height="12" rx="2" fill="#E1B2FF" data-dinfo="./"/>
+<text x="2998.43" dx="4" y="273">ifelse in essentials.jl:796</text>
+<rect x="3031.71" y="264" width="77.67" height="12" rx="2" fill="#6FDC91" data-dinfo="./"/>
+<text x="3031.71" dx="4" y="273">signbit in floatfuncs.jl:15</text>
+<rect x="3109.38" y="276" width="22.19" height="12" rx="2" fill="#00B58B" data-dinfo="./"/>
+<text x="3109.38" dx="4" y="285">max in math.jl:841</text>
+<rect x="3109.38" y="264" width="22.19" height="12" rx="2" fill="#E1B2FF" data-dinfo="./"/>
+<text x="3109.38" dx="4" y="273">ifelse in essentials.jl:796</text>
+<rect x="3131.57" y="288" width="22.19" height="12" rx="2" fill="#E1B2FF" data-dinfo="/home/merlijn/Backward_Informed_Bound/TIB/"/>
+<text x="3131.57" dx="4" y="297">#solve#39 in SimpleHeuristics.jl:77</text>
+<rect x="3131.57" y="276" width="22.19" height="12" rx="2" fill="#2CA3FF" data-dinfo="./"/>
+<text x="3131.57" dx="4" y="285">iterate in iterators.jl:0</text>
+<rect x="3153.76" y="288" width="410.53" height="12" rx="2" fill="#6FDC91" data-dinfo="/home/merlijn/Backward_Informed_Bound/TIB/"/>
+<text x="3153.76" dx="4" y="297">#solve#39 in SimpleHeuristics.jl:78</text>
+<rect x="3153.76" y="276" width="355.05" height="12" rx="2" fill="#00B58B" data-dinfo="./"/>
+<text x="3153.76" dx="4" y="285">getindex in abstractarray.jl:1312</text>
+<rect x="3153.76" y="264" width="355.05" height="12" rx="2" fill="#6FDC91" data-dinfo="./"/>
+<text x="3153.76" dx="4" y="273">_getindex in multidimensional.jl:915</text>
+<rect x="3153.76" y="252" width="11.1" height="12" rx="2" fill="#00B58B" data-dinfo="./"/>
+<text x="3153.76" dx="4" y="261">_unsafe_getindex in cartesian.jl:0</text>
+<rect x="3164.86" y="252" width="288.47" height="12" rx="2" fill="#2CA3FF" data-dinfo="./"/>
+<text x="3164.86" dx="4" y="261">_unsafe_getindex in multidimensional.jl:927</text>
+<rect x="3164.86" y="240" width="288.47" height="12" rx="2" fill="#E1B2FF" data-dinfo="./"/>
+<text x="3164.86" dx="4" y="249">similar in abstractarray.jl:822</text>
+<rect x="3164.86" y="228" width="288.47" height="12" rx="2" fill="#2CA3FF" data-dinfo="./"/>
+<text x="3164.86" dx="4" y="237">similar in array.jl:372</text>
+<rect x="3164.86" y="216" width="288.47" height="12" rx="2" fill="#E1B2FF" data-dinfo="./"/>
+<text x="3164.86" dx="4" y="225">Array in boot.jl:591</text>
+<rect x="3164.86" y="204" width="166.43" height="12" rx="2" fill="#00B58B" data-dinfo="./"/>
+<text x="3164.86" dx="4" y="213">Array in boot.jl:578</text>
+<rect x="3164.86" y="192" width="166.43" height="12" rx="2" fill="#FFA400" data-dinfo="./"/>
+<text x="3164.86" dx="4" y="201">GenericMemory in boot.jl:516</text>
+<rect x="3331.29" y="204" width="122.04" height="12" rx="2" fill="#E4A71C" data-dinfo="./"/>
+<text x="3331.29" dx="4" y="213">Array in boot.jl:579</text>
+<rect x="3331.29" y="192" width="11.09" height="12" rx="2" fill="#E1B2FF" data-dinfo="./"/>
+<text x="3331.29" dx="4" y="201">memoryref in boot.jl:522</text>
+<rect x="3453.33" y="252" width="55.48" height="12" rx="2" fill="#00B58B" data-dinfo="./"/>
+<text x="3453.33" dx="4" y="261">_unsafe_getindex in multidimensional.jl:929</text>
+<rect x="3453.33" y="240" width="55.48" height="12" rx="2" fill="#6FDC91" data-dinfo="./"/>
+<text x="3453.33" dx="4" y="249">_unsafe_getindex! in multidimensional.jl:938</text>
+<rect x="3453.33" y="228" width="11.1" height="12" rx="2" fill="#00B58B" data-dinfo="./"/>
+<text x="3453.33" dx="4" y="237">macro expansion in cartesian.jl:64</text>
+<rect x="3453.33" y="216" width="11.1" height="12" rx="2" fill="#6FDC91" data-dinfo="./"/>
+<text x="3453.33" dx="4" y="225">macro expansion in multidimensional.jl:940</text>
+<rect x="3453.33" y="204" width="11.1" height="12" rx="2" fill="#00B58B" data-dinfo="./"/>
+<text x="3453.33" dx="4" y="213">setindex! in array.jl:987</text>
+<rect x="3464.43" y="228" width="44.38" height="12" rx="2" fill="#2CA3FF" data-dinfo="./"/>
+<text x="3464.43" dx="4" y="237">macro expansion in cartesian.jl:66</text>
+<rect x="3508.81" y="276" width="55.48" height="12" rx="2" fill="#2CA3FF" data-dinfo="./"/>
+<text x="3508.81" dx="4" y="285">maximum in reducedim.jl:982</text>
+<rect x="3508.81" y="264" width="55.48" height="12" rx="2" fill="#E1B2FF" data-dinfo="./"/>
+<text x="3508.81" dx="4" y="273">#maximum#941 in reducedim.jl:982</text>
+<rect x="3508.81" y="252" width="55.48" height="12" rx="2" fill="#2CA3FF" data-dinfo="./"/>
+<text x="3508.81" dx="4" y="261">_maximum in reducedim.jl:986</text>
+<rect x="3508.81" y="240" width="55.48" height="12" rx="2" fill="#E1B2FF" data-dinfo="./"/>
+<text x="3508.81" dx="4" y="249">#_maximum#943 in reducedim.jl:986</text>
+<rect x="3508.81" y="228" width="55.48" height="12" rx="2" fill="#00B58B" data-dinfo="./"/>
+<text x="3508.81" dx="4" y="237">_maximum in reducedim.jl:987</text>
+<rect x="3508.81" y="216" width="55.48" height="12" rx="2" fill="#E1B2FF" data-dinfo="./"/>
+<text x="3508.81" dx="4" y="225">#_maximum#944 in reducedim.jl:987</text>
+<rect x="3508.81" y="204" width="55.48" height="12" rx="2" fill="#2CA3FF" data-dinfo="./"/>
+<text x="3508.81" dx="4" y="213">mapreduce in reducedim.jl:329</text>
+<rect x="3508.81" y="192" width="55.48" height="12" rx="2" fill="#6FDC91" data-dinfo="./"/>
+<text x="3508.81" dx="4" y="201">#mapreduce#926 in reducedim.jl:329</text>
+<rect x="3508.81" y="180" width="55.48" height="12" rx="2" fill="#00B58B" data-dinfo="./"/>
+<text x="3508.81" dx="4" y="189">_mapreduce_dim in reducedim.jl:337</text>
+<rect x="3508.81" y="168" width="11.09" height="12" rx="2" fill="#E1B2FF" data-dinfo="./"/>
+<text x="3508.81" dx="4" y="177">_mapreduce in reduce.jl:0</text>
+<rect x="3519.9" y="168" width="11.1" height="12" rx="2" fill="#6FDC91" data-dinfo="./"/>
+<text x="3519.9" dx="4" y="177">_mapreduce in reduce.jl:430</text>
+<rect x="3531" y="168" width="11.1" height="12" rx="2" fill="#E1B2FF" data-dinfo="./"/>
+<text x="3531" dx="4" y="177">_mapreduce in reduce.jl:433</text>
+<rect x="3542.1" y="168" width="22.19" height="12" rx="2" fill="#6FDC91" data-dinfo="./"/>
+<text x="3542.1" dx="4" y="177">_mapreduce in reduce.jl:437</text>
+<rect x="3542.1" y="156" width="22.19" height="12" rx="2" fill="#00B58B" data-dinfo="./"/>
+<text x="3542.1" dx="4" y="165">max in math.jl:839</text>
+<rect x="3542.1" y="144" width="11.09" height="12" rx="2" fill="#E1B2FF" data-dinfo="./"/>
+<text x="3542.1" dx="4" y="153">ifelse in essentials.jl:796</text>
+<rect x="3553.19" y="144" width="11.1" height="12" rx="2" fill="#6FDC91" data-dinfo="./"/>
+<text x="3553.19" dx="4" y="153">signbit in floatfuncs.jl:15</text>
 </g></g>
 <script><![CDATA[
 // Snap.svg 0.3.0
@@ -457,10 +835,10 @@ f+=g+"]",i[b]=f}return Function("val","return Snap.path.toString.call(["+i+"])")
 <script><![CDATA[
 if (typeof require === 'function' && define.amd) {
     require(['ProfileSVG'], function (ProfileSVG) {
-        ProfileSVG.initialize("fig-58b7e54f66b54e4a8bef6d5ae64406a2");
+        ProfileSVG.initialize("fig-84da0738192847f9a7f8f576dd9a8937");
     });
 } else {
-    ProfileSVG.initialize("fig-58b7e54f66b54e4a8bef6d5ae64406a2");
+    ProfileSVG.initialize("fig-84da0738192847f9a7f8f576dd9a8937");
 }
 ]]></script>
 </svg>
