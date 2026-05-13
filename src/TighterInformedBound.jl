@@ -1,4 +1,4 @@
-module TIB
+module TighterInformedBound
     using POMDPs, POMDPTools, Random, Distributions, SparseArrays, Optimization, JuMP, Gurobi, HiGHS, Tulip, Cbc, Clp, Memoization, LRUCache, InteractiveUtils
 
     # Surpressing Gurobis printing
