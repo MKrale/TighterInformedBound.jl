@@ -1,6 +1,6 @@
 name = "TighterInformedBound"
 uuid = "2afd7a37-1555-438f-a2e5-6641a1612ac9"
-version = "1.0.0-DEV"
+version = "1.0.0"
 authors = ["Merlijn Krale"]
 
 [deps]
