@@ -1,51 +1,28 @@
-# Tighter POMDP Bounds Repository
+# Tighter Informed Bound for POMDPs
 
-Repository containing code, as well as gathered data, as used for the following submission
+Implementation of the Tighter Informed Bound (TIB) (and variants) for POMDPs. A description of the bounds is provided in the following paper:
 
 > **Tighter Value-Function Approximations for POMDPs** \
 > Merlijn Krale, Wietze Koops, Sebastian Junges, Thiago D. Simão, Nils Jansen \
 > AAMAS 2025, Detroit
 
-## Contents
+## Example Usage
 
-This repository contains the following files:
+```julia
+# Preamble
+using TighterInformedBound
+using POMDPs, POMDPModels
 
-Folders:
+# Setup
+pomdp = TigerPOMDP()
+solver = STIBSolver()           # Standard TIB solver
 
-  - **TIB**                 : Contains all code related to our novel bounds TIB, ETIB and OTIB (here denoted as TIB, ETIB and OTIB). The most important files within are:
-    - **solver.jl**         : Contains the algorithms for computing the different novel bounds, implemented using the *POMDPs.jl* framework.
-    - **SimpleHeuristics.jl**: Contains a custom implementation of FIB and QMDP.
-    - **Caching.jl**        : Contains code for precomputing beliefs and probabilities.
-  - **Sarsop_altered**      : Contains a copy of the NativeSARSOP solver, with alterations as explained in the paper.
-  - **Data**                : Contains all data used for our experiments
-  - **Environments**        : Contains all benchmarks in *POMDPs.jl* format that are not publically available elsewhere. It includes:
-    - **Sparse_models**      : Contains all environments collected form pomdps.org
+# Obtain a policy
+policy = solve(solver, pomdp)
 
-Relevant scripts:
-
-  - **RunAll.sh**             : Automatically runs all experiments used in the paper.
-  - **run\*.jl**              : Scripts for running single experiments.
-  - **plotting_python.ipynb** : Notebook used for data collection & plotting.
-
-
-## Getting started
-
-After cloning this repository, run the followig commands to install all packages:
-```bash
-julia --project=.
-]
-instantiate
+# Obtain upper bounds for exterior points (and interior points used by solver)
+Vs, _Bsao, _Vsao = get_heuristic_pointset(policy)
 ```
 
-## How to run
+Implemented bounds include ```TIB, OTIB, ETIB, CTIB, MultiTIB```, as well as optimized version of ```FIB``` and ```QMDP```. For solving Linear Programs, we use [Clp.jl](https://github.com/jump-dev/Clp.jl), which is freely accessible and performs well on small LPs. Our solvers are compatible with any discrete POMDPs following the [POMDPs.jl](https://github.com/JuliaPOMDP/POMDPs.jl) framework.
 
-To run all experiments from the paper at once, run the following:
-```bash
-bash ./Runall.sh
-```
-To run a single test, run either ```run_upperbound.jl``` or ```run_sarsoptest.jl``` using ```--project=.```
-To see the available options, us flag ```-h```.
-For example, a possible command may look as follows:
-```bash
-julia --project=. run_upperbound.jl --env RockSample5 --solvers TIB --discount 0.95 --precompile true
-```

@@ -1,11 +1,5 @@
 module TighterInformedBound
-    using POMDPs, POMDPTools, Random, Distributions, SparseArrays, Optimization, JuMP, Gurobi, HiGHS, Tulip, Cbc, Clp, Memoization, LRUCache, InteractiveUtils
-
-    # Surpressing Gurobis printing
-    oldstd = stdout
-    redirect_stdout(devnull)
-    const GRB_ENV=Gurobi.Env()
-    redirect_stdout(oldstd)
+    using POMDPs, POMDPTools, Random, Distributions, SparseArrays, JuMP, Clp
 
     include("Beliefs.jl")
     export DiscreteHashedBelief, DiscreteHashedBeliefUpdater
