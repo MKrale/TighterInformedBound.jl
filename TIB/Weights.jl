@@ -231,14 +231,20 @@ function get_single_optimal_weights(b::DiscreteHashedBelief{S}, Bidxs::Vector{In
     return Bidxs[nonzero], weights[nonzero]
 end
 
+const MIN_LP_COEF = 1e-12
+const LP_PRIMAL_TOLERANCE = 1e-10
+
 """
 Solves the LP over weights w in [0,1]^n (one per belief in Bidxs) subject to sum_j w[j] * B[Bidxs[j]](s) == b(s) for all s in supp(b),
 optimizing sum_j obj[j] * w[j]. If Qs is given, a free variable Qmax is added (with objective coefficient 1) and constrained by
 Qmax >= sum_j Qs[j,a] * w[j] for every action a. Returns the weights and the objective value.
 
 The LP is loaded straight into Clp in column-major form: building it through JuMP took 3-5x longer than solving it.
-States not covered by any belief are skipped (as JuMP did), and the LP is solved with Clp's default options, as Clp's JuMP
-wrapper does.
+States not covered by any belief are skipped, and Q coefficients below MIN_LP_COEF are dropped: Q-values that should be 0 but
+carry rounding noise (e.g. 6.6e-16 in pentagon) make Clp scale their column so that its weight drops below the tolerance,
+leaving b unrepresented while Clp still reports optimality.
+The entropy LP (maximize) is solved with primal simplex, the Qmax LP with dual simplex: both are ~2x faster than Clp's
+initialSolve (presolve + algorithm choice), and give the same results up to ties.
 Assumes the support of each belief in Bidxs is a subset of the support of b.
 """
 function solve_weight_LP(b::DiscreteHashedBelief, Bidxs::AbstractVector{Int}, Data::TIB_Data, obj::Vector{Float64}; Qs=nothing, maximize=false)
@@ -259,7 +265,8 @@ function solve_weight_LP(b::DiscreteHashedBelief, Bidxs::AbstractVector{Int}, Da
         end
         # Constraint 2: Qmax is Q of best action (only when Qs is given; for the entropy LP na = 0)
         for ai in 1:na
-            push!(rowidx, -ai); push!(vals, -Qs[j, ai])
+            q = Qs[j, ai]
+            abs(q) < MIN_LP_COEF || (push!(rowidx, -ai); push!(vals, -q))
         end
     end
     if na > 0   # Qmax column
@@ -284,9 +291,11 @@ function solve_weight_LP(b::DiscreteHashedBelief, Bidxs::AbstractVector{Int}, Da
         Clp.Clp_setLogLevel(model, 0)
         Clp.Clp_loadProblem(model, ncols, neq + na, colstart, rowidx, vals, collb, colub, obj, rowlb, rowub)
         Clp.Clp_setObjSense(model, maximize ? -1 : 1)
-        options = Clp.ClpSolve_new()
-        Clp.Clp_initialSolveWithOptions(model, options)
-        Clp.ClpSolve_delete(options)
+        # Clp's default (1e-7, relative to its scaled problem) let weights miss b by up to ~1e-5 when b has tiny probabilities
+        Clp.Clp_setPrimalTolerance(model, LP_PRIMAL_TOLERANCE)
+        na > 0 ? Clp.Clp_dual(model, 0) : Clp.Clp_primal(model, 0)
+        status = Clp.Clp_status(model)
+        status == 0 || error("Clp did not solve the weight LP to optimality (status $status)")
         weights = copy(unsafe_wrap(Array, Clp.Clp_getColSolution(model), ncols))[1:n]
         return weights, Clp.Clp_getObjValue(model)
     finally
