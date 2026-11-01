@@ -29,7 +29,7 @@ function get_all_weights(B::Vector{DiscreteHashedBelief{S}}, Bbao_data::BBAO_Dat
     ### Compute weights for all beliefs in B and Bbao
     for (bi,b) in enumerate(B)
         if Bbao_data.B_in_Bbao[bi]
-            relevant_belief_idxs = Bbao_data.B_overlap[bi]
+            relevant_belief_idxs = Vector{Int}(Bbao_data.B_overlap[bi])
             idxs, weights = compute_single_weights(b, relevant_belief_idxs, Data; values=values)
             B_idxs[bi] = idxs
             B_weights[bi] = weights 
@@ -40,7 +40,7 @@ function get_all_weights(B::Vector{DiscreteHashedBelief{S}}, Bbao_data::BBAO_Dat
     Bbao_idxs = Array{Vector{Int}}(undef, length(Bbao_data.Bbao))
     Bbao_weights = Array{Vector{Float64}}(undef, length(Bbao_data.Bbao))
     for (bi, b) in enumerate(Bbao_data.Bbao)
-        relevant_belief_idxs = Bbao_data.Bbao_overlap[bi]
+        relevant_belief_idxs = Vector{Int}(Bbao_data.Bbao_overlap[bi])
         idxs, weights = compute_single_weights(b, relevant_belief_idxs, Data; values=values)
         Bbao_idxs[bi] = idxs; Bbao_weights[bi] = weights
     end
