@@ -58,6 +58,16 @@ function solve(sol::QMDPSolver_alt, m::POMDP{S,A,O}; C=nothing, S_dict=nothing) 
             R[ai,si] = reward(m,s,a)
         end
     end
+    # Next states as indices, so that the iterations do not need to look them up
+    next_start, next_si, next_p = Int[1], Int[], Float64[]
+    for si in 1:C.ns, ai in 1:C.na
+        for (sp, psp) in weighted_iterator(T[ai,si])
+            push!(next_si, S_dict[sp]); push!(next_p, psp)
+        end
+        push!(next_start, length(next_si) + 1)
+    end
+    gamma = discount(m)
+
     # Lets iterate!
     i=0
     largest_change = Inf
@@ -65,17 +75,18 @@ function solve(sol::QMDPSolver_alt, m::POMDP{S,A,O}; C=nothing, S_dict=nothing) 
     while (factor * largest_change > sol.precision) && (i < sol.max_iterations)
         i+=1
         largest_change = 0.0
-        for (si,s) in enumerate(C.S)
-            for (ai,a) in enumerate(C.A)
+        for si in 1:C.ns
+            for ai in 1:C.na
+                k = (si-1)*C.na + ai
                 Qnext = 0.0
-                for (sp, psp) in weighted_iterator(T[ai,si])
-                    Qnext += psp * Qmax[S_dict[sp]]
+                for e in next_start[k]:next_start[k+1]-1
+                    Qnext += next_p[e] * Qmax[next_si[e]]
                 end
-                Qnext = R[ai,si] + discount(m) * Qnext 
+                Qnext = R[ai,si] + gamma * Qnext
                 largest_change = max(largest_change, abs((Qnext - Q[si,ai]) / (Q[si,ai]+1e-10) ))
                 Q[si,ai] = Qnext
             end
-            Qmax[si] = maximum(Q[si,:])
+            Qmax[si] = maximum(@view Q[si,:])
         end
         time()-t0 > sol.max_time && break
     end
@@ -120,37 +131,80 @@ function solve(sol::FIBSolver_alt, m::POMDP{S,A,O}; Data::Union{TIB_Data{S}, Not
         B, B_idx, Q = Data.B, Data.B_idx,  Data.Q
         Q isa Nothing && (Q = solve(QMDPSolver_alt(precision=sol.precision, max_iterations=sol.max_iterations*10), m; C=C, S_dict=S_dict).Data.Q)
     end
-    γ = discount(m)
+    gamma = discount(m)
     factor = discount(m) / (1-discount(m))
+    F = FIB_Transitions(m, C, S_dict, SAO_probs, SAOs, B, B_idx, gamma)
+    # Q is updated in place (each update uses the values updated before it in the same sweep). We do so in a transposed copy,
+    # in which the Q-values of a state are contiguous.
+    Qt = permutedims(Q)
 
     # Lets iterate!
     largest_change = Inf
     i=0
     while true
         i+=1
-        largest_change = 0
-        for (si,s) in enumerate(C.S)
-            for (ai,a) in enumerate(C.A)
-                thisQ = reward(m,s,a)
-                for oi in SAOs[si, ai]
-                    bnext_idx = B_idx[si,ai,oi]
-                    bnext = B[bnext_idx]
-                    Qo = zeros(C.na)
-                    for (s, ps) in weighted_iterator(bnext)
-                        Qo = Qo .+ ( ps .* Q[S_dict[s], :])
-                    end
-                    thisQ += γ * SAO_probs[oi,si,ai] * maximum(Qo)
-                end
-                largest_change = max(largest_change, abs((thisQ - Q[si,ai]) / (Q[si,ai]+1e-5) ))
-                Q[si,ai] = thisQ
-            end
-        end
+        largest_change = FIB_sweep!(Qt, Val(C.na), F)
         if (time()-t0 > sol.max_time) || (factor * largest_change < sol.precision) || (i >= sol.max_iterations)
             break
         end
     end
+    Q .= transpose(Qt)
     Data = Simple_Data(Q,vec(maximum(Q, dims=2)),S_dict,C)
     return FIBPlanner_alt(m,Data)
+end
+
+"""
+Precomputed FIB backups: for each state-action pair (s,a), its reward and, for each observation o in SAOs[s,a], the next belief
+b' = B_idx[s,a,o] and coefficient gamma * P(o|s,a). The supports of the beliefs in B are stored as state indices.
+"""
+struct FIB_Transitions
+    R::Vector{Float64}          # (si-1)*na + ai -> R(s,a)
+    sa_start::Vector{Int}       # (si-1)*na + ai -> first observation of (s,a)
+    coef::Vector{Float64}       # observation -> gamma * P(o|s,a)
+    next::Vector{Int}           # observation -> index of the next belief
+    b_start::Vector{Int}        # bi -> first state of the support of b
+    b_state::Vector{Int32}      # -> index of a state in the support of b
+    b_prob::Vector{Float64}     # -> its probability
+end
+
+function FIB_Transitions(m::POMDP, C, S_dict, SAO_probs, SAOs, B, B_idx, gamma)
+    R, sa_start, coef, next = Float64[], Int[1], Float64[], Int[]
+    for (si, s) in enumerate(C.S), (ai, a) in enumerate(C.A)
+        push!(R, reward(m,s,a))
+        for oi in SAOs[si,ai]
+            push!(coef, gamma * SAO_probs[oi,si,ai])
+            push!(next, B_idx[si,ai,oi])
+        end
+        push!(sa_start, length(next) + 1)
+    end
+    b_start, b_state, b_prob = Int[1], Int32[], Float64[]
+    for b in B
+        for (s, ps) in weighted_iterator(b)
+            push!(b_state, S_dict[s]); push!(b_prob, ps)
+        end
+        push!(b_start, length(b_state) + 1)
+    end
+    return FIB_Transitions(R, sa_start, coef, next, b_start, b_state, b_prob)
+end
+
+"""One FIB sweep, updating Qt[a,s] in place. Returns the largest relative change."""
+function FIB_sweep!(Qt::Matrix{Float64}, ::Val{NA}, F::FIB_Transitions) where NA
+    largest_change = 0.0
+    @inbounds for si in axes(Qt, 2), ai in 1:NA
+        k = (si-1)*NA + ai
+        thisQ = F.R[k]
+        for g in F.sa_start[k]:F.sa_start[k+1]-1
+            bp = F.next[g]
+            Qo = ntuple(_ -> 0.0, Val(NA))
+            for e in F.b_start[bp]:F.b_start[bp+1]-1
+                Qo = add_weighted_column(Qo, F.b_prob[e], Qt, F.b_state[e])
+            end
+            thisQ += F.coef[g] * maximum(Qo)
+        end
+        largest_change = max(largest_change, abs((thisQ - Qt[ai,si]) / (Qt[ai,si]+1e-5) ))
+        Qt[ai,si] = thisQ
+    end
+    return largest_change
 end
 
 #########################################

@@ -149,19 +149,19 @@ function solve_info(solver::X, model::POMDP{S,A,O}; Data::Union{TIB_Data{S},Noth
     if solver isa STIBSolver
         pol, get_Q, args = STIBPolicy, get_QTIB_Beliefset, (Data, TIB_Transitions(Data))
     elseif solver isa OTIBSolver
-        pol, get_Q, args = OTIBPolicy, Get_Q_weights_Beliefset, (Data, Bbao_data, Weights)
+        pol, get_Q, args = OTIBPolicy, Get_Q_weights_Beliefset, weighted_args(Data, Bbao_data, Weights)
     elseif solver isa SawTIBSolver
-        pol, get_Q, args = SawTIBPolicy, Get_Q_weights_Beliefset, (Data, Bbao_data, Weights)
+        pol, get_Q, args = SawTIBPolicy, Get_Q_weights_Beliefset, weighted_args(Data, Bbao_data, Weights)
     elseif solver isa ISawTIBSolver
-        pol, get_Q, args = ISawTIBPolicy, Get_Q_weights_Beliefset, (Data, Bbao_data, Weights)
+        pol, get_Q, args = ISawTIBPolicy, Get_Q_weights_Beliefset, weighted_args(Data, Bbao_data, Weights)
     elseif solver isa ETIBSolver
-        pol, get_Q, args = ETIBPolicy, Get_Q_weights_Beliefset, (Data, Bbao_data, Weights)
+        pol, get_Q, args = ETIBPolicy, Get_Q_weights_Beliefset, weighted_args(Data, Bbao_data, Weights)
     elseif solver isa CTIBSolver
-        pol, get_Q, args = CTIBPolicy, Get_Q_weights_Beliefset, (Data, Bbao_data, Weights)
+        pol, get_Q, args = CTIBPolicy, Get_Q_weights_Beliefset, weighted_args(Data, Bbao_data, Weights)
     elseif solver isa ICTIBSolver
-        pol, get_Q, args = ICTIBPolicy, Get_Q_weights_Beliefset, (Data, Bbao_data, Weights)
+        pol, get_Q, args = ICTIBPolicy, Get_Q_weights_Beliefset, weighted_args(Data, Bbao_data, Weights)
     elseif solver isa MultiTIBSolver
-        pol, get_Q, args = MultiTIBPolicy, Get_Q_weights_Beliefset, (Data, Bbao_data, Weights)
+        pol, get_Q, args = MultiTIBPolicy, Get_Q_weights_Beliefset, weighted_args(Data, Bbao_data, Weights)
     else
         throw("Solver type not recognized!")
     end
@@ -200,7 +200,7 @@ function solve_info(solver::X, model::POMDP{S,A,O}; Data::Union{TIB_Data{S},Noth
                     || (it > solver.max_iterations && recomputes < solver.max_recomputes))             
                 verbose && printdb("Recomputing weights (precision = $(factor * max_dif)")
                 Weights = compute_weights(solver, Data, Bbao_data)
-                args = (Data, Bbao_data, Weights)
+                args = weighted_args(Data, Bbao_data, Weights)
                 max_dif = Inf
                 it = 0
                 recomputes += 1
@@ -210,7 +210,7 @@ function solve_info(solver::X, model::POMDP{S,A,O}; Data::Union{TIB_Data{S},Noth
         elseif mod(i, solver.recompute_iterations) == 0
             verbose && printdb("Recomputing weights")
             Weights = get_all_optimal_weights(Data, Bbao_data)
-            args = (Data, Bbao_data, Weights)
+            args = weighted_args(Data, Bbao_data, Weights)
         end
 
     end
@@ -394,52 +394,83 @@ get_QTIB_ba(model::POMDP{S},b::DiscreteHashedBelief{S},a,D::TIB_Data{S}; bi=noth
 
 ########## Heuristics with pre-computed weights (OTIB, ETIB, CTIB) ###########
 
+"""
+Precomputed data for the backups of ETIB, CTIB, OTIB and MultiTIB. For each belief-action pair (b,a) and each observation o
+(in the order of Bbao_idx[b,a]), it stores P(o|b,a) and the next belief b', and for each set of weights (MultiTIB uses several)
+the beliefs and weights that represent each b'. It is rebuilt whenever the weights change.
+"""
+struct Weighted_Backups
+    ba_start::Vector{Int}       # (bi-1)*na + ai -> first observation of (b,a)
+    prob::Vector{Float64}       # observation -> P(o|b,a)
+    target::Vector{Int}         # observation -> next belief: bi for beliefs in B, nb + baoi for beliefs only in Bbao
+    w_start::Vector{Vector{Int}}        # weight set, next belief -> first of its weights
+    w_idx::Vector{Vector{Int32}}        # weight set, weight -> index of a belief in B
+    w_val::Vector{Vector{Float64}}      # weight set, weight -> its weight
+end
+
+function Weighted_Backups(Data::TIB_Data, Bbao_data::BBAO_Data, Weights::Union{Weights_Data, Vector{Weights_Data}})
+    nb, na = length(Data.B), Data.constants.na
+    ba_start, prob, target = Int[1], Float64[], Int[]
+    for bi in 1:nb, ai in 1:na
+        for oi in get_possible_obs((true,bi), ai, Data, Bbao_data)
+            in_B, baoi = Bbao_data.Bbao_idx[bi,ai][oi]
+            push!(prob, Bbao_data.BAO_probs[oi,bi,ai])
+            push!(target, in_B ? baoi : nb + baoi)
+        end
+        push!(ba_start, length(prob) + 1)
+    end
+    w_start, w_idx, w_val = Vector{Int}[], Vector{Int32}[], Vector{Float64}[]
+    for W in (Weights isa Weights_Data ? [Weights] : Weights)
+        start, idx, val = Int[1], Int32[], Float64[]
+        for (idxs, ws) in ((W.B_idxs, W.B_weights), (W.Bbao_idxs, W.Bbao_weights)), i in eachindex(idxs)
+            isassigned(idxs, i) && (append!(idx, idxs[i]); append!(val, ws[i]))     # (B_idxs is only set for beliefs in Bbao)
+            push!(start, length(idx) + 1)
+        end
+        push!(w_start, start); push!(w_idx, idx); push!(w_val, val)
+    end
+    return Weighted_Backups(ba_start, prob, target, w_start, w_idx, w_val)
+end
+
+weighted_args(Data::TIB_Data, Bbao_data::BBAO_Data, Weights) = (Data, Bbao_data, Weighted_Backups(Data, Bbao_data, Weights))
+
 """Performs one iteration of ETIB"""
-function Get_Q_weights_Beliefset(model::POMDP{S}, Q::Qtype, timeleft, Data::TIB_Data{S}, Bbao_data::BBAO_Data{S}, Weights::Union{Weights_Data, Vector{Weights_Data}}) where S where Qtype <: AbstractArray{Float64,2}
+function Get_Q_weights_Beliefset(model::POMDP{S}, Q::Qtype, timeleft, Data::TIB_Data{S}, Bbao_data::BBAO_Data{S}, W::Weighted_Backups) where S where Qtype <: AbstractArray{Float64,2}
     Qs_new = zero(Q)
     t0 = time()
     gamma = Float64(discount(model))
-    Qo = zeros(Float64, size(Q,2))
-    for (b_idx,b) in enumerate(Data.B)
+    Qt = permutedims(Q)     # ai, bi -> Q: the Q-values of a belief are contiguous
+    for b_idx in eachindex(Data.B)
         timeleft+t0-time() < 0 && (return Q, 0)
-        for ai in axes(Q,2)
-            Qs_new[b_idx,ai] = min(Q[b_idx, ai], get_Q_weights_ba!(Qo, gamma, b_idx, ai, Q, Data,  Bbao_data, Weights))
-        end
+        weighted_backup_b!(Qs_new, Q, Val(size(Q,2)), b_idx, gamma, Qt, Data.Br, W)
     end
     max_dif = maximum(map(abs, (Qs_new .- Q) ./ (Q.+1e-10)))
     return Qs_new, max_dif
 end
 
-"""Performs one iteration of ETIB for the given belief-action pair, using pre-computed weights. Qo is a work array of length na."""
-function get_Q_weights_ba!(Qo::Vector{Float64}, gamma::Float64, bi::Int, ai::Int, Qs::Qtype, Data::TIB_Data{S}, Bbao_data::BBAO_Data{S}, Weights_data::Weights_Data) where S where Qtype <: AbstractArray{Float64,2}
-    Q = Data.Br[bi,ai]
-    for oi in get_possible_obs((true,bi),ai,Data,Bbao_data)
-        idxs, weights = get_weights(Bbao_data, Weights_data, bi, ai, oi)
-        Q += gamma * Bbao_data.BAO_probs[oi,bi,ai] * maximum(weighted_Q!(Qo, idxs, weights, Qs))
-    end
-    return Q
-end
-
-function get_Q_weights_ba!(Qo::Vector{Float64}, gamma::Float64, bi::Int, ai::Int, Qs::Qtype, Data::TIB_Data{S}, Bbao_data::BBAO_Data{S}, Weights_data_vector::Vector{Weights_Data}) where S where Qtype <: AbstractArray{Float64,2}
-    Q = Data.Br[bi,ai]
-    for oi in get_possible_obs((true,bi),ai,Data,Bbao_data)
-        thisQ = Inf
-        for Weights_data in Weights_data_vector
-            idxs, weights = get_weights(Bbao_data, Weights_data, bi, ai, oi)
-            thisQ = min(thisQ, maximum(weighted_Q!(Qo, idxs, weights, Qs)))
+"""
+Backups of all actions of belief bi, using precomputed weights (for MultiTIB, the minimum over its sets of weights).
+The number of actions NA is a type parameter, so that the loops over actions are unrolled.
+"""
+function weighted_backup_b!(Qs_new::Matrix{Float64}, Q::Matrix{Float64}, ::Val{NA}, bi::Int, gamma::Float64, Qt::Matrix{Float64}, Br::Matrix{Float64}, W::Weighted_Backups) where NA
+    @inbounds for ai in 1:NA
+        k = (bi-1)*NA + ai
+        Qba = Br[bi,ai]
+        for g in W.ba_start[k]:W.ba_start[k+1]-1
+            t = W.target[g]
+            thisQ = Inf
+            for ws in eachindex(W.w_start)
+                start, idx, val = W.w_start[ws], W.w_idx[ws], W.w_val[ws]
+                Qo = ntuple(_ -> 0.0, Val(NA))
+                for e in start[t]:start[t+1]-1
+                    Qo = add_weighted_column(Qo, val[e], Qt, idx[e])
+                end
+                thisQ = min(thisQ, maximum(Qo))
+            end
+            Qba += gamma * W.prob[g] * thisQ
         end
-        Q += gamma * Bbao_data.BAO_probs[oi,bi,ai] * thisQ
+        Qs_new[bi,ai] = min(Q[bi,ai], Qba)
     end
-    return Q
-end
-
-"""Writes sum_i weights[i] * Qs[idxs[i],:] into Qo"""
-function weighted_Q!(Qo::Vector{Float64}, idxs::Vector{Int}, weights::Vector{Float64}, Qs::AbstractMatrix{Float64})
-    fill!(Qo, 0.0)
-    for (idx, w) in zip(idxs, weights)
-        @inbounds for a in eachindex(Qo); Qo[a] += w * Qs[idx,a]; end
-    end
-    return Qo
+    return Qs_new
 end
 
 """Performs one iteration of ETIB for the given belief-action pair, computing weights for b on the spot"""
