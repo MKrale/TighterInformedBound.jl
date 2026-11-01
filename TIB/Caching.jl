@@ -145,7 +145,7 @@ function get_belief_set(model::POMDP{Ss,As,Os}, SAOs, constants::C{Ss,As,Os}) wh
     isnothing(constants) && throw("Not implemented error! (get_obs_probs)")
     S, A, O = constants.S, constants.A, constants.O
     ns,na,no = constants.ns, constants.na, constants.no
-    U = DiscreteHashedBeliefUpdater{Ss, As, Os}(model)
+    lookup = belief_update_lookup(model)
 
     B = Array{DiscreteHashedBelief{Ss},1}()       
     B_idx = zeros(Int,ns,na,no)
@@ -171,7 +171,7 @@ function get_belief_set(model::POMDP{Ss,As,Os}, SAOs, constants::C{Ss,As,Os}) wh
         for (ai,a) in enumerate(A)
             for oi in SAOs[si,ai]
                 o = O[oi]
-                b = update(U, b_s, a, o)
+                b = update_belief(lookup, b_s, a, o)
                 k = get(B_dict, b, nothing)
                 if isnothing(k)
                     push!(B,b)
@@ -248,7 +248,7 @@ function get_Bbao(model::POMDP{S,A,O}, Data::TIB_Data{S}) where S where A where 
     B = Data.B
     S_dict = Data.S_dict
     O_dict = Dict{O,Int}( zip(constants.O, 1:constants.no) )
-    U = DiscreteHashedBeliefUpdater{S, A, O}(model)
+    lookup = belief_update_lookup(model)
     nb = length(B)
 
     Bbao = DiscreteHashedBelief{S}[]
@@ -267,7 +267,7 @@ function get_Bbao(model::POMDP{S,A,O}, Data::TIB_Data{S}) where S where A where 
             for oi in keys(possible_obs)
                 BAO_probs[oi,bi,ai] = possible_obs[oi]
                 o = constants.O[oi]
-                bao = POMDPs.update(U,b,a,o)
+                bao = update_belief(lookup,b,a,o)
                 if length(support(bao)) > 0 # Ignore impossible beliefs
                     if haskey(Bs_found, bao)
                         (in_B, idx) = Bs_found[bao]
