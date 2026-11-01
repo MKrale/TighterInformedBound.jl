@@ -330,6 +330,7 @@ end
 
 """Returns true if the support of bp is a subset of the support of b"""
 function have_overlap(b::DiscreteHashedBelief{S},bp::DiscreteHashedBelief{S}) where S
+    maybe_support_subset(bp, b) || return false
     bidx, bpidx = 1, 1
     sup_b, sup_bp = support(b), support(bp)
     n_sup_b, n_sup_bp = length(sup_b), length(sup_bp)

@@ -138,6 +138,7 @@ function get_best_minratio(b::DiscreteHashedBelief{S}, B::Vector{DiscreteHashedB
     for bpi in Bidxs
         bp = B[bpi]
         skip_unit_beliefs && length(bp.state_list) == 1 && continue
+        maybe_support_subset(bp, b) || continue     # supp(bp) is not a subset of supp(b), so the ratio is 0
         this_ratio = Inf
         sup_bp = support(bp)
         n_sup_bp = length(sup_bp)

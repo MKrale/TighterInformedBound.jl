@@ -7,6 +7,7 @@ struct DiscreteHashedBelief{S}
     state_list::Vector{S}       # assumed sorted!
     probs::Vector{Float64}
     hash::UInt
+    support_mask::UInt64        # bit i is set if the support contains a state s with state_bit(s) = i (see maybe_support_subset)
 end
 
 function DiscreteHashedBelief{S}(state_list::Vector{S}, probs::Vector{<:Float64}) where S
@@ -17,8 +18,18 @@ function DiscreteHashedBelief{S}(state_list::Vector{S}, probs::Vector{<:Float64}
     ordered_state_list = state_list[idxs]
     ordered_probs = probs[idxs]
     hash = makeDBhash(ordered_state_list, ordered_probs)
-    return DiscreteHashedBelief{S}(ordered_state_list, ordered_probs, hash)
+    return DiscreteHashedBelief{S}(ordered_state_list, ordered_probs, hash, make_support_mask(ordered_state_list))
 end
+
+state_bit(s::Integer) = UInt64(1) << mod(s, 64)
+state_bit(s) = UInt64(1) << (hash(s) % 64)
+make_support_mask(state_list::Vector) = foldl((mask, s) -> mask | state_bit(s), state_list; init=UInt64(0))
+
+"""
+Returns false if the support of bp is certainly not a subset of the support of b, i.e., if bp contains a state whose
+bit is not set in the mask of b. If it returns true, the support of bp may or may not be a subset of that of b.
+"""
+maybe_support_subset(bp::DiscreteHashedBelief, b::DiscreteHashedBelief) = iszero(bp.support_mask & ~b.support_mask)
 
 #Note: This method should only be used when b is a belief, but currently this is not checked.
 # I don't see any way to do this though: the beliefs used throughout the POMDP framework do not have a consistent supertype (even though they should all be distributions...)
