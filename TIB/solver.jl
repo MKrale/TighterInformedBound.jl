@@ -147,7 +147,7 @@ function solve_info(solver::X, model::POMDP{S,A,O}; Data::Union{TIB_Data{S},Noth
     # Lets be overly fancy! Define a function for computing Q, depending on the specific solver
     get_Q, args = identity, []
     if solver isa STIBSolver
-        pol, get_Q, args = STIBPolicy, get_QTIB_Beliefset, (Data,)
+        pol, get_Q, args = STIBPolicy, get_QTIB_Beliefset, (Data, TIB_Transitions(Data))
     elseif solver isa OTIBSolver
         pol, get_Q, args = OTIBPolicy, Get_Q_weights_Beliefset, (Data, Bbao_data, Weights)
     elseif solver isa SawTIBSolver
@@ -269,21 +269,75 @@ end
 
 ############ TIB ###################
 
+"""
+Precomputed transitions for TIB backups. For each belief-action pair (b,a) and each observation o in BAOs[b,a] (in that order),
+it stores the next beliefs b' = B_idx[s,a,o] and weights b(s) * P(o|s,a) for all s in supp(b) (in the order of supp(b)).
+Since B is fixed, this saves looking these up again in every sweep.
+"""
+struct TIB_Transitions
+    ba_start::Vector{Int}       # (bi-1)*na + ai -> first observation group of (b,a)
+    obs_start::Vector{Int}      # group -> first entry of that group in next and weight
+    next::Vector{Int32}         # entry -> index of the next belief
+    weight::Vector{Float64}     # entry -> b(s) * P(o|s,a)
+end
+
+function TIB_Transitions(Data::TIB_Data)
+    nb, na, no = length(Data.B), Data.constants.na, Data.constants.no
+    ba_start, obs_start, next, weight = Int[1], Int[1], Int32[], Float64[]
+    group_next, group_weight = [Int32[] for _ in 1:no], [Float64[] for _ in 1:no]
+    for (bi, b) in enumerate(Data.B), ai in 1:na
+        for (s, ps) in weighted_iterator(b)
+            si = Data.S_dict[s]
+            for oi in Data.SAOs[si,ai]
+                push!(group_next[oi], Data.B_idx[si,ai,oi])
+                push!(group_weight[oi], ps * Data.SAO_probs[oi,si,ai])
+            end
+        end
+        for oi in Data.BAOs[bi,ai]
+            isempty(group_next[oi]) && error("observation $oi is possible after (b,a) = ($bi,$ai), but not after any state in supp(b)")
+            append!(next, group_next[oi]); append!(weight, group_weight[oi])
+            push!(obs_start, length(next) + 1)
+        end
+        foreach(empty!, group_next); foreach(empty!, group_weight)
+        push!(ba_start, length(obs_start))
+    end
+    return TIB_Transitions(ba_start, obs_start, next, weight)
+end
+
 """Performs one iteration of TIB"""
-function get_QTIB_Beliefset(model::POMDP{S}, Q::Qtype, timeleft::Float64, Data::TIB_Data{S}) where S where Qtype <: AbstractArray{Float64,2}
+function get_QTIB_Beliefset(model::POMDP{S}, Q::Qtype, timeleft::Float64, Data::TIB_Data{S}, T::TIB_Transitions) where S where Qtype <: AbstractArray{Float64,2}
     t0 = time()
     Qs_new = zero(Q) # TODO: this may be inefficient?
     gamma = Float64(discount(model))
-    buffers = TIB_Buffers(size(Q,2), Data.constants.no)
-    for (b_idx,b) in enumerate(Data.B)
+    Qt = permutedims(Q)     # ai, bi -> Q: the Q-values of a belief are contiguous
+    for b_idx in eachindex(Data.B)
         timeleft+t0-time() < 0 && (return Q, 0)
-        for ai in axes(Q,2)
-            Qs_new[b_idx,ai] = QTIB_backup!(buffers, gamma, b, ai, Data.Br[b_idx,ai], Data.BAOs[b_idx,ai], Q, Data)
-        end
+        QTIB_backup_b!(Qs_new, Val(size(Q,2)), b_idx, gamma, Qt, Data.Br, T)
     end
     max_dif = maximum(map(abs, (Qs_new .- Q) ./ (Q.+1e-10)))
     return Qs_new, max_dif
 end
+
+"""TIB backups of all actions of belief b_idx. The number of actions NA is a type parameter, so that the loops over actions are unrolled."""
+function QTIB_backup_b!(Qs_new::Matrix{Float64}, ::Val{NA}, b_idx::Int, gamma::Float64, Qt::Matrix{Float64}, Br::Matrix{Float64}, T::TIB_Transitions) where NA
+    @inbounds for ai in 1:NA
+        k = (b_idx-1)*NA + ai
+        Qba = Br[b_idx,ai]
+        for g in T.ba_start[k]:T.ba_start[k+1]-1
+            Qo = ntuple(_ -> 0.0, Val(NA))
+            for e in T.obs_start[g]:T.obs_start[g+1]-1
+                Qo = add_weighted_column(Qo, T.weight[e], Qt, T.next[e])
+            end
+            Qba += gamma * maximum(Qo)
+        end
+        Qs_new[b_idx,ai] = Qba
+    end
+    return Qs_new
+end
+
+"""Returns Qo .+ w .* Qt[:,bp] (a separate function, so that Qo is not captured by a closure in the loop above)"""
+@inline add_weighted_column(Qo::NTuple{NA,Float64}, w::Float64, Qt::Matrix{Float64}, bp::Int32) where NA =
+    ntuple(a -> @inbounds(Qo[a] + w * Qt[a,bp]), Val(NA))
 
 """Performs one iteration of TIB for the given belief-action pair"""
 function get_QTIB_ba(model::POMDP{S,A,O},b::DiscreteHashedBelief{S},a::A,Qs::Qtype, Data::TIB_Data{S}; ai=nothing, bi=nothing) where S where A where O where Qtype <: AbstractArray{Float64,2}
@@ -296,23 +350,23 @@ function get_QTIB_ba(model::POMDP{S,A,O},b::DiscreteHashedBelief{S},a::A,Qs::Qty
         possible_os = Data.BAOs[bi,ai]
     end
     buffers = TIB_Buffers(size(Qs,2), Data.constants.no)
-    return QTIB_backup!(buffers, Float64(discount(model)), b, ai, Float64(r), possible_os, Qs, Data)
+    return QTIB_backup!(buffers, Float64(discount(model)), b, ai, Float64(r), possible_os, transpose(Qs), Data)
 end
 
 """Work arrays for TIB backups, so that sweeps do not allocate"""
 struct TIB_Buffers
     Qo::Matrix{Float64}     # ai, oi -> Q-value of the next beliefs given oi
-    seen::BitVector         # oi -> is Qo[:,oi] initialized?
+    seen::Vector{Bool}      # oi -> is Qo[:,oi] initialized?
 end
-TIB_Buffers(na::Int, no::Int) = TIB_Buffers(zeros(na, no), falses(no))
+TIB_Buffers(na::Int, no::Int) = TIB_Buffers(zeros(na, no), zeros(Bool, no))
 
 """
-TIB backup of (b,ai) with expected reward r, where possible_os are the observations possible after (b,ai).
-Loops over the possible observations of each state once, and sums over observations in the order of possible_os.
+TIB backup of (b,ai) with expected reward r, where possible_os are the observations possible after (b,ai), and Qt[a,bi] the
+current Q-values. Loops over the possible observations of each state once, and sums over observations in the order of possible_os.
 """
-function QTIB_backup!(buffers::TIB_Buffers, gamma::Float64, b::DiscreteHashedBelief{S}, ai::Int, r::Float64, possible_os, Qs::AbstractMatrix{Float64}, Data::TIB_Data{S}) where S
+function QTIB_backup!(buffers::TIB_Buffers, gamma::Float64, b::DiscreteHashedBelief{S}, ai::Int, r::Float64, possible_os, Qt::AbstractMatrix{Float64}, Data::TIB_Data{S}) where S
     Qo, seen = buffers.Qo, buffers.seen
-    na = size(Qs, 2)
+    na = size(Qt, 1)
     for (s, ps) in weighted_iterator(b)
         si = Data.S_dict[s]
         for oi in Data.SAOs[si,ai]
@@ -322,12 +376,14 @@ function QTIB_backup!(buffers::TIB_Buffers, gamma::Float64, b::DiscreteHashedBel
             end
             p = ps * Data.SAO_probs[oi,si,ai]
             bp_idx = Data.B_idx[si,ai,oi]
-            @inbounds for a in 1:na; Qo[a,oi] += p * Qs[bp_idx,a]; end
+            @inbounds for a in 1:na; Qo[a,oi] += p * Qt[a,bp_idx]; end
         end
     end
     Q = r
     for oi in possible_os
-        Q += gamma * maximum(@view Qo[:,oi])
+        Qmax = Qo[1,oi]
+        @inbounds for a in 2:na; Qmax = max(Qmax, Qo[a,oi]); end
+        Q += gamma * Qmax
         seen[oi] = false
     end
     return Q
