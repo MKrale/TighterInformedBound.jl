@@ -53,49 +53,15 @@ function get_all_entropy_weights(Data::TIB_Data{S}, Bbao_data::BBAO_Data{S}; ent
     return get_all_weights(Data.B, Bbao_data, Data, get_single_entropy_weights; values = entropies)
 end
 
-function get_single_entropy_weights(b::DiscreteHashedBelief{S}, Bidxs_overlap, Data::TIB_Data; model=nothing, values=nothing) where S
-    if model isa Nothing
-        model = Model(Clp.Optimizer; add_bridges=false)
-        set_silent(model)
-        set_string_names_on_creation(model, false)
-    end
-    B_overlap = map(bi -> Data.B[bi], Bidxs_overlap)
+function get_single_entropy_weights(b::DiscreteHashedBelief{S}, Bidxs_overlap, Data::TIB_Data; values=nothing) where S
     if values isa Nothing
-        B_entropies = map(b -> get_entropy(b), B_overlap)
+        B_entropies = map(bi -> Float64(get_entropy(Data.B[bi])), Bidxs_overlap)
     else
-        B_entropies = values[Bidxs_overlap]
+        B_entropies = Float64.(values[Bidxs_overlap])
     end
-    
-    @variable(model, 0.0 <= b_ps[1:length(B_overlap)] <= 1.0)
-    # Build the constraint that probabilities for each state match that of b
-    for (s, ps) in weighted_iterator(b)
-        Idx, Ps = [], []
-        for (bpi, bp) in enumerate(B_overlap)
-            p = pdf(bp, s)
-            if p > 0
-                push!(Idx, bpi)
-                push!(Ps,p)
-            end
-        end
-        length(Idx) > 0 && @constraint(model, sum(b_ps[Idx[i]] * Ps[i] for i in 1:length(Idx)) == ps )
-    end
-    @objective(model, Max, sum( b_ps.*B_entropies))
-    optimize!(model)
-
-    # Unpack weight & idxs from problem:
-    weights=[]
-    idxs = []
-    cumprob = 0.0
-    for (bpi,bp) in enumerate(B_overlap)
-        prob = Float64(JuMP.value(b_ps[bpi]))
-        if prob > 0.0
-            cumprob += prob
-            real_bpi = Bidxs_overlap[bpi]
-            push!(idxs, real_bpi)
-            push!(weights, prob)
-        end
-    end
-    return(idxs, weights)
+    weights, _ = solve_weight_LP(b, Bidxs_overlap, Data, B_entropies; maximize=true)
+    nonzero = findall(>(0.0), weights)
+    return Bidxs_overlap[nonzero], weights[nonzero]
 end
 
 ########## Closest belief weights ##########
@@ -253,44 +219,79 @@ function get_all_optimal_weights(Data::TIB_Data{S}, Bbao_data::BBAO_Data{S}; Qs=
     return get_all_weights(Data.B, Bbao_data, Data, get_single_optimal_weights; values = Qs)
 end
 
-function get_single_optimal_weights(b::DiscreteHashedBelief{S}, Bidxs::Vector{Int}, Data::TIB_Data{S}; model=nothing, values=nothing, return_value=false) where S
-    if model isa Nothing
-        model = Model(Clp.Optimizer; add_bridges=false)
-        set_silent(model)
-        set_string_names_on_creation(model, false)
-    end
-
-    MIN_Q_VALUE = -100_000
+function get_single_optimal_weights(b::DiscreteHashedBelief{S}, Bidxs::Vector{Int}, Data::TIB_Data{S}; values=nothing, return_value=false) where S
+    MIN_Q_VALUE = -100_000.0
     Qs = map(q -> max(MIN_Q_VALUE, q), Data.Q[Bidxs, :])
-    B = Data.B[Bidxs]
-
-    @variable(model, 0.0 <= b_ps[1:length(B)] <= 1.0)
-    @variable(model, Qmax)
-
-    # Constraint 1: set must represent b
-    for (s, ps) in weighted_iterator(b)
-        Idx, Ps = [], []
-        for (bpi, bp) in enumerate(B)
-            p = pdf(bp,s)
-            if p > 0
-                push!(Idx, bpi)
-                push!(Ps, p)
-            end
-        end
-        length(Idx) > 0 && @constraint(model, sum(b_ps[Idx] .* Ps) == pdf(b,s) )
-    end
-
-    # Constraint 2: Qmax is Q of best action
-    for ai in 1:Data.constants.na
-        @constraint(model, Qmax >= sum(Qs[:,ai] .* b_ps))
-    end
-
-    @objective(model, Min, 1.0 * Qmax)
-    optimize!(model)
-    Q = objective_value(model)
+    # Minimize Qmax, the Q-value of the best action
+    weights, Q = solve_weight_LP(b, Bidxs, Data, zeros(length(Bidxs)); Qs=Qs)
     return_value && (return Q)
 
-    return Bidxs, collect(JuMP.value.(b_ps))
+    # A basic LP solution has at most |supp(b)|+1 nonzeros, so dropping the zeros makes later iterations much cheaper
+    nonzero = findall(!iszero, weights)
+    return Bidxs[nonzero], weights[nonzero]
+end
+
+"""
+Solves the LP over weights w in [0,1]^n (one per belief in Bidxs) subject to sum_j w[j] * B[Bidxs[j]](s) == b(s) for all s in supp(b),
+optimizing sum_j obj[j] * w[j]. If Qs is given, a free variable Qmax is added (with objective coefficient 1) and constrained by
+Qmax >= sum_j Qs[j,a] * w[j] for every action a. Returns the weights and the objective value.
+
+The LP is loaded straight into Clp in column-major form: building it through JuMP took 3-5x longer than solving it.
+States not covered by any belief are skipped (as JuMP did), and the LP is solved with Clp's default options, as Clp's JuMP
+wrapper does.
+Assumes the support of each belief in Bidxs is a subset of the support of b.
+"""
+function solve_weight_LP(b::DiscreteHashedBelief, Bidxs::AbstractVector{Int}, Data::TIB_Data, obj::Vector{Float64}; Qs=nothing, maximize=false)
+    n, ns = length(Bidxs), length(b.state_list)
+    na = Qs isa Nothing ? 0 : size(Qs, 2)
+    ncols = Qs isa Nothing ? n : n + 1
+    colstart = Vector{Cint}(undef, ncols + 1)
+    rowidx, vals = Cint[], Float64[]
+    covered = falses(ns)
+    # Rows are stored as k (state k of b) or -a (action a), and renumbered once we know which states are covered
+    for (j, bi) in enumerate(Bidxs)
+        colstart[j] = length(rowidx)
+        bp = Data.B[bi]
+        # Constraint 1: set must represent b
+        for (s, p) in zip(bp.state_list, bp.probs)
+            k = searchsortedfirst(b.state_list, s)
+            push!(rowidx, k); push!(vals, p); covered[k] = true
+        end
+        # Constraint 2: Qmax is Q of best action (only when Qs is given; for the entropy LP na = 0)
+        for ai in 1:na
+            push!(rowidx, -ai); push!(vals, -Qs[j, ai])
+        end
+    end
+    if na > 0   # Qmax column
+        colstart[n+1] = length(rowidx)
+        for ai in 1:na
+            push!(rowidx, -ai); push!(vals, 1.0)
+        end
+    end
+    colstart[ncols+1] = length(rowidx)
+    staterow = cumsum(covered)
+    neq = isempty(staterow) ? 0 : staterow[end]
+    for (i, r) in enumerate(rowidx)
+        rowidx[i] = r > 0 ? staterow[r] - 1 : neq - r - 1
+    end
+    rhs = b.probs[covered]
+    collb, colub = zeros(ncols), ones(ncols)
+    na > 0 && (collb[end] = -Inf; colub[end] = Inf; obj = [obj; 1.0])
+    rowlb, rowub = [rhs; zeros(na)], [rhs; fill(Inf, na)]
+
+    model = Clp.Clp_newModel()
+    try
+        Clp.Clp_setLogLevel(model, 0)
+        Clp.Clp_loadProblem(model, ncols, neq + na, colstart, rowidx, vals, collb, colub, obj, rowlb, rowub)
+        Clp.Clp_setObjSense(model, maximize ? -1 : 1)
+        options = Clp.ClpSolve_new()
+        Clp.Clp_initialSolveWithOptions(model, options)
+        Clp.ClpSolve_delete(options)
+        weights = copy(unsafe_wrap(Array, Clp.Clp_getColSolution(model), ncols))[1:n]
+        return weights, Clp.Clp_getObjValue(model)
+    finally
+        Clp.Clp_deleteModel(model)
+    end
 end
 
 ########## Sawtooth belief weights ##########

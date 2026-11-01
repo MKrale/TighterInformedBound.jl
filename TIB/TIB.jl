@@ -1,5 +1,5 @@
 module TIB
-    using POMDPs, POMDPTools, Random, Distributions, SparseArrays, JuMP, Clp
+    using POMDPs, POMDPTools, Random, Distributions, SparseArrays, Clp
 
     include("Beliefs.jl")
     export DiscreteHashedBelief, DiscreteHashedBeliefUpdater
