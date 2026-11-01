@@ -29,7 +29,7 @@ function get_all_weights(B::Vector{DiscreteHashedBelief{S}}, Bbao_data::BBAO_Dat
     ### Compute weights for all beliefs in B and Bbao
     for (bi,b) in enumerate(B)
         if Bbao_data.B_in_Bbao[bi]
-            relevant_belief_idxs = Vector{Int}(Bbao_data.B_overlap[bi])
+            relevant_belief_idxs = Bbao_data.B_overlap[bi]
             idxs, weights = compute_single_weights(b, relevant_belief_idxs, Data; values=values)
             B_idxs[bi] = idxs
             B_weights[bi] = weights 
@@ -40,7 +40,7 @@ function get_all_weights(B::Vector{DiscreteHashedBelief{S}}, Bbao_data::BBAO_Dat
     Bbao_idxs = Array{Vector{Int}}(undef, length(Bbao_data.Bbao))
     Bbao_weights = Array{Vector{Float64}}(undef, length(Bbao_data.Bbao))
     for (bi, b) in enumerate(Bbao_data.Bbao)
-        relevant_belief_idxs = Vector{Int}(Bbao_data.Bbao_overlap[bi])
+        relevant_belief_idxs = Bbao_data.Bbao_overlap[bi]
         idxs, weights = compute_single_weights(b, relevant_belief_idxs, Data; values=values)
         Bbao_idxs[bi] = idxs; Bbao_weights[bi] = weights
     end
@@ -71,13 +71,12 @@ function get_all_closeness_weights(Data::TIB_Data{S}, Bbao_data::BBAO_Data{S}) w
 end
 
 """Compute a weighting for b using only the belief in B with the highest minratio, plus exterior beliefs"""
-function get_single_closeness_weights(b::DiscreteHashedBelief{S}, Bidxs::Vector{Int}, Data::TIB_Data{S}; values=nothing) where S
-    weights, idxs = [], []
+function get_single_closeness_weights(b::DiscreteHashedBelief{S}, Bidxs::AbstractVector{<:Integer}, Data::TIB_Data{S}; values=nothing) where S
+    weights, idxs = Float64[], Int[]
 
     ### Find closest non-unit belief & subtract it from b
-    non_unit_beliefs = filter(bidx -> length(support(Data.B[bidx])) > 1, Bidxs)
-    if length(non_unit_beliefs) > 0
-        closest_bi, min_ratio = get_best_minratio(b, Data.B, non_unit_beliefs) 
+    closest_bi, min_ratio = get_best_minratio(b, Data.B, Bidxs; skip_unit_beliefs=true)
+    if !isnothing(closest_bi)
         push!(weights, min_ratio)
         push!(idxs, closest_bi)
         brest = subtract_scaled_belief(b, Data.B[closest_bi], min_ratio)
@@ -100,25 +99,23 @@ function get_all_iterative_closeness_weights(Data::TIB_Data{S}, Bbao_data::BBAO_
 end
 
 function get_single_iterative_closeness_weights(b::DiscreteHashedBelief{S}, Bidxs, Data::TIB_Data{S}; values=nothing) where S
-    weights, idxs = [], []
-    brest = deepcopy(b)
+    weights, idxs = Float64[], Int[]
+    brest = b   # not modified: subtract_scaled_belief returns a new belief
     remaining_weight = 1.0
 
     ### Iteratively find closest non-unit belief & 
-    non_unit_beliefs = filter(bidx -> length(support(Data.B[bidx])) > 1, Bidxs)
-    if length(non_unit_beliefs) > 0
-        this_weight = 1.0
-        while this_weight > 1e-5
-            ### Find current closest belief
-            closest_bi, min_ratio = get_best_minratio(brest, Data.B, non_unit_beliefs)
-            this_weight = remaining_weight * min_ratio
-            push!(idxs, closest_bi)
-            push!(weights, this_weight)
-            remaining_weight -= this_weight
+    this_weight = 1.0
+    while this_weight > 1e-5
+        ### Find current closest belief
+        closest_bi, min_ratio = get_best_minratio(brest, Data.B, Bidxs; skip_unit_beliefs=true)
+        isnothing(closest_bi) && break
+        this_weight = remaining_weight * min_ratio
+        push!(idxs, closest_bi)
+        push!(weights, this_weight)
+        remaining_weight -= this_weight
 
-            ### Compute 'remaining' belief
-            brest = subtract_scaled_belief(brest, Data.B[closest_bi], min_ratio)
-        end
+        ### Compute 'remaining' belief
+        brest = subtract_scaled_belief(brest, Data.B[closest_bi], min_ratio)
     end
 
     ### Add unit beliefs to represent belief
@@ -129,23 +126,27 @@ function get_single_iterative_closeness_weights(b::DiscreteHashedBelief{S}, Bidx
     return idxs, weights
 end
 
-"""Returns the belief that has the lowest minratio with b (as well as that ratio)"""
-function get_best_minratio(b::DiscreteHashedBelief{S}, B::Vector{DiscreteHashedBelief{S}}, Bidxs::Vector{Int}) where S
-    best_bi, best_ratio = nothing, -Inf
+"""
+Returns the belief that has the highest minratio with b (as well as that ratio), or (nothing, 0.0) if no belief has a positive
+minratio. If skip_unit_beliefs, beliefs with a single state are ignored.
+"""
+function get_best_minratio(b::DiscreteHashedBelief{S}, B::Vector{DiscreteHashedBelief{S}}, Bidxs::AbstractVector{<:Integer}; skip_unit_beliefs=false) where S
+    best_bi, best_ratio = nothing, 0.0
     best_bi_nonunit, best_ratio_nonunit = nothing, -Inf
     sup_b = support(b)
     n_sup_b = length(sup_b)
     for bpi in Bidxs
         bp = B[bpi]
+        skip_unit_beliefs && length(bp.state_list) == 1 && continue
         this_ratio = Inf
         sup_bp = support(bp)
         n_sup_bp = length(sup_bp)
         bidx, bpidx = 1, 1
-        while bidx <= n_sup_b && bpidx <= n_sup_bp
+        # Stop as soon as bp can no longer beat the best ratio so far
+        while this_ratio > best_ratio && bidx <= n_sup_b && bpidx <= n_sup_bp
             sb, sbp = sup_b[bidx], sup_bp[bpidx]
             if sb == sbp
                 this_ratio = min(this_ratio, b.probs[bidx] / bp.probs[bpidx])
-                this_ratio <= best_ratio && break 
                 bidx += 1; bpidx += 1
             elseif sb < sbp
                 bidx += 1
@@ -219,7 +220,7 @@ function get_all_optimal_weights(Data::TIB_Data{S}, Bbao_data::BBAO_Data{S}; Qs=
     return get_all_weights(Data.B, Bbao_data, Data, get_single_optimal_weights; values = Qs)
 end
 
-function get_single_optimal_weights(b::DiscreteHashedBelief{S}, Bidxs::Vector{Int}, Data::TIB_Data{S}; values=nothing, return_value=false) where S
+function get_single_optimal_weights(b::DiscreteHashedBelief{S}, Bidxs::AbstractVector{<:Integer}, Data::TIB_Data{S}; values=nothing, return_value=false) where S
     MIN_Q_VALUE = -100_000.0
     Qs = map(q -> max(MIN_Q_VALUE, q), Data.Q[Bidxs, :])
     # Minimize Qmax, the Q-value of the best action
@@ -247,7 +248,7 @@ The entropy LP (maximize) is solved with primal simplex, the Qmax LP with dual s
 initialSolve (presolve + algorithm choice), and give the same results up to ties.
 Assumes the support of each belief in Bidxs is a subset of the support of b.
 """
-function solve_weight_LP(b::DiscreteHashedBelief, Bidxs::AbstractVector{Int}, Data::TIB_Data, obj::Vector{Float64}; Qs=nothing, maximize=false)
+function solve_weight_LP(b::DiscreteHashedBelief, Bidxs::AbstractVector{<:Integer}, Data::TIB_Data, obj::Vector{Float64}; Qs=nothing, maximize=false)
     n, ns = length(Bidxs), length(b.state_list)
     na = Qs isa Nothing ? 0 : size(Qs, 2)
     ncols = Qs isa Nothing ? n : n + 1
@@ -309,7 +310,7 @@ function get_all_sawtooth_weights(Data::TIB_Data{S}, Bbao_data::BBAO_Data{S}; Qs
     return get_all_weights(Data.B, Bbao_data, Data, get_single_sawtooth_weights; values = Qs)
 end
 
-function get_single_sawtooth_weights(b::DiscreteHashedBelief{S}, Bidxs::Vector{Int}, Data::TIB_Data{S}; model=nothing, values=nothing, return_value=false) where S
+function get_single_sawtooth_weights(b::DiscreteHashedBelief{S}, Bidxs::AbstractVector{<:Integer}, Data::TIB_Data{S}; model=nothing, values=nothing, return_value=false) where S
     
     alpha_extremes = Data.Q[1:Data.constants.ns,:]
     Vb = Float64[]
@@ -344,7 +345,7 @@ function get_all_iterative_sawtooth_weights(Data::TIB_Data{S}, Bbao_data::BBAO_D
     return get_all_weights(Data.B, Bbao_data, Data, get_single_iterative_sawtooth_weights; values = Qs)
 end
 
-function get_single_iterative_sawtooth_weights(b::DiscreteHashedBelief{S}, Bidxs::Vector{Int}, Data::TIB_Data{S}; model=nothing, values=nothing, return_value=false) where S
+function get_single_iterative_sawtooth_weights(b::DiscreteHashedBelief{S}, Bidxs::AbstractVector{<:Integer}, Data::TIB_Data{S}; model=nothing, values=nothing, return_value=false) where S
     
     alpha_extremes = Data.Q[1:Data.constants.ns,:]
     Vb = []
