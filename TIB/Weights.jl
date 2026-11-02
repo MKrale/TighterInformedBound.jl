@@ -50,16 +50,15 @@ end
 ########## Entropy weights ##########
 
 function get_all_entropy_weights(Data::TIB_Data{S}, Bbao_data::BBAO_Data{S}; entropies=nothing) where S
-    return get_all_weights(Data.B, Bbao_data, Data, get_single_entropy_weights; values = entropies)
+    LP_data(cands) = (entropy_objective(cands, Data, entropies), nothing)
+    return get_all_LP_weights(Data, Bbao_data, LP_data, w -> findall(>(0.0), w); maximize=true)
 end
 
+entropy_objective(Bidxs, Data::TIB_Data, values) =
+    values isa Nothing ? map(bi -> Float64(get_entropy(Data.B[bi])), Bidxs) : Float64.(values[Bidxs])
+
 function get_single_entropy_weights(b::DiscreteHashedBelief{S}, Bidxs_overlap, Data::TIB_Data; values=nothing) where S
-    if values isa Nothing
-        B_entropies = map(bi -> Float64(get_entropy(Data.B[bi])), Bidxs_overlap)
-    else
-        B_entropies = Float64.(values[Bidxs_overlap])
-    end
-    weights, _ = solve_weight_LP(b, Bidxs_overlap, Data, B_entropies; maximize=true)
+    weights, _ = solve_weight_LP(b, Bidxs_overlap, Data, entropy_objective(Bidxs_overlap, Data, values); maximize=true)
     nonzero = findall(>(0.0), weights)
     return Bidxs_overlap[nonzero], weights[nonzero]
 end
@@ -218,14 +217,16 @@ end
 ########## optimal belief weights ##########
 
 function get_all_optimal_weights(Data::TIB_Data{S}, Bbao_data::BBAO_Data{S}; Qs=nothing) where S
-    return get_all_weights(Data.B, Bbao_data, Data, get_single_optimal_weights; values = Qs)
+    LP_data(cands) = (zeros(length(cands)), optimal_Qs(cands, Data))
+    # A basic LP solution has at most |supp(b)|+1 nonzeros, so dropping the zeros makes later iterations much cheaper
+    return get_all_LP_weights(Data, Bbao_data, LP_data, w -> findall(!iszero, w))
 end
 
+optimal_Qs(Bidxs, Data::TIB_Data) = map(q -> max(MIN_Q_VALUE, q), Data.Q[Bidxs, :])
+
 function get_single_optimal_weights(b::DiscreteHashedBelief{S}, Bidxs::AbstractVector{<:Integer}, Data::TIB_Data{S}; values=nothing, return_value=false) where S
-    MIN_Q_VALUE = -100_000.0
-    Qs = map(q -> max(MIN_Q_VALUE, q), Data.Q[Bidxs, :])
     # Minimize Qmax, the Q-value of the best action
-    weights, Q = solve_weight_LP(b, Bidxs, Data, zeros(length(Bidxs)); Qs=Qs)
+    weights, Q = solve_weight_LP(b, Bidxs, Data, zeros(length(Bidxs)); Qs=optimal_Qs(Bidxs, Data))
     return_value && (return Q)
 
     # A basic LP solution has at most |supp(b)|+1 nonzeros, so dropping the zeros makes later iterations much cheaper
@@ -233,23 +234,37 @@ function get_single_optimal_weights(b::DiscreteHashedBelief{S}, Bidxs::AbstractV
     return Bidxs[nonzero], weights[nonzero]
 end
 
+const MIN_Q_VALUE = -100_000.0
 const MIN_LP_COEF = 1e-12
 const LP_PRIMAL_TOLERANCE = 1e-10
+const LP_DUAL_TOLERANCE = 1e-9         # for verifying that a basis is optimal (see CachedBasis), relative to the LP's coefficients
 
 """
-Solves the LP over weights w in [0,1]^n (one per belief in Bidxs) subject to sum_j w[j] * B[Bidxs[j]](s) == b(s) for all s in supp(b),
+The LP over weights w in [0,1]^n (one per belief in Bidxs) subject to sum_j w[j] * B[Bidxs[j]](s) == b(s) for all s in supp(b),
 optimizing sum_j obj[j] * w[j]. If Qs is given, a free variable Qmax is added (with objective coefficient 1) and constrained by
-Qmax >= sum_j Qs[j,a] * w[j] for every action a. Returns the weights and the objective value.
+Qmax >= sum_j Qs[j,a] * w[j] for every action a. It assumes the support of each belief in Bidxs is a subset of the support of b.
+Apart from the right-hand side b(s), the LP only depends on the support of b, so it can be solved for any belief with that support.
 
 The LP is loaded straight into Clp in column-major form: building it through JuMP took 3-5x longer than solving it.
 States not covered by any belief are skipped, and Q coefficients below MIN_LP_COEF are dropped: Q-values that should be 0 but
 carry rounding noise (e.g. 6.6e-16 in pentagon) make Clp scale their column so that its weight drops below the tolerance,
 leaving b unrepresented while Clp still reports optimality.
-The entropy LP (maximize) is solved with primal simplex, the Qmax LP with dual simplex: both are ~2x faster than Clp's
-initialSolve (presolve + algorithm choice), and give the same results up to ties.
-Assumes the support of each belief in Bidxs is a subset of the support of b.
 """
-function solve_weight_LP(b::DiscreteHashedBelief, Bidxs::AbstractVector{<:Integer}, Data::TIB_Data, obj::Vector{Float64}; Qs=nothing, maximize=false)
+struct WeightLP
+    n::Int                      # number of weights
+    na::Int                     # number of actions (0 for the entropy LP)
+    neq::Int                    # number of (covered) states, i.e., rows of the constraint that the weights represent b
+    covered::BitVector          # states of supp(b) with a row (covered by some belief)
+    colstart::Vector{Cint}      # the constraint matrix (columns: weights, then Qmax; rows: covered states, then actions)
+    rowidx::Vector{Cint}
+    vals::Vector{Float64}
+    collb::Vector{Float64}
+    colub::Vector{Float64}
+    obj::Vector{Float64}
+    maximize::Bool
+end
+
+function WeightLP(b::DiscreteHashedBelief, Bidxs::AbstractVector{<:Integer}, Data::TIB_Data, obj::Vector{Float64}; Qs=nothing, maximize=false)
     n, ns = length(Bidxs), length(b.state_list)
     na = Qs isa Nothing ? 0 : size(Qs, 2)
     ncols = Qs isa Nothing ? n : n + 1
@@ -283,26 +298,215 @@ function solve_weight_LP(b::DiscreteHashedBelief, Bidxs::AbstractVector{<:Intege
     for (i, r) in enumerate(rowidx)
         rowidx[i] = r > 0 ? staterow[r] - 1 : neq - r - 1
     end
-    rhs = b.probs[covered]
     collb, colub = zeros(ncols), ones(ncols)
     na > 0 && (collb[end] = -Inf; colub[end] = Inf; obj = [obj; 1.0])
-    rowlb, rowub = [rhs; zeros(na)], [rhs; fill(Inf, na)]
+    return WeightLP(n, na, neq, covered, colstart, rowidx, vals, collb, colub, obj, maximize)
+end
 
+ncols(L::WeightLP) = length(L.obj)
+nrows(L::WeightLP) = L.neq + L.na
+
+"""
+Solves the LP for belief b with Clp, from scratch. Returns the values of all columns, the objective value, and Clp's basis status
+(of the columns, then the rows). The entropy LP (maximize) is solved with primal simplex, the Qmax LP with dual simplex: both are ~2x faster
+than Clp's initialSolve (presolve + algorithm choice), and give the same results up to ties.
+"""
+function clp_solve(L::WeightLP, b::DiscreteHashedBelief)
+    rhs = b.probs[L.covered]
+    rowlb, rowub = [rhs; zeros(L.na)], [rhs; fill(Inf, L.na)]
     model = Clp.Clp_newModel()
     try
         Clp.Clp_setLogLevel(model, 0)
-        Clp.Clp_loadProblem(model, ncols, neq + na, colstart, rowidx, vals, collb, colub, obj, rowlb, rowub)
-        Clp.Clp_setObjSense(model, maximize ? -1 : 1)
+        Clp.Clp_loadProblem(model, ncols(L), nrows(L), L.colstart, L.rowidx, L.vals, L.collb, L.colub, L.obj, rowlb, rowub)
+        Clp.Clp_setObjSense(model, L.maximize ? -1 : 1)
         # Clp's default (1e-7, relative to its scaled problem) let weights miss b by up to ~1e-5 when b has tiny probabilities
         Clp.Clp_setPrimalTolerance(model, LP_PRIMAL_TOLERANCE)
-        na > 0 ? Clp.Clp_dual(model, 0) : Clp.Clp_primal(model, 0)
+        L.na > 0 ? Clp.Clp_dual(model, 0) : Clp.Clp_primal(model, 0)
         status = Clp.Clp_status(model)
         status == 0 || error("Clp did not solve the weight LP to optimality (status $status)")
-        weights = copy(unsafe_wrap(Array, Clp.Clp_getColSolution(model), ncols))[1:n]
-        return weights, Clp.Clp_getObjValue(model)
+        x = copy(unsafe_wrap(Array, Clp.Clp_getColSolution(model), ncols(L)))
+        status = copy(unsafe_wrap(Array, Clp.Clp_statusArray(model), ncols(L) + nrows(L)))
+        return x, Clp.Clp_getObjValue(model), status
     finally
         Clp.Clp_deleteModel(model)
     end
+end
+
+"""Solves the weight LP (see WeightLP) for a single belief. Returns the weights and the objective value."""
+function solve_weight_LP(b::DiscreteHashedBelief, Bidxs::AbstractVector{<:Integer}, Data::TIB_Data, obj::Vector{Float64}; Qs=nothing, maximize=false)
+    L = WeightLP(b, Bidxs, Data, obj; Qs=Qs, maximize=maximize)
+    x, objective, _ = clp_solve(L, b)
+    return x[1:L.n], objective
+end
+
+"""
+An optimal basis of a WeightLP, written as A x - r = 0, where r are the row activities. The nonbasic columns are at a bound (0 or
+1 for the weights), the nonbasic row activities of the states equal b(s), and those of the actions 0 (their only finite bound).
+So the basic variables z (columns basic_cols, then row activities basic_rows) solve M z = rhs(b), with M = [A_basic_cols, -I_basic_rows],
+of which we store the LU factorization (factors and row permutation).
+(We only use which variables Clp reports as basic, and which bound nonbasic columns are at: Clp's signs for rows are confusing.)
+"""
+struct CachedBasis
+    basic_cols::Vector{Int}
+    basic_rows::Vector{Int}
+    upper_cols::Vector{Int}         # nonbasic columns at their upper bound
+    LU::Matrix{Float64}
+    perm::Vector{Int}
+    basic_state_rows::Bool          # are some row activities of states basic (degenerate)?
+end
+
+"""Dense constraint matrix of the LP (rows: states, then actions)"""
+function dense_matrix(L::WeightLP)
+    A = zeros(nrows(L), ncols(L))
+    for j in 1:ncols(L), e in L.colstart[j]+1:L.colstart[j+1]
+        A[L.rowidx[e]+1, j] = L.vals[e]
+    end
+    return A
+end
+
+const MAX_BASIS_CONDITION = 1e10    # bases that are worse conditioned are not cached
+
+"""
+Returns the basis of the LP given by Clp's basis status, if it is optimal for all right-hand sides, i.e., dual feasible: we check
+this ourselves (in the original data), since Clp checks its tolerances on its scaled problem. Returns nothing otherwise.
+"""
+function CachedBasis(L::WeightLP, A::Matrix{Float64}, status::Vector{UInt8})
+    m, nc = nrows(L), ncols(L)
+    basic_cols, upper_cols, lower_cols = Int[], Int[], Int[]
+    for j in 1:nc
+        st = status[j] & 0x07     # 1: basic, 2: at upper bound, 3: at lower bound, 5: fixed; 0 (free) and 4 (superbasic) are not at a bound
+        if st == 0x01
+            push!(basic_cols, j)
+        elseif (st == 0x02 || st == 0x03 || st == 0x05) && isfinite(L.collb[j]) && isfinite(L.colub[j])
+            push!(st == 0x02 ? upper_cols : lower_cols, j)
+        else
+            return nothing
+        end
+    end
+    basic_rows = [i for i in 1:m if status[nc + i] & 0x07 == 0x01]
+    length(basic_cols) + length(basic_rows) == m || return nothing
+    M = [A[:, basic_cols] -Matrix{Float64}(I, m, m)[:, basic_rows]]
+    F = lu(M; check=false)
+    issuccess(F) && cond(M) <= MAX_BASIS_CONDITION || return nothing
+    # Dual feasibility (for minimizing c = sign * obj): the duals y solve M' y = c_basic (row activities have cost 0), and the
+    # reduced costs c_j - y A_j must be >= 0 for columns at their lower bound, <= 0 at their upper bound, and y_i >= 0 for the
+    # nonbasic activities of the action rows (at their lower bound 0; column -e_i). State rows are fixed, so they have no condition.
+    sgn = L.maximize ? -1.0 : 1.0
+    y = F' \ [sgn .* L.obj[basic_cols]; zeros(length(basic_rows))]
+    tol = LP_DUAL_TOLERANCE * (1 + maximum(abs, L.obj) + maximum(abs, A))     # (relative to the size of the reduced costs' terms)
+    for j in lower_cols; sgn * L.obj[j] - LinearAlgebra.dot(y, view(A, :, j)) >= -tol || return nothing; end
+    for j in upper_cols; sgn * L.obj[j] - LinearAlgebra.dot(y, view(A, :, j)) <= tol || return nothing; end
+    for i in L.neq+1:m
+        i in basic_rows || y[i] >= -tol || return nothing
+    end
+    return CachedBasis(basic_cols, basic_rows, upper_cols, F.factors, F.p, any(<=(L.neq), basic_rows))
+end
+
+"""Solves LU[perm] z = rhs, with LU the factors of an LU factorization (unit lower triangular L, upper triangular U)"""
+function lu_solve!(z::Vector{Float64}, LU::Matrix{Float64}, perm::Vector{Int}, rhs::Vector{Float64})
+    m = length(z)
+    @inbounds for i in 1:m
+        s = rhs[perm[i]]
+        for k in 1:i-1; s -= LU[i,k] * z[k]; end
+        z[i] = s
+    end
+    @inbounds for i in m:-1:1
+        s = z[i]
+        for k in i+1:m; s -= LU[i,k] * z[k]; end
+        z[i] = s / LU[i,i]
+    end
+    return z
+end
+
+"""
+Solves the LP for b with a cached optimal basis: since the basis is dual feasible, it is optimal for b if its basic solution for b
+is feasible. Returns the values of all columns, or nothing. rhs and z are work arrays of length nrows(L).
+"""
+function solve_with_basis!(rhs::Vector{Float64}, z::Vector{Float64}, L::WeightLP, C::CachedBasis, b::DiscreteHashedBelief)
+    k = 0
+    for (p, c) in zip(b.probs, L.covered)
+        c && (k += 1; rhs[k] = p)           # nonbasic row activities of the states (basic ones are moved into M, see below)
+    end
+    for i in L.neq+1:length(rhs); rhs[i] = 0.0; end
+    for j in C.upper_cols, e in L.colstart[j]+1:L.colstart[j+1]
+        rhs[L.rowidx[e]+1] -= L.vals[e] * L.colub[j]
+    end
+    bstate = C.basic_state_rows ? rhs[1:L.neq] : rhs      # (only used if some row activities of states are basic)
+    for i in C.basic_rows; rhs[i] = 0.0; end
+    lu_solve!(z, C.LU, C.perm, rhs)
+    tol = LP_PRIMAL_TOLERANCE
+    for (k, j) in enumerate(C.basic_cols)
+        L.collb[j] - tol <= z[k] <= L.colub[j] + tol || return nothing
+    end
+    nb = length(C.basic_cols)
+    for (k, i) in enumerate(C.basic_rows)
+        # (a basic state row activity must still equal b(s); the activity Qmax - sum_j Q_j,a w_j of an action row must be >= 0)
+        (i <= L.neq ? abs(z[nb+k] - bstate[i]) <= tol : z[nb+k] >= -tol) || return nothing
+    end
+    x = zeros(ncols(L))
+    for j in C.upper_cols; x[j] = L.colub[j]; end
+    for (k, j) in enumerate(C.basic_cols)
+        x[j] = clamp(z[k], L.collb[j], L.colub[j])
+    end
+    return x
+end
+
+const BASIS_CACHE_TRIES = 1000  # how many cached bases are tried before calling Clp
+
+"""
+Computes the LP weights of all beliefs in Bbao (and of the beliefs in B that are also in Bbao). The candidate beliefs (and hence
+the LP, apart from its right-hand side) of a belief only depend on its support, and most supports are shared by hundreds of beliefs.
+For each support we keep the (verified) optimal bases found so far, and first try those (most recently used first) before calling
+Clp: this avoids most LP solves. Solutions are computed from the basis, so they satisfy the constraints up to rounding (Clp's own
+solutions can miss them by up to the tolerance of its scaled problem). LP_data(cands) returns the objective and Qs for the
+candidates, and keep(w) the weights that are kept.
+"""
+function get_all_LP_weights(Data::TIB_Data{S}, Bbao_data::BBAO_Data{S}, LP_data, keep; maximize=false) where S
+    nb = length(Data.B)
+    beliefs = [Data.B; Bbao_data.Bbao]
+    overlaps = [Bbao_data.B_overlap; Bbao_data.Bbao_overlap]
+    # Group the beliefs (B: only those also in Bbao) by support, in order of first appearance
+    class_of = Dict{Vector{S},Int}()
+    classes = Vector{Int}[]
+    for id in eachindex(beliefs)
+        id <= nb && !Bbao_data.B_in_Bbao[id] && continue
+        c = get!(class_of, beliefs[id].state_list, length(classes) + 1)
+        c > length(classes) && push!(classes, Int[])
+        push!(classes[c], id)
+    end
+    idxs, weights = Vector{Vector{Int}}(undef, length(beliefs)), Vector{Vector{Float64}}(undef, length(beliefs))
+    for ids in classes
+        cands = overlaps[ids[1]]
+        obj, Qs = LP_data(cands)
+        L = WeightLP(beliefs[ids[1]], cands, Data, obj; Qs=Qs, maximize=maximize)
+        A = dense_matrix(L)
+        rhs, z = zeros(nrows(L)), zeros(nrows(L))
+        cache = CachedBasis[]
+        for id in ids
+            b, x = beliefs[id], nothing
+            for (k, C) in enumerate(cache)
+                k > BASIS_CACHE_TRIES && break
+                x = solve_with_basis!(rhs, z, L, C, b)
+                if !isnothing(x)
+                    k > 1 && (deleteat!(cache, k); pushfirst!(cache, C))     # most recently used first
+                    break
+                end
+            end
+            if isnothing(x)
+                x, _, status = clp_solve(L, b)
+                C = CachedBasis(L, A, status)
+                if !isnothing(C)
+                    pushfirst!(cache, C)
+                    xC = solve_with_basis!(rhs, z, L, C, b)
+                    isnothing(xC) || (x = xC)
+                end
+            end
+            w = x[1:L.n]
+            k = keep(w)
+            idxs[id], weights[id] = cands[k], w[k]
+        end
+    end
+    return Weights_Data(idxs[1:nb], weights[1:nb], idxs[nb+1:end], weights[nb+1:end])
 end
 
 ########## Sawtooth belief weights ##########
