@@ -93,8 +93,95 @@ function get_single_closeness_weights(b::DiscreteHashedBelief{S}, Bidxs::Abstrac
     return idxs, weights
 end
 
+"""
+Computes the iterative closeness weights (see get_single_iterative_closeness_weights) of all beliefs in Bbao (and of the beliefs
+in B that are also in Bbao), with the same results. Per support, the (non-unit) candidates are stored as positions in the support,
+and the remaining belief as a dense vector over it, so that no merging of supports or construction of beliefs is needed.
+"""
 function get_all_iterative_closeness_weights(Data::TIB_Data{S}, Bbao_data::BBAO_Data{S}) where S
-    return get_all_weights(Data.B, Bbao_data, Data, get_single_iterative_closeness_weights)
+    nb = length(Data.B)
+    beliefs, overlaps, classes = support_classes(Data, Bbao_data)
+    idxs, weights = Vector{Vector{Int}}(undef, length(beliefs)), Vector{Vector{Float64}}(undef, length(beliefs))
+    for ids in classes
+        sup = beliefs[ids[1]].state_list
+        sidx = [Data.S_dict[s] for s in sup]
+        # The non-unit candidates (in the order of the overlap list), with their states as positions in sup
+        cand_bi, cand_start, cand_pos, cand_p = Int[], Int[1], Int[], Float64[]
+        for bi in overlaps[ids[1]]
+            bp = Data.B[bi]
+            length(bp.state_list) == 1 && continue
+            push!(cand_bi, bi)
+            for (s, p) in zip(bp.state_list, bp.probs)
+                push!(cand_pos, searchsortedfirst(sup, s)); push!(cand_p, p)
+            end
+            push!(cand_start, length(cand_pos) + 1)
+        end
+        r, active, r_new = zeros(length(sup)), falses(length(sup)), zeros(length(sup))
+        for id in ids
+            idxs[id], weights[id] = dense_iterative_closeness_weights!(r, active, r_new, beliefs[id].probs, sidx, cand_bi, cand_start, cand_pos, cand_p)
+        end
+    end
+    return Weights_Data(idxs[1:nb], weights[1:nb], idxs[nb+1:end], weights[nb+1:end])
+end
+
+"""
+get_single_iterative_closeness_weights for a belief with probabilities probs (over its support), using the remaining belief as a
+dense vector r over the support, with active[k] iff state k is in its support (r[k] > 0). Follows get_best_minratio and
+subtract_scaled_belief operation by operation, so the results are the same.
+"""
+function dense_iterative_closeness_weights!(r, active, r_new, probs, sidx, cand_bi, cand_start, cand_pos, cand_p)
+    weights, idxs = Float64[], Int[]
+    r .= probs
+    fill!(active, true)
+    remaining_weight = 1.0
+    this_weight = 1.0
+    while this_weight > 1e-5
+        ### Find current closest belief (see get_best_minratio)
+        best, best_ratio = 0, 0.0
+        for c in eachindex(cand_bi)
+            ratio = Inf
+            for e in cand_start[c]:cand_start[c+1]-1
+                k = cand_pos[e]
+                active[k] || (ratio = 0.0; break)       # not a subset of the support of the remaining belief
+                ratio = min(ratio, r[k] / cand_p[e])
+                ratio > best_ratio || break             # cannot beat the best ratio
+            end
+            if ratio > best_ratio
+                best, best_ratio = c, ratio
+            end
+            best_ratio == 1 && break
+        end
+        best == 0 && break
+        this_weight = remaining_weight * best_ratio
+        push!(idxs, cand_bi[best])
+        push!(weights, this_weight)
+        remaining_weight -= this_weight
+
+        ### Compute 'remaining' belief (see subtract_scaled_belief)
+        r_new .= r
+        for e in cand_start[best]:cand_start[best+1]-1
+            k = cand_pos[e]
+            r_new[k] = r[k] - best_ratio * cand_p[e]
+        end
+        cum_prob = 0.0
+        for k in eachindex(r)
+            active[k] && (cum_prob += r_new[k])
+        end
+        for k in eachindex(r)
+            if active[k]
+                r[k] = cum_prob > 1e-10 ? r_new[k] / cum_prob : 0.0
+                active[k] = r[k] > 0
+            end
+        end
+    end
+
+    ### Add unit beliefs to represent belief
+    for k in eachindex(r)
+        active[k] || continue
+        push!(weights, r[k] * remaining_weight)
+        push!(idxs, sidx[k])
+    end
+    return idxs, weights
 end
 
 function get_single_iterative_closeness_weights(b::DiscreteHashedBelief{S}, Bidxs, Data::TIB_Data{S}; values=nothing) where S
@@ -579,6 +666,26 @@ end
 const BASIS_CACHE_TRIES = 1000  # how many cached bases are tried before calling Clp
 
 """
+Returns all beliefs of B and Bbao (id <= nb for B), their candidate beliefs (overlaps), and the ids of the beliefs that need
+weights (all of Bbao, and the beliefs in B that are also in Bbao), grouped by support (in order of first appearance).
+The candidates of a belief only depend on its support.
+"""
+function support_classes(Data::TIB_Data{S}, Bbao_data::BBAO_Data{S}) where S
+    nb = length(Data.B)
+    beliefs = [Data.B; Bbao_data.Bbao]
+    overlaps = [Bbao_data.B_overlap; Bbao_data.Bbao_overlap]
+    class_of = Dict{Vector{S},Int}()
+    classes = Vector{Int}[]
+    for id in eachindex(beliefs)
+        id <= nb && !Bbao_data.B_in_Bbao[id] && continue
+        c = get!(class_of, beliefs[id].state_list, length(classes) + 1)
+        c > length(classes) && push!(classes, Int[])
+        push!(classes[c], id)
+    end
+    return beliefs, overlaps, classes
+end
+
+"""
 Computes the LP weights of all beliefs in Bbao (and of the beliefs in B that are also in Bbao). The candidate beliefs (and hence
 the LP, apart from its right-hand side) of a belief only depend on its support, and most supports are shared by hundreds of beliefs.
 For each support we keep the (verified) optimal bases found so far, and first try those (most recently used first) before calling
@@ -588,17 +695,7 @@ candidates, and keep(w) the weights that are kept.
 """
 function get_all_LP_weights(Data::TIB_Data{S}, Bbao_data::BBAO_Data{S}, LP_data, keep; maximize=false) where S
     nb = length(Data.B)
-    beliefs = [Data.B; Bbao_data.Bbao]
-    overlaps = [Bbao_data.B_overlap; Bbao_data.Bbao_overlap]
-    # Group the beliefs (B: only those also in Bbao) by support, in order of first appearance
-    class_of = Dict{Vector{S},Int}()
-    classes = Vector{Int}[]
-    for id in eachindex(beliefs)
-        id <= nb && !Bbao_data.B_in_Bbao[id] && continue
-        c = get!(class_of, beliefs[id].state_list, length(classes) + 1)
-        c > length(classes) && push!(classes, Int[])
-        push!(classes[c], id)
-    end
+    beliefs, overlaps, classes = support_classes(Data, Bbao_data)
     idxs, weights = Vector{Vector{Int}}(undef, length(beliefs)), Vector{Vector{Float64}}(undef, length(beliefs))
     for ids in classes
         cands = overlaps[ids[1]]
