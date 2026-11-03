@@ -7,6 +7,7 @@ struct DiscreteHashedBelief{S}
     state_list::Vector{S}       # assumed sorted!
     probs::Vector{Float64}
     hash::UInt
+    support_mask::UInt64        # bit i is set if the support contains a state s with state_bit(s) = i (see maybe_support_subset)
 end
 
 function DiscreteHashedBelief{S}(state_list::Vector{S}, probs::Vector{<:Float64}) where S
@@ -17,8 +18,18 @@ function DiscreteHashedBelief{S}(state_list::Vector{S}, probs::Vector{<:Float64}
     ordered_state_list = state_list[idxs]
     ordered_probs = probs[idxs]
     hash = makeDBhash(ordered_state_list, ordered_probs)
-    return DiscreteHashedBelief{S}(ordered_state_list, ordered_probs, hash)
+    return DiscreteHashedBelief{S}(ordered_state_list, ordered_probs, hash, make_support_mask(ordered_state_list))
 end
+
+state_bit(s::Integer) = UInt64(1) << mod(s, 64)
+state_bit(s) = UInt64(1) << (hash(s) % 64)
+make_support_mask(state_list::Vector) = foldl((mask, s) -> mask | state_bit(s), state_list; init=UInt64(0))
+
+"""
+Returns false if the support of bp is certainly not a subset of the support of b, i.e., if bp contains a state whose
+bit is not set in the mask of b. If it returns true, the support of bp may or may not be a subset of that of b.
+"""
+maybe_support_subset(bp::DiscreteHashedBelief, b::DiscreteHashedBelief) = iszero(bp.support_mask & ~b.support_mask)
 
 #Note: This method should only be used when b is a belief, but currently this is not checked.
 # I don't see any way to do this though: the beliefs used throughout the POMDP framework do not have a consistent supertype (even though they should all be distributions...)
@@ -108,13 +119,39 @@ function initialize_belief(bu::DiscreteHashedBeliefUpdater{Ss}, d) where Ss
     return DiscreteHashedBelief{S}(S,P)
 end
 
-function POMDPs.update(bu::DiscreteHashedBeliefUpdater{S}, b::DiscreteHashedBelief{S},a,o) where S
-    model = bu.model
+"""
+Transition and observation lookups for the belief update of a SparseTabularPOMDP.
+POMDPTools' transition and observation slice a row out of a column-major sparse matrix (a search through all columns)
+and allocate a SparseCat, which dominated the run time of get_Bbao. The transposed matrices give the same values in
+the same order, so the updated beliefs (and their hashes) are bit-identical.
+"""
+struct SparseTabularLookup
+    Tt::Vector{SparseMatrixCSC{Float64,Int}}    # Tt[a][sp, s] = T(sp | s, a)
+    Ot::Vector{SparseMatrixCSC{Float64,Int}}    # Ot[a][o, sp] = O(o | a, sp)
+end
+
+"""Returns what update_belief should use to look up transitions and observations: the model itself, or a faster lookup."""
+belief_update_lookup(model::POMDP) = model
+belief_update_lookup(model::SparseTabularPOMDP) = SparseTabularLookup(map(T -> sparse(transpose(T)), model.T), map(O -> sparse(transpose(O)), model.O))
+
+next_states(model::POMDP, s, a) = weighted_iterator(transition(model, s, a))
+function next_states(L::SparseTabularLookup, s, a)
+    T = L.Tt[a]
+    r = nzrange(T, s)
+    return zip(view(rowvals(T), r), view(nonzeros(T), r))
+end
+
+obs_prob(model::POMDP, a, sp, o) = pdf(observation(model, a, sp), o)
+obs_prob(L::SparseTabularLookup, a, sp, o) = L.Ot[a][o, sp]
+
+POMDPs.update(bu::DiscreteHashedBeliefUpdater{S}, b::DiscreteHashedBelief{S},a,o) where S = update_belief(bu.model, b, a, o)
+
+function update_belief(lookup, b::DiscreteHashedBelief{S},a,o) where S
     bnext = Dict{S, Float64}()
 
     ### Collect possible next states with transition probs
     for (s, ps) in weighted_iterator(b)
-        for (snext, psnext) in weighted_iterator(transition(model,s,a))
+        for (snext, psnext) in next_states(lookup, s, a)
             add_to_dict!(bnext, snext, ps * psnext)
         end
     end
@@ -122,7 +159,7 @@ function POMDPs.update(bu::DiscreteHashedBeliefUpdater{S}, b::DiscreteHashedBeli
     ### Alter weights according to obs
     bnext_ = Dict{S, Float64}()
     for (snext, psnext) in bnext
-        po = pdf(observation(model,a,snext), o)
+        po = obs_prob(lookup, a, snext, o)
         bnext_[snext] = psnext * po
     end
     ### Normalize
