@@ -451,6 +451,131 @@ function solve_with_basis!(rhs::Vector{Float64}, z::Vector{Float64}, L::WeightLP
     return x
 end
 
+const MAX_DUAL_PIVOTS = 50      # dual simplex pivots (see dual_simplex) before falling back to Clp
+const MAX_DUAL_SIMPLEX_ROWS = 18    # larger LPs are left to Clp (for them, our dense dual simplex is slower and needs more pivots)
+
+"""
+Solves the LP for b with a (dense) dual simplex, starting from the cached optimal basis C of another right-hand side, which is still
+dual feasible. Starting from the cached basis that is closest to being feasible for b, only a few pivots are typically needed.
+Returns Clp-style basis status of the optimal basis (of the columns, then the rows; 1: basic, 2: at upper bound, 3: at lower bound),
+or nothing if it takes too many pivots.
+
+Variables v = 1..nc are the columns, nc+i the activity of row i (column -e_i in A x - r = 0, cost 0, bounds b(s) for states and
+[0, Inf] for actions). With costs c (for minimization), basic variables z = B^-1 (-N x_N) and duals y = B^-T c_B, a basic variable
+p outside its bounds leaves, and enters the nonbasic variable v that moves it towards that bound and has the smallest |d_v / alpha_v|,
+with d_v = c_v - y a_v its reduced cost and alpha_v = (B^-T e_p) a_v: this keeps the basis dual feasible.
+"""
+function dual_simplex(L::WeightLP, A::Matrix{Float64}, C::CachedBasis, b::DiscreteHashedBelief)
+    m, nc = nrows(L), ncols(L)
+    nv = nc + m
+    sgn = L.maximize ? -1.0 : 1.0
+    lbv, ubv, cost = zeros(nv), zeros(nv), zeros(nv)
+    for j in 1:nc
+        lbv[j], ubv[j], cost[j] = L.collb[j], L.colub[j], sgn * L.obj[j]
+    end
+    k = 0
+    for (p, c) in zip(b.probs, L.covered)
+        c && (k += 1; lbv[nc+k] = p; ubv[nc+k] = p)
+    end
+    for i in L.neq+1:m; ubv[nc+i] = Inf; end
+    basic = [C.basic_cols; nc .+ C.basic_rows]
+    is_basic, at_upper = falses(nv), falses(nv)
+    is_basic[basic] .= true
+    at_upper[C.upper_cols] .= true
+    tol = LP_PRIMAL_TOLERANCE
+    Bm, rhs, e_p, cB = zeros(m, m), zeros(m), zeros(m), zeros(m)
+    alphaA, yA = zeros(nc), zeros(nc)
+    for _ in 0:MAX_DUAL_PIVOTS
+        fill!(Bm, 0.0)
+        for (k, v) in enumerate(basic)
+            v <= nc ? (Bm[:, k] .= view(A, :, v)) : (Bm[v - nc, k] = -1.0)
+            cB[k] = cost[v]
+        end
+        F = lu(Bm; check=false)
+        issuccess(F) || return nothing
+        # z = B^-1 (-N x_N), with nonbasic variables at a bound
+        fill!(rhs, 0.0)
+        for v in 1:nc
+            is_basic[v] && continue
+            xv = at_upper[v] ? ubv[v] : lbv[v]
+            isfinite(xv) || return nothing
+            xv == 0.0 || (rhs .-= xv .* view(A, :, v))
+        end
+        for i in 1:m
+            v = nc + i
+            is_basic[v] || (rhs[i] += at_upper[v] ? ubv[v] : lbv[v])
+        end
+        z = F \ rhs
+        # Leaving variable: the basic variable furthest outside its bounds
+        p, viol, below = 0, tol, false
+        for (k, v) in enumerate(basic)
+            lbv[v] - z[k] > viol && ((p, viol, below) = (k, lbv[v] - z[k], true))
+            z[k] - ubv[v] > viol && ((p, viol, below) = (k, z[k] - ubv[v], false))
+        end
+        if p == 0       # primal feasible, so optimal
+            status = fill(0x03, nv)
+            for v in 1:nv; at_upper[v] && (status[v] = 0x02); end
+            for v in basic; status[v] = 0x01; end
+            return status
+        end
+        fill!(e_p, 0.0); e_p[p] = 1.0
+        rho, y = F' \ e_p, F' \ cB
+        mul!(alphaA, A', rho); mul!(yA, A', y)
+        # Entering variable (ratio test). z_p changes by -theta alpha_v when v moves by theta (> 0 at its lower, < 0 at its upper bound).
+        q, best, bestalpha = 0, Inf, 0.0
+        for v in 1:nv
+            (is_basic[v] || lbv[v] == ubv[v]) && continue
+            av, dv = v <= nc ? (alphaA[v], cost[v] - yA[v]) : (-rho[v - nc], y[v - nc])
+            abs(av) <= 1e-12 && continue
+            # z_p must increase (below its lower bound) or decrease (above its upper bound)
+            (below ? (at_upper[v] ? av > 0 : av < 0) : (at_upper[v] ? av < 0 : av > 0)) || continue
+            ratio = abs(dv / av)
+            if ratio < best || (ratio == best && abs(av) > abs(bestalpha))
+                q, best, bestalpha = v, ratio, av
+            end
+        end
+        q == 0 && return nothing        # (LP infeasible: cannot happen for the weight LPs)
+        leaving = basic[p]
+        is_basic[leaving], at_upper[leaving] = false, !below
+        basic[p] = q
+        is_basic[q], at_upper[q] = true, false
+    end
+    return nothing
+end
+
+"""
+Like solve_with_basis!, but returns how far the basic solution of the cached basis C for b is from being feasible (the total bound
+violation; 0 if it is optimal for b). The basic values are left in z.
+"""
+function basis_infeasibility!(rhs::Vector{Float64}, z::Vector{Float64}, L::WeightLP, C::CachedBasis, b::DiscreteHashedBelief)
+    k = 0
+    for (p, c) in zip(b.probs, L.covered)
+        c && (k += 1; rhs[k] = p)
+    end
+    for i in L.neq+1:length(rhs); rhs[i] = 0.0; end
+    for j in C.upper_cols, e in L.colstart[j]+1:L.colstart[j+1]
+        rhs[L.rowidx[e]+1] -= L.vals[e] * L.colub[j]
+    end
+    viol = 0.0
+    nb = length(C.basic_cols)
+    if C.basic_state_rows   # (rare: a basic state row activity must still equal b(s))
+        bstate = rhs[1:L.neq]
+        for i in C.basic_rows; rhs[i] = 0.0; end
+        lu_solve!(z, C.LU, C.perm, rhs)
+        for (k, i) in enumerate(C.basic_rows); i <= L.neq && (viol += abs(z[nb+k] - bstate[i])); end
+    else
+        for i in C.basic_rows; rhs[i] = 0.0; end
+        lu_solve!(z, C.LU, C.perm, rhs)
+    end
+    for (k, j) in enumerate(C.basic_cols)
+        viol += max(0.0, L.collb[j] - z[k]) + max(0.0, z[k] - L.colub[j])
+    end
+    for (k, i) in enumerate(C.basic_rows)
+        i > L.neq && (viol += max(0.0, -z[nb+k]))
+    end
+    return viol
+end
+
 const BASIS_CACHE_TRIES = 1000  # how many cached bases are tried before calling Clp
 
 """
@@ -484,12 +609,25 @@ function get_all_LP_weights(Data::TIB_Data{S}, Bbao_data::BBAO_Data{S}, LP_data,
         cache = CachedBasis[]
         for id in ids
             b, x = beliefs[id], nothing
+            closest, closest_viol = 0, Inf
             for (k, C) in enumerate(cache)
                 k > BASIS_CACHE_TRIES && break
+                viol = basis_infeasibility!(rhs, z, L, C, b)
+                viol < closest_viol && ((closest, closest_viol) = (k, viol))
+                viol <= LP_PRIMAL_TOLERANCE || continue
                 x = solve_with_basis!(rhs, z, L, C, b)
                 if !isnothing(x)
                     k > 1 && (deleteat!(cache, k); pushfirst!(cache, C))     # most recently used first
                     break
+                end
+            end
+            if isnothing(x) && closest > 0 && nrows(L) <= MAX_DUAL_SIMPLEX_ROWS
+                # Dual simplex from the cached basis that is closest to being feasible
+                status = dual_simplex(L, A, cache[closest], b)
+                C = isnothing(status) ? nothing : CachedBasis(L, A, status)
+                if !isnothing(C)
+                    x = solve_with_basis!(rhs, z, L, C, b)
+                    isnothing(x) || pushfirst!(cache, C)
                 end
             end
             if isnothing(x)
