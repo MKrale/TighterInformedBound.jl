@@ -6,6 +6,7 @@ module TIB
     include("Caching.jl")
     export print_model_info
     include("Weights.jl")
+    include("BackupTable.jl")
     # Both QMDP and FIB use alpha-vectors in the original version, which is slow...
     include("SimpleHeuristics.jl")
     export QMDPSolver_alt, FIBSolver_alt,

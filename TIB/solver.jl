@@ -147,7 +147,7 @@ function solve_info(solver::X, model::POMDP{S,A,O}; Data::Union{TIB_Data{S},Noth
     # Lets be overly fancy! Define a function for computing Q, depending on the specific solver
     get_Q, args = identity, []
     if solver isa STIBSolver
-        pol, get_Q, args = STIBPolicy, get_QTIB_Beliefset, (Data, TIB_Transitions(Data))
+        pol, get_Q, args = STIBPolicy, get_QTIB_Beliefset, (Data, tib_backup_table(Data))
     elseif solver isa OTIBSolver
         pol, get_Q, args = OTIBPolicy, Get_Q_weights_Beliefset, weighted_args(Data, Bbao_data, Weights)
     elseif solver isa SawTIBSolver
@@ -270,18 +270,11 @@ end
 ############ TIB ###################
 
 """
-Precomputed transitions for TIB backups. For each belief-action pair (b,a) and each observation o in BAOs[b,a] (in that order),
-it stores the next beliefs b' = B_idx[s,a,o] and weights b(s) * P(o|s,a) for all s in supp(b) (in the order of supp(b)).
+The BackupTable for TIB backups. For each belief-action pair (b,a) and each observation o in BAOs[b,a] (in that order), the columns
+of its group are the next beliefs b' = B_idx[s,a,o] with weights b(s) * P(o|s,a) for all s in supp(b) (in the order of supp(b)).
 Since B is fixed, this saves looking these up again in every sweep.
 """
-struct TIB_Transitions
-    ba_start::Vector{Int}       # (bi-1)*na + ai -> first observation group of (b,a)
-    obs_start::Vector{Int}      # group -> first entry of that group in next and weight
-    next::Vector{Int32}         # entry -> index of the next belief
-    weight::Vector{Float64}     # entry -> b(s) * P(o|s,a)
-end
-
-function TIB_Transitions(Data::TIB_Data)
+function tib_backup_table(Data::TIB_Data)
     nb, na, no = length(Data.B), Data.constants.na, Data.constants.no
     ba_start, obs_start, next, weight = Int[1], Int[1], Int32[], Float64[]
     group_next, group_weight = [Int32[] for _ in 1:no], [Float64[] for _ in 1:no]
@@ -301,11 +294,11 @@ function TIB_Transitions(Data::TIB_Data)
         foreach(empty!, group_next); foreach(empty!, group_weight)
         push!(ba_start, length(obs_start))
     end
-    return TIB_Transitions(ba_start, obs_start, next, weight)
+    return BackupTable(ba_start, UnitProbs(), Base.OneTo(length(obs_start)-1), WeightedColumns(obs_start, next, weight))
 end
 
 """Performs one iteration of TIB"""
-function get_QTIB_Beliefset(model::POMDP{S}, Q::Qtype, timeleft::Float64, Data::TIB_Data{S}, T::TIB_Transitions) where S where Qtype <: AbstractArray{Float64,2}
+function get_QTIB_Beliefset(model::POMDP{S}, Q::Qtype, timeleft::Float64, Data::TIB_Data{S}, T::BackupTable) where S where Qtype <: AbstractArray{Float64,2}
     t0 = time()
     Qs_new = zero(Q) # TODO: this may be inefficient?
     gamma = Float64(discount(model))
@@ -319,25 +312,13 @@ function get_QTIB_Beliefset(model::POMDP{S}, Q::Qtype, timeleft::Float64, Data::
 end
 
 """TIB backups of all actions of belief b_idx. The number of actions NA is a type parameter, so that the loops over actions are unrolled."""
-function QTIB_backup_b!(Qs_new::Matrix{Float64}, ::Val{NA}, b_idx::Int, gamma::Float64, Qt::Matrix{Float64}, Br::Matrix{Float64}, T::TIB_Transitions) where NA
+function QTIB_backup_b!(Qs_new::Matrix{Float64}, ::Val{NA}, b_idx::Int, gamma::Float64, Qt::Matrix{Float64}, Br::Matrix{Float64}, T::BackupTable) where NA
     @inbounds for ai in 1:NA
         k = (b_idx-1)*NA + ai
-        Qba = Br[b_idx,ai]
-        for g in T.ba_start[k]:T.ba_start[k+1]-1
-            Qo = ntuple(_ -> 0.0, Val(NA))
-            for e in T.obs_start[g]:T.obs_start[g+1]-1
-                Qo = add_weighted_column(Qo, T.weight[e], Qt, T.next[e])
-            end
-            Qba += gamma * maximum(Qo)
-        end
-        Qs_new[b_idx,ai] = Qba
+        Qs_new[b_idx,ai] = backup_action(Br[b_idx,ai], T, gamma, Qt, k, Val(NA))
     end
     return Qs_new
 end
-
-"""Returns Qo .+ w .* Qt[:,bp] (a separate function, so that Qo is not captured by a closure in the loop above)"""
-@inline add_weighted_column(Qo::NTuple{NA,Float64}, w::Float64, Qt::Matrix{Float64}, bp::Int32) where NA =
-    ntuple(a -> @inbounds(Qo[a] + w * Qt[a,bp]), Val(NA))
 
 """Performs one iteration of TIB for the given belief-action pair"""
 function get_QTIB_ba(model::POMDP{S,A,O},b::DiscreteHashedBelief{S},a::A,Qs::Qtype, Data::TIB_Data{S}; ai=nothing, bi=nothing) where S where A where O where Qtype <: AbstractArray{Float64,2}
@@ -395,20 +376,12 @@ get_QTIB_ba(model::POMDP{S},b::DiscreteHashedBelief{S},a,D::TIB_Data{S}; bi=noth
 ########## Heuristics with pre-computed weights (OTIB, ETIB, CTIB) ###########
 
 """
-Precomputed data for the backups of ETIB, CTIB, OTIB and MultiTIB. For each belief-action pair (b,a) and each observation o
-(in the order of Bbao_idx[b,a]), it stores P(o|b,a) and the next belief b', and for each set of weights (MultiTIB uses several)
-the beliefs and weights that represent each b'. It is rebuilt whenever the weights change.
+The BackupTable for ETIB, CTIB, OTIB and MultiTIB. For each belief-action pair (b,a) and each observation o (in the order of
+Bbao_idx[b,a]), it stores P(o|b,a) and the next belief b': bi for beliefs in B, nb + baoi for beliefs only in Bbao. The columns are the
+beliefs and weights that represent each b', with one set of columns for each set of weights (MultiTIB uses several).
+It is rebuilt whenever the weights change.
 """
-struct Weighted_Backups
-    ba_start::Vector{Int}       # (bi-1)*na + ai -> first observation of (b,a)
-    prob::Vector{Float64}       # observation -> P(o|b,a)
-    target::Vector{Int}         # observation -> next belief: bi for beliefs in B, nb + baoi for beliefs only in Bbao
-    w_start::Vector{Vector{Int}}        # weight set, next belief -> first of its weights
-    w_idx::Vector{Vector{Int32}}        # weight set, weight -> index of a belief in B
-    w_val::Vector{Vector{Float64}}      # weight set, weight -> its weight
-end
-
-function Weighted_Backups(Data::TIB_Data, Bbao_data::BBAO_Data, Weights::Union{Weights_Data, Vector{Weights_Data}})
+function weighted_backup_table(Data::TIB_Data, Bbao_data::BBAO_Data, Weights::Union{Weights_Data, Vector{Weights_Data}})
     nb, na = length(Data.B), Data.constants.na
     ba_start, prob, target = Int[1], Float64[], Int[]
     for bi in 1:nb, ai in 1:na
@@ -419,22 +392,24 @@ function Weighted_Backups(Data::TIB_Data, Bbao_data::BBAO_Data, Weights::Union{W
         end
         push!(ba_start, length(prob) + 1)
     end
-    w_start, w_idx, w_val = Vector{Int}[], Vector{Int32}[], Vector{Float64}[]
-    for W in (Weights isa Weights_Data ? [Weights] : Weights)
-        start, idx, val = Int[1], Int32[], Float64[]
-        for (idxs, ws) in ((W.B_idxs, W.B_weights), (W.Bbao_idxs, W.Bbao_weights)), i in eachindex(idxs)
-            isassigned(idxs, i) && (append!(idx, idxs[i]); append!(val, ws[i]))     # (B_idxs is only set for beliefs in Bbao)
-            push!(start, length(idx) + 1)
-        end
-        push!(w_start, start); push!(w_idx, idx); push!(w_val, val)
-    end
-    return Weighted_Backups(ba_start, prob, target, w_start, w_idx, w_val)
+    columns = Weights isa Weights_Data ? weighted_columns(Weights) : map(weighted_columns, Weights)
+    return BackupTable(ba_start, prob, target, columns)
 end
 
-weighted_args(Data::TIB_Data, Bbao_data::BBAO_Data, Weights) = (Data, Bbao_data, Weighted_Backups(Data, Bbao_data, Weights))
+"""The columns representing all beliefs for one set of weights: bi for beliefs in B, nb + baoi for beliefs only in Bbao."""
+function weighted_columns(W::Weights_Data)
+    start, idx, val = Int[1], Int32[], Float64[]
+    for (idxs, ws) in ((W.B_idxs, W.B_weights), (W.Bbao_idxs, W.Bbao_weights)), i in eachindex(idxs)
+        isassigned(idxs, i) && (append!(idx, idxs[i]); append!(val, ws[i]))     # (B_idxs is only set for beliefs in Bbao)
+        push!(start, length(idx) + 1)
+    end
+    return WeightedColumns(start, idx, val)
+end
+
+weighted_args(Data::TIB_Data, Bbao_data::BBAO_Data, Weights) = (Data, Bbao_data, weighted_backup_table(Data, Bbao_data, Weights))
 
 """Performs one iteration of ETIB"""
-function Get_Q_weights_Beliefset(model::POMDP{S}, Q::Qtype, timeleft, Data::TIB_Data{S}, Bbao_data::BBAO_Data{S}, W::Weighted_Backups) where S where Qtype <: AbstractArray{Float64,2}
+function Get_Q_weights_Beliefset(model::POMDP{S}, Q::Qtype, timeleft, Data::TIB_Data{S}, Bbao_data::BBAO_Data{S}, W::BackupTable) where S where Qtype <: AbstractArray{Float64,2}
     Qs_new = zero(Q)
     t0 = time()
     gamma = Float64(discount(model))
@@ -451,24 +426,10 @@ end
 Backups of all actions of belief bi, using precomputed weights (for MultiTIB, the minimum over its sets of weights).
 The number of actions NA is a type parameter, so that the loops over actions are unrolled.
 """
-function weighted_backup_b!(Qs_new::Matrix{Float64}, Q::Matrix{Float64}, ::Val{NA}, bi::Int, gamma::Float64, Qt::Matrix{Float64}, Br::Matrix{Float64}, W::Weighted_Backups) where NA
+function weighted_backup_b!(Qs_new::Matrix{Float64}, Q::Matrix{Float64}, ::Val{NA}, bi::Int, gamma::Float64, Qt::Matrix{Float64}, Br::Matrix{Float64}, W::BackupTable) where NA
     @inbounds for ai in 1:NA
         k = (bi-1)*NA + ai
-        Qba = Br[bi,ai]
-        for g in W.ba_start[k]:W.ba_start[k+1]-1
-            t = W.target[g]
-            thisQ = Inf
-            for ws in eachindex(W.w_start)
-                start, idx, val = W.w_start[ws], W.w_idx[ws], W.w_val[ws]
-                Qo = ntuple(_ -> 0.0, Val(NA))
-                for e in start[t]:start[t+1]-1
-                    Qo = add_weighted_column(Qo, val[e], Qt, idx[e])
-                end
-                thisQ = min(thisQ, maximum(Qo))
-            end
-            Qba += gamma * W.prob[g] * thisQ
-        end
-        Qs_new[bi,ai] = min(Q[bi,ai], Qba)
+        Qs_new[bi,ai] = min(Q[bi,ai], backup_action(Br[bi,ai], W, gamma, Qt, k, Val(NA)))
     end
     return Qs_new
 end
