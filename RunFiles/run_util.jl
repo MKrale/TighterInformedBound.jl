@@ -22,45 +22,45 @@ function get_envs(env_name)
     ###ABC
     if env_name == "ABC"
         abcmodel = ABC(discount=discount)
-        push!(envs, SparseTabularPOMDP(abcmodel))
+        push!(envs, QuickSparseTabularPOMDP(abcmodel))
         push!(envargs, (name="ABCModel",))
         ### Tiger
     end
     if env_name == "Tiger"
         tiger = POMDPModels.TigerPOMDP()
         tiger.discount_factor = discount
-        push!(envs, SparseTabularPOMDP(tiger))
+        push!(envs, QuickSparseTabularPOMDP(tiger))
         push!(envargs, (name="Tiger",))
         ### RockSample
     end
     if env_name == "RockSample5"
         map_size, rock_pos = (5,5), [(1,1), (3,3), (4,4)] # Default
         rocksamplesmall = SparseTabularPOMDP(RockSample.RockSamplePOMDP(map_size, rock_pos))
-        rocksamplesmall = sparseTabularPOMDPFiniteReward(rocksamplesmall)
+        rocksamplesmall = QuickSparseTabularPOMDP(sparseTabularPOMDPFiniteReward(rocksamplesmall))
         push!(envargs, (name="RockSample ()",))
         push!(envs, rocksamplesmall)
     end
     if env_name == "RockSample7"
         map_size, rock_pos = (7,7), [(1,2), (2,6), (3,3), (3,4), (4,7),(6,1),(6,4),(7,3)] # HSVI setting!
         rocksamplelarge = SparseTabularPOMDP(RockSample.RockSamplePOMDP(map_size, rock_pos))
-        rocksamplelarge = sparseTabularPOMDPFiniteReward(rocksamplelarge)
+        rocksamplelarge = QuickSparseTabularPOMDP(sparseTabularPOMDPFiniteReward(rocksamplelarge))
         push!(envargs, (name="RockSample (7,8)",))
         push!(envs, rocksamplelarge)
     end
     if env_name == "K-out-of-N2"
         # ### K-out-of-N
         k_model2 = K_out_of_N(N=2, K=2, discount=discount)
-        push!(envs, SparseTabularPOMDP(k_model2))
+        push!(envs, QuickSparseTabularPOMDP(k_model2))
         push!(envargs, (name="K-out-of-N (2)",))
     end
     if env_name == "K-out-of-N3"
         k_model3 = K_out_of_N(N=3, K=3, discount=discount)
-        push!(envs, SparseTabularPOMDP(k_model3))
+        push!(envs, QuickSparseTabularPOMDP(k_model3))
         push!(envargs, (name="K-out-of-N (3)",))
     end
     if env_name == "HeavenOrHell"
         model = HeavenOrHell(size=10)
-        push!(envs, SparseTabularPOMDP(model))
+        push!(envs, QuickSparseTabularPOMDP(model))
         push!(envargs, (name="HeavenOrHell",))
     end
     if env_name == "SparseHallway1"
@@ -131,13 +131,13 @@ function get_envs(env_name)
     if env_name == "Tag"
         ### Tag
         tag = TagPOMDPProblem.TagPOMDP(discount_factor=discount)
-        tag = SparseTabularPOMDP(tag)
+        tag = QuickSparseTabularPOMDP(tag)
         push!(envs, tag)
         push!(envargs, (name="Tag",))
     end
     if env_name == "DroneSurveilance"
         drone = DroneSurveillancePOMDP()
-        drone = SparseTabularPOMDP(drone)
+        drone = QuickSparseTabularPOMDP(drone)
         push!(envs, drone)
         push!(envargs, (name="DroneSurveilance",))
     end

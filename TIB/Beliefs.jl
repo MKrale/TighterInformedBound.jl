@@ -18,7 +18,8 @@ function DiscreteHashedBelief{S}(state_list::Vector{S}, probs::Vector{<:Float64}
     ordered_state_list = state_list[idxs]
     ordered_probs = probs[idxs]
     hash = makeDBhash(ordered_state_list, ordered_probs)
-    return DiscreteHashedBelief{S}(ordered_state_list, ordered_probs, hash, make_support_mask(ordered_state_list))
+    support_mask = make_support_mask(ordered_state_list)
+    return DiscreteHashedBelief{S}(ordered_state_list, ordered_probs, hash, support_mask)
 end
 
 state_bit(s::Integer) = UInt64(1) << mod(s, 64)
@@ -41,8 +42,8 @@ function DiscreteHashedBelief{Bool}(b::BoolDistribution)
     return DiscreteHashedBelief{Bool}([true, false], [b.p, 1-b.p])
 end
 
-function DiscreteHashedBelief{S}(b::Distribution{F,S}) where F where S 
-    states, probs = [], Float64[]
+function DiscreteHashedBelief{S}(b) where S
+    states, probs = S[], Float64[]
     for (s,p) in weighted_iterator(b)
         if p>0
             push!(states,s)
@@ -53,7 +54,7 @@ function DiscreteHashedBelief{S}(b::Distribution{F,S}) where F where S
 end
 
 
-function POMDPs.rand(rng::AbstractRNG, s::Random.SamplerTrivial{DiscreteHashedBelief})
+function POMDPs.rand(rng::AbstractRNG, s::Random.SamplerTrivial{<:DiscreteHashedBelief})
     d = s[]
     r = rand(rng)
     tot = 0.0
@@ -106,9 +107,11 @@ Base.hash(x::DiscreteHashedBelief) = hash(x,UInt(0))
 #########################################
 
 """Struct for updating DiscreteHashedBelief"""
-struct DiscreteHashedBeliefUpdater{S,A,O} <: Updater
-    model::X where X<:POMDP{S,A,O}
+struct DiscreteHashedBeliefUpdater{S,A,O,M<:POMDP{S,A,O}} <: Updater
+    model::M
 end
+DiscreteHashedBeliefUpdater{S,A,O}(model::M) where {S,A,O,M<:POMDP{S,A,O}} = DiscreteHashedBeliefUpdater{S,A,O,M}(model)
+DiscreteHashedBeliefUpdater(model::POMDP{S,A,O}) where {S,A,O} = DiscreteHashedBeliefUpdater{S,A,O}(model)
 
 """Given a distribution d, create a DiscreteHashedBelief"""
 function initialize_belief(bu::DiscreteHashedBeliefUpdater{Ss}, d) where Ss
@@ -119,39 +122,13 @@ function initialize_belief(bu::DiscreteHashedBeliefUpdater{Ss}, d) where Ss
     return DiscreteHashedBelief{S}(S,P)
 end
 
-"""
-Transition and observation lookups for the belief update of a SparseTabularPOMDP.
-POMDPTools' transition and observation slice a row out of a column-major sparse matrix (a search through all columns)
-and allocate a SparseCat, which dominated the run time of get_Bbao. The transposed matrices give the same values in
-the same order, so the updated beliefs (and their hashes) are bit-identical.
-"""
-struct SparseTabularLookup
-    Tt::Vector{SparseMatrixCSC{Float64,Int}}    # Tt[a][sp, s] = T(sp | s, a)
-    Ot::Vector{SparseMatrixCSC{Float64,Int}}    # Ot[a][o, sp] = O(o | a, sp)
-end
-
-"""Returns what update_belief should use to look up transitions and observations: the model itself, or a faster lookup."""
-belief_update_lookup(model::POMDP) = model
-belief_update_lookup(model::SparseTabularPOMDP) = SparseTabularLookup(map(T -> sparse(transpose(T)), model.T), map(O -> sparse(transpose(O)), model.O))
-
-next_states(model::POMDP, s, a) = weighted_iterator(transition(model, s, a))
-function next_states(L::SparseTabularLookup, s, a)
-    T = L.Tt[a]
-    r = nzrange(T, s)
-    return zip(view(rowvals(T), r), view(nonzeros(T), r))
-end
-
-obs_prob(model::POMDP, a, sp, o) = pdf(observation(model, a, sp), o)
-obs_prob(L::SparseTabularLookup, a, sp, o) = L.Ot[a][o, sp]
-
-POMDPs.update(bu::DiscreteHashedBeliefUpdater{S}, b::DiscreteHashedBelief{S},a,o) where S = update_belief(bu.model, b, a, o)
-
-function update_belief(lookup, b::DiscreteHashedBelief{S},a,o) where S
+function POMDPs.update(bu::DiscreteHashedBeliefUpdater{S}, b::DiscreteHashedBelief{S},a,o) where S
+    model = bu.model
     bnext = Dict{S, Float64}()
 
     ### Collect possible next states with transition probs
     for (s, ps) in weighted_iterator(b)
-        for (snext, psnext) in next_states(lookup, s, a)
+        for (snext, psnext) in weighted_iterator(transition(model, s, a))
             add_to_dict!(bnext, snext, ps * psnext)
         end
     end
@@ -159,7 +136,7 @@ function update_belief(lookup, b::DiscreteHashedBelief{S},a,o) where S
     ### Alter weights according to obs
     bnext_ = Dict{S, Float64}()
     for (snext, psnext) in bnext
-        po = obs_prob(lookup, a, snext, o)
+        po = pdf(observation(model, a, snext), o)
         bnext_[snext] = psnext * po
     end
     ### Normalize
