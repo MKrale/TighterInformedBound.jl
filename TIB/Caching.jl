@@ -145,7 +145,7 @@ function get_belief_set(model::POMDP{Ss,As,Os}, SAOs, constants::C{Ss,As,Os}) wh
     isnothing(constants) && throw("Not implemented error! (get_obs_probs)")
     S, A, O = constants.S, constants.A, constants.O
     ns,na,no = constants.ns, constants.na, constants.no
-    U = DiscreteHashedBeliefUpdater{Ss, As, Os}(model)
+    U = DiscreteHashedBeliefUpdater{Ss,As,Os}(model)
 
     B = Array{DiscreteHashedBelief{Ss},1}()       
     B_idx = zeros(Int,ns,na,no)
@@ -171,7 +171,7 @@ function get_belief_set(model::POMDP{Ss,As,Os}, SAOs, constants::C{Ss,As,Os}) wh
         for (ai,a) in enumerate(A)
             for oi in SAOs[si,ai]
                 o = O[oi]
-                b = update(U, b_s, a, o)
+                b = POMDPs.update(U, b_s, a, o)
                 k = get(B_dict, b, nothing)
                 if isnothing(k)
                     push!(B,b)
@@ -206,12 +206,13 @@ end
 Pre-computed data regarding two-step beliefs, as used by ETIB, CTIB and OTIB
 """
 struct BBAO_Data{S}
-    Bbao::Vector{DiscreteHashedBelief{S}}                   # Vector of 2-step beliefs (excluding already-found 1-step beliefs!)
-    Bbao_idx::Array{Dict{Int,Tuple{Bool,Int}},2}            # bi, ai, oi -> bpi     : gives Bbao-index for each transition
-    BAO_probs::AbstractArray{Float64,3}                     # bi, ai, oi -> p       : gives probability of each transition
-    B_in_Bbao::AbstractArray{Bool}                          # bi -> Bool            : is the one-step also a 2-step belief?
-    B_overlap::AbstractArray{Vector{Int}}                   # bi -> [bi]            : Gives vector of all beliefs who's support is a subset of the support of bi
-    Bbao_overlap::AbstractArray{Vector{Int}}                # bi -> [bi]            : Gives vector all beliefs who's support is a subset of the support of bi
+    Bbao::Vector{DiscreteHashedBelief{S}}         # Vector of 2-step beliefs (excluding already-found 1-step beliefs!)
+    Bbao_idx::Array{Dict{Int,Tuple{Bool,Int}},2}  # bi, ai, oi -> bpi     : gives Bbao-index for each transition
+    BAO_probs::Array{Float64,3}                   # bi, ai, oi -> p       : gives probability of each transition
+    B_in_Bbao::Vector{Bool}                       # bi -> Bool            : is the one-step also a 2-step belief?
+    # The overlap vectors are by far the largest part of BBAO_Data (2.3 GB for fourth with Int64), so we store them as Int32
+    B_overlap::Vector{Vector{Int32}}              # bi -> [bi]            : Gives vector of all beliefs who's support is a subset of the support of bi
+    Bbao_overlap::Vector{Vector{Int32}}           # bi -> [bi]            : Gives vector all beliefs who's support is a subset of the support of bi
 end
 
 """Convenience function to get belief given transition"""
@@ -248,7 +249,7 @@ function get_Bbao(model::POMDP{S,A,O}, Data::TIB_Data{S}) where S where A where 
     B = Data.B
     S_dict = Data.S_dict
     O_dict = Dict{O,Int}( zip(constants.O, 1:constants.no) )
-    U = DiscreteHashedBeliefUpdater{S, A, O}(model)
+    U = DiscreteHashedBeliefUpdater{S,A,O}(model)
     nb = length(B)
 
     Bbao = DiscreteHashedBelief{S}[]
@@ -284,8 +285,8 @@ function get_Bbao(model::POMDP{S,A,O}, Data::TIB_Data{S}) where S where A where 
         end
     end
     nbao = length(Bbao)
-    B_overlap = Array{Vector{Int}}(undef, nb)
-    Bbao_overlap = Array{Vector{Int}}(undef, nbao)
+    B_overlap = Array{Vector{Int32}}(undef, nb)
+    Bbao_overlap = Array{Vector{Int32}}(undef, nbao)
     # For each belief, determine the state with the lowest index with non-zero support (speeds up overlap computations)
     Bs_lowest_support_state = Dict{Int, Vector{Int}}()
     for (bi, b) in enumerate(B)
@@ -299,13 +300,12 @@ function get_Bbao(model::POMDP{S,A,O}, Data::TIB_Data{S}) where S where A where 
 
     # Record overlap for b
     for (bi,b) in enumerate(B)
-        B_overlap[bi] = []
-        sidx_lowest = S_dict[support(b)[1]]
-        sidx_highest = S_dict[support(b)[length(support(b))]]
-        for sidx=sidx_lowest:sidx_highest
-            # we will check only those beliefs whos lowest index lies between the lowest and highest index of our belief:
-            # Depending on the env, this may significantly reduce the search space.
-            if haskey(Bs_lowest_support_state, sidx) 
+        B_overlap[bi] = Int32[]
+        for s in support(b)
+            # A belief whose support is a subset of supp(b) must have its lowest state in supp(b),
+            # so we only check the beliefs whose lowest state is one of the states in supp(b).
+            sidx = S_dict[s]
+            if haskey(Bs_lowest_support_state, sidx)
                 for bpi in Bs_lowest_support_state[sidx]
                     have_overlap(b,B[bpi]) && push!(B_overlap[bi], bpi)
                 end
@@ -314,10 +314,9 @@ function get_Bbao(model::POMDP{S,A,O}, Data::TIB_Data{S}) where S where A where 
     end
     # Repeat the process above for beliefs in Bbao
     for (bi,b) in enumerate(Bbao)
-        Bbao_overlap[bi] = []
-        sidx_lowest = S_dict[support(b)[1]]
-        sidx_highest = S_dict[support(b)[length(support(b))]]
-        for sidx=sidx_lowest:sidx_highest
+        Bbao_overlap[bi] = Int32[]
+        for s in support(b)
+            sidx = S_dict[s]
             if haskey(Bs_lowest_support_state, sidx)
                 for bpi in Bs_lowest_support_state[sidx]
                     have_overlap(b,B[bpi]) && push!(Bbao_overlap[bi], bpi)
@@ -331,6 +330,7 @@ end
 
 """Returns true if the support of bp is a subset of the support of b"""
 function have_overlap(b::DiscreteHashedBelief{S},bp::DiscreteHashedBelief{S}) where S
+    maybe_support_subset(bp, b) || return false
     bidx, bpidx = 1, 1
     sup_b, sup_bp = support(b), support(bp)
     n_sup_b, n_sup_bp = length(sup_b), length(sup_bp)
