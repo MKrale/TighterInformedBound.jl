@@ -378,7 +378,7 @@ get_QTIB_ba(model::POMDP{S},b::DiscreteHashedBelief{S},a,D::TIB_Data{S}; bi=noth
 """
 The BackupTable for ETIB, CTIB, OTIB and MultiTIB. For each belief-action pair (b,a) and each observation o (in the order of
 Bbao_idx[b,a]), it stores P(o|b,a) and the next belief b': bi for beliefs in B, nb + baoi for beliefs only in Bbao. The columns are the
-beliefs and weights that represent each b', with one set of columns for each set of weights (MultiTIB uses several).
+beliefs and weights that represent each b': WeightedColumns for one set of weights, or MultiWeightedColumns for several (MultiTIB).
 It is rebuilt whenever the weights change.
 """
 function weighted_backup_table(Data::TIB_Data, Bbao_data::BBAO_Data, Weights::Union{Weights_Data, Vector{Weights_Data}})
@@ -392,7 +392,7 @@ function weighted_backup_table(Data::TIB_Data, Bbao_data::BBAO_Data, Weights::Un
         end
         push!(ba_start, length(prob) + 1)
     end
-    columns = Weights isa Weights_Data ? weighted_columns(Weights) : map(weighted_columns, Weights)
+    columns = Weights isa Weights_Data ? weighted_columns(Weights) : multi_weighted_columns(Weights)
     return BackupTable(ba_start, prob, target, columns)
 end
 
@@ -404,6 +404,25 @@ function weighted_columns(W::Weights_Data)
         push!(start, length(idx) + 1)
     end
     return WeightedColumns(start, idx, val)
+end
+
+"""
+The columns representing all beliefs for several sets of weights, numbered as in weighted_columns. Each target gets one set for every
+W in Ws in which its weights are assigned and non-empty, so a belief without weights in some W (left #undef) simply has fewer sets.
+"""
+function multi_weighted_columns(Ws::Vector{Weights_Data})
+    start, set_start, idx, val = Int[1], Int[1], Int32[], Float64[]
+    nB, nBbao = length(Ws[1].B_idxs), length(Ws[1].Bbao_idxs)
+    for t in 1:nB+nBbao
+        for W in Ws
+            idxs, ws, i = t <= nB ? (W.B_idxs, W.B_weights, t) : (W.Bbao_idxs, W.Bbao_weights, t - nB)
+            (isassigned(idxs, i) && !isempty(idxs[i])) || continue
+            append!(idx, idxs[i]); append!(val, ws[i])
+            push!(set_start, length(idx) + 1)
+        end
+        push!(start, length(set_start))
+    end
+    return MultiWeightedColumns(start, set_start, idx, val)
 end
 
 weighted_args(Data::TIB_Data, Bbao_data::BBAO_Data, Weights) = (Data, Bbao_data, weighted_backup_table(Data, Bbao_data, Weights))

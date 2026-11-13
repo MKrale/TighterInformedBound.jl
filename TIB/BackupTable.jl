@@ -9,6 +9,17 @@ struct WeightedColumns
     val::Vector{Float64}    # entry -> its weight
 end
 
+"""
+Compressed weighted columns with several sets of weights per target: the sets of target t are start[t]:start[t+1]-1, and the
+entries of set k are set_start[k]:set_start[k+1]-1. The number of sets may differ per target (MultiTIB).
+"""
+struct MultiWeightedColumns
+    start::Vector{Int}      # t -> first set of t
+    set_start::Vector{Int}  # set -> first entry of the set in idx and val
+    idx::Vector{Int32}      # entry -> index of a column of Qt
+    val::Vector{Float64}    # entry -> its weight
+end
+
 """The probability of every group in a table whose probabilities are already part of the column weights (TIB)."""
 struct UnitProbs end
 Base.getindex(::UnitProbs, ::Int) = 1.0
@@ -22,7 +33,7 @@ struct BackupTable{P,T,W}
     start::Vector{Int}      # (i-1)*na + ai -> first group of (i,a)
     prob::P                 # group -> probability: a Vector{Float64}, or UnitProbs for TIB
     target::T               # group -> target in columns: a Vector{Int}, or Base.OneTo for TIB
-    columns::W              # WeightedColumns, or a Vector{WeightedColumns} for MultiTIB
+    columns::W              # WeightedColumns, or MultiWeightedColumns for MultiTIB
 end
 
 """Returns Qo .+ w .* Qt[:,bp] (a separate function, so that Qo is not captured by a closure in the loop of target_value)"""
@@ -38,11 +49,15 @@ end
     return maximum(Qo)
 end
 
-"""The minimum of the values of target t over several sets of weights (MultiTIB)."""
-@inline function target_value(Ws::Vector{WeightedColumns}, t::Int, Qt::Matrix{Float64}, v::Val)
+"""The minimum over the sets of weights of target t of the maximum over actions of their weighted sum (MultiTIB)."""
+@inline function target_value(W::MultiWeightedColumns, t::Int, Qt::Matrix{Float64}, ::Val{NA}) where NA
     value = Inf
-    @inbounds for ws in eachindex(Ws)
-        value = min(value, target_value(Ws[ws], t, Qt, v))
+    @inbounds for k in W.start[t]:W.start[t+1]-1
+        Qo = ntuple(_ -> 0.0, Val(NA))
+        for e in W.set_start[k]:W.set_start[k+1]-1
+            Qo = add_weighted_column(Qo, W.val[e], Qt, W.idx[e])
+        end
+        value = min(value, maximum(Qo))
     end
     return value
 end
