@@ -11,9 +11,10 @@ end
 
 """
 Compressed weighted columns with several sets of weights per target: the sets of target t are start[t]:start[t+1]-1, and the
-entries of set k are set_start[k]:set_start[k+1]-1. The number of sets may differ per target (MultiTIB).
+entries of set k are set_start[k]:set_start[k+1]-1. The number of sets may differ per target. MaxMin selects how the sets are
+combined (see target_value): min_k max_a for MultiTIB (false), max_a min_k for OATIB (true).
 """
-struct MultiWeightedColumns
+struct MultiWeightedColumns{MaxMin}
     start::Vector{Int}      # t -> first set of t
     set_start::Vector{Int}  # set -> first entry of the set in idx and val
     idx::Vector{Int32}      # entry -> index of a column of Qt
@@ -33,7 +34,7 @@ struct BackupTable{P,T,W}
     start::Vector{Int}      # (i-1)*na + ai -> first group of (i,a)
     prob::P                 # group -> probability: a Vector{Float64}, or UnitProbs for TIB
     target::T               # group -> target in columns: a Vector{Int}, or Base.OneTo for TIB
-    columns::W              # WeightedColumns, or MultiWeightedColumns for MultiTIB
+    columns::W              # WeightedColumns, or MultiWeightedColumns for MultiTIB and OATIB
 end
 
 """Returns Qo .+ w .* Qt[:,bp] (a separate function, so that Qo is not captured by a closure in the loop of target_value)"""
@@ -49,17 +50,20 @@ end
     return maximum(Qo)
 end
 
-"""The minimum over the sets of weights of target t of the maximum over actions of their weighted sum (MultiTIB)."""
-@inline function target_value(W::MultiWeightedColumns, t::Int, Qt::Matrix{Float64}, ::Val{NA}) where NA
-    value = Inf
+"""
+Combines the weighted sums of the sets of weights of target t: the minimum over the sets of the maximum over actions (MultiTIB), or
+if MaxMin, the maximum over actions of the minimum over the sets (OATIB). MaxMin is a type parameter, so only one branch is compiled.
+"""
+@inline function target_value(W::MultiWeightedColumns{MaxMin}, t::Int, Qt::Matrix{Float64}, ::Val{NA}) where {MaxMin, NA}
+    value, Qmin = Inf, ntuple(_ -> Inf, Val(NA))
     @inbounds for k in W.start[t]:W.start[t+1]-1
         Qo = ntuple(_ -> 0.0, Val(NA))
         for e in W.set_start[k]:W.set_start[k+1]-1
             Qo = add_weighted_column(Qo, W.val[e], Qt, W.idx[e])
         end
-        value = min(value, maximum(Qo))
+        MaxMin ? (Qmin = map(min, Qmin, Qo)) : (value = min(value, maximum(Qo)))
     end
-    return value
+    return MaxMin ? maximum(Qmin) : value
 end
 
 """Returns r plus the discounted value of all groups of k = (i-1)*na + ai, where Qt[a,c] holds the current Q-values of column c."""

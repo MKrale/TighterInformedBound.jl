@@ -744,6 +744,107 @@ function get_all_LP_weights(Data::TIB_Data{S}, Bbao_data::BBAO_Data{S}, LP_data,
     return Weights_Data(idxs[1:nb], weights[1:nb], idxs[nb+1:end], weights[nb+1:end])
 end
 
+########## Max-min optimal weights (OATIB) ##########
+
+const MAXMIN_TOLERANCE = 1e-9   # (relative) actions whose values are this close count as tied, and solutions this close as equal
+
+"""
+OATIB's weights. Set 1 holds the optimal weights w* of get_all_optimal_weights, which solve min_w max_a sum_j w_j Q_j(a). For the
+beliefs where w* does not also solve max_a min_w sum_j w_j Q_j(a), the later sets hold the extra weights needed for that (see
+maxmin_extra_weights); for all other beliefs they are left #undef. Combined as max_a min_k over the sets (MultiWeightedColumns{true}),
+this gives the max-min value, which is at most the min-max value and still an upper bound, since every set represents the belief.
+"""
+function get_all_maxmin_weights(Data::TIB_Data{S}, Bbao_data::BBAO_Data{S}) where S
+    # Set 1: the min-max optimal weights of all beliefs (as for OTIB)
+    W1 = get_all_optimal_weights(Data, Bbao_data)
+    nb, nbao = length(W1.B_idxs), length(W1.Bbao_idxs)
+    sets, nfailed = [W1], 0
+
+    # Go through all beliefs that have weights in set 1. For each, we need its candidate beliefs (overlaps) and where to store its weights in a Weights_Data.
+    for (inB, beliefs, overlaps, idxs, weights) in ((true, Data.B, Bbao_data.B_overlap, W1.B_idxs, W1.B_weights),
+                                                    (false, Bbao_data.Bbao, Bbao_data.Bbao_overlap, W1.Bbao_idxs, W1.Bbao_weights))
+        for i in eachindex(idxs)
+            isassigned(idxs, i) || continue
+            # Find the extra weights this belief needs for the max-min value (none for most beliefs)
+            extra, failed = maxmin_extra_weights(beliefs[i], overlaps[i], Data, idxs[i], weights[i])
+            nfailed += failed
+            # Store the k-th extra weights of the belief in set k+1.
+            for (k, (ik, wk)) in enumerate(extra)
+                if k + 1 > length(sets)
+                    push!(sets, Weights_Data(Vector{Vector{Int}}(undef, nb), Vector{Vector{Float64}}(undef, nb),
+                                             Vector{Vector{Int}}(undef, nbao), Vector{Vector{Float64}}(undef, nbao)))
+                end
+                W = sets[k+1]
+                inB ? (W.B_idxs[i] = ik; W.B_weights[i] = wk) : (W.Bbao_idxs[i] = ik; W.Bbao_weights[i] = wk)
+            end
+        end
+    end
+    # A failed LP only means we may miss some extra weights: the weights we have still give a valid (if looser) bound
+    nfailed > 0 && @warn "OATIB: $nfailed per-action weight LPs failed; the weights found so far were kept (valid, but maybe not max-min)"
+    return sets
+end
+
+"""
+The extra weights (as (idxs, weights) pairs) that are needed, together with the optimal weights w* (idxs, weights) of belief b, to get
+max_a min_w sum_j w_j Q_j(a) over the candidates Bidxs, and the number of LPs that failed. With u[a] = sum_j w*_j Q_j(a):
+1. If only one action a attains max_a u[a], then near w* the maximum over actions equals u[a], so w* also minimizes the (linear) value of
+   a: max-min equals min-max, and no extra weights are needed.
+2. Otherwise, the LP min_w sum_j w_j Q_j(a) is solved for the actions in order of decreasing u[a] (an upper bound on its value), until
+   u[a] is at most the best value found. The weights of an action are kept if they improve on u[a]: even if they don't lower the
+   max-min value for the current Q, they can for the Q-values of later iterations.
+"""
+function maxmin_extra_weights(b::DiscreteHashedBelief, Bidxs::AbstractVector{<:Integer}, Data::TIB_Data, idxs, weights)
+    na = Data.constants.na
+    extra = Tuple{Vector{Int},Vector{Float64}}[]
+
+    # Value of each action under w* (with the same clipped Q-values as the LP, see optimal_Qs)
+    u = zeros(na)
+    for (j, w) in zip(idxs, weights), a in 1:na
+        u[a] += w * max(MIN_Q_VALUE, Data.Q[j,a])
+    end
+    v = maximum(u)      # the min-max value
+    tol = MAXMIN_TOLERANCE * (1 + abs(v))
+
+    # Case 1: a single best action certifies that max-min equals min-max, we're done
+    count(>(v - tol), u) == 1 && return extra, 0
+
+    # Case 2: no such action exists. Then, we need to find worst-case weights for all actions that obtain a higher value
+    Qs = optimal_Qs(Bidxs, Data)
+    best, failed = -Inf, 0
+    for a in sortperm(u; rev=true)
+        u[a] <= best + tol && break
+        # Minimize the value of action a over all weights that represent b
+        obj = [abs(q) < MIN_LP_COEF ? 0.0 : q for q in view(Qs, :, a)]     # (see WeightLP on tiny coefficients)
+        wa, va = try
+            solve_weight_LP(b, Bidxs, Data, obj)
+        catch e
+            # Clp occasionally fails on these LPs: skip the action. The other sets still bound its value, so this stays valid.
+            e isa ErrorException || rethrow()
+            failed += 1
+            continue
+        end
+        best = max(best, va)
+        # Keep the weights if they lower the value of a (dropping zero weights, as in get_single_optimal_weights)
+        if va < u[a] - tol
+            nonzero = findall(!iszero, wa)
+            push!(extra, (Bidxs[nonzero], wa[nonzero]))
+        end
+    end
+    return extra, failed
+end
+
+"""The max-min value max_a min_w sum_j w_j Q_j(a) of belief b over the candidates Bidxs (for OATIB's policy, see maxmin_extra_weights)."""
+function get_single_maxmin_value(b::DiscreteHashedBelief{S}, Bidxs::AbstractVector{<:Integer}, Data::TIB_Data{S}) where S
+    # Min-max optimal weights, and the value of each action under them
+    idxs, weights = get_single_optimal_weights(b, Bidxs, Data)
+    Qa = vec(sum(weights .* Data.Q[idxs,:], dims=1))
+    # For each action, take the minimum over all sets of weights (as target_value does for MultiWeightedColumns{true})
+    for (ik, wk) in first(maxmin_extra_weights(b, Bidxs, Data, idxs, weights))
+        Qa = min.(Qa, vec(sum(wk .* Data.Q[ik,:], dims=1)))
+    end
+    return maximum(Qa)
+end
+
 ########## Sawtooth belief weights ##########
 
 function get_all_sawtooth_weights(Data::TIB_Data{S}, Bbao_data::BBAO_Data{S}; Qs=nothing) where S

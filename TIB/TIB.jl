@@ -15,8 +15,8 @@ module TIB
 
     include("solver.jl")
     export
-    STIBSolver, OTIBSolver, SawTIBSolver, ISawTIBSolver, ETIBSolver, CTIBSolver, ICTIBSolver, MultiTIBSolver
-    STIBPolicy, OTIBPolicy, SawTIBPolicy, ISawTIBPolicy, ETIBPolicy, CTIBPolicy, ICTIBPolicy, MultiTIBPolicy
+    STIBSolver, OTIBSolver, OATIBSolver, SawTIBSolver, ISawTIBSolver, ETIBSolver, CTIBSolver, ICTIBSolver, MultiTIBSolver
+    STIBPolicy, OTIBPolicy, OATIBPolicy, SawTIBPolicy, ISawTIBPolicy, ETIBPolicy, CTIBPolicy, ICTIBPolicy, MultiTIBPolicy
     include("Convenience.jl")
     export 
     sparseTabularPOMDPFiniteReward
