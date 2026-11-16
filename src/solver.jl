@@ -196,7 +196,8 @@ function solve_info(solver::X, model::POMDP{S,A,O}; Data::Union{TIB_Data{S},Noth
         time_left = solver.max_time-(time()-t0)
         verbose && printdb("starting iteration $it (precision = $(factor * max_dif))")
         Qs, max_dif = get_Q(model, Qs,time_left, args...)
-        Data = TIB_Data{S}(Qs, Data)
+        # Note: Data is deliberately not reassigned in this loop: a TIB_Data carried across loop iterations
+        # triggers an internal error in the optimizer (SROA pass) of Julia 1.12/1.13.
 
         it += 1
 
@@ -219,8 +220,9 @@ function solve_info(solver::X, model::POMDP{S,A,O}; Data::Union{TIB_Data{S},Noth
             elseif ( factor * max_dif < solver.dynamic_precision 
                     || (it > solver.max_iterations && recomputes < solver.max_recomputes))             
                 verbose && printdb("Recomputing weights (precision = $(factor * max_dif)")
-                Weights = compute_weights(solver, Data, Bbao_data)
-                args = weighted_args(Data, Bbao_data, Weights; maxmin=solver isa OATIBSolver)
+                Data_Qs = TIB_Data{S}(Qs, Data)    # weights are computed using the current Q-values
+                Weights = compute_weights(solver, Data_Qs, Bbao_data)
+                args = weighted_args(Data_Qs, Bbao_data, Weights; maxmin=solver isa OATIBSolver)
                 max_dif = Inf
                 total_it += it
                 it = 0
