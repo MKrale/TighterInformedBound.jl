@@ -38,4 +38,4 @@ Grid_O_col[5] = [1,2,3,4,5,6,1,2,3,4,5,6,1,2,3,4,5,6,1,2,3,4,5,6,1,2,3,4,5,6,1,2
 Grid_O_data[5] = [1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0]
 Grid_O = [sparse(Grid_O_row[a], Grid_O_col[a], Grid_O_data[a], 36, 36) for a in 1:5]
 Grid_init = sparsevec([31], [1.0])
-Sparse_Grid(;discount=0.95) = SparseTabularPOMDP(Grid_T, Grid_R, Grid_O, Grid_init, Set(), discount)
+Sparse_Grid(;discount=0.95) = QuickSparseTabularPOMDP(Grid_T, Grid_R, Grid_O, Grid_init, Set(), discount)

@@ -1,17 +1,12 @@
 module TIB
-    using POMDPs, POMDPTools, Random, Distributions, SparseArrays, Optimization, JuMP, Gurobi, HiGHS, Tulip, Cbc, Clp, Memoization, LRUCache, InteractiveUtils
-
-    # Surpressing Gurobis printing
-    oldstd = stdout
-    redirect_stdout(devnull)
-    const GRB_ENV=Gurobi.Env()
-    redirect_stdout(oldstd)
+    using POMDPs, POMDPTools, Random, Distributions, SparseArrays, LinearAlgebra, Clp
 
     include("Beliefs.jl")
     export DiscreteHashedBelief, DiscreteHashedBeliefUpdater
     include("Caching.jl")
     export print_model_info
     include("Weights.jl")
+    include("BackupTable.jl")
     # Both QMDP and FIB use alpha-vectors in the original version, which is slow...
     include("SimpleHeuristics.jl")
     export QMDPSolver_alt, FIBSolver_alt,
@@ -20,8 +15,8 @@ module TIB
 
     include("solver.jl")
     export
-    STIBSolver, OTIBSolver, SawTIBSolver, ISawTIBSolver, ETIBSolver, CTIBSolver, ICTIBSolver, MultiTIBSolver
-    STIBPolicy, OTIBPolicy, SawTIBPolicy, ISawTIBPolicy, ETIBPolicy, CTIBPolicy, ICTIBPolicy, MultiTIBPolicy
+    STIBSolver, OTIBSolver, OATIBSolver, SawTIBSolver, ISawTIBSolver, ETIBSolver, CTIBSolver, ICTIBSolver, MultiTIBSolver
+    STIBPolicy, OTIBPolicy, OATIBPolicy, SawTIBPolicy, ISawTIBPolicy, ETIBPolicy, CTIBPolicy, ICTIBPolicy, MultiTIBPolicy
     include("Convenience.jl")
     export 
     sparseTabularPOMDPFiniteReward

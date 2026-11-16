@@ -36,7 +36,7 @@ s = ArgParseSettings()
         help = "Filename (default: generated automatically)"
         default = ""
     "--solvers"
-        help = "Solver to be run. Availble options: FIB, TIB, ETIB, OTIB, SARSOP, TIBSARSOP, ETIBSARSOP. (default: run all but TIBSARSOP & ETIBSARSOP)"
+        help = "Solver to be run. Availble options: FIB, TIB, ETIB, OTIB, OATIB, SARSOP, TIBSARSOP, ETIBSARSOP. (default: run all but TIBSARSOP & ETIBSARSOP)"
         default = "All"
     "--discount"
         help = "Discount factor"
@@ -117,6 +117,11 @@ end
 if "OTIB" in solver_names
     push!(solvers, OTIBSolver)
     push!(solverargs, (name="OTIB", sargs=(max_iterations=heuristicsteps, precision=heuristicprecision, max_time=timeout, dynamic_recompute=true, dynamic_precision=heuristicprecision, max_recomputes=100), pargs=(), get_Q0=true))
+    push!(precomp_solverargs, ( sargs=(max_iterations=2, max_recomputes=0, precomp_solver=STIBSolver(max_iterations=2)), pargs=()))
+end
+if "OATIB" in solver_names
+    push!(solvers, OATIBSolver)
+    push!(solverargs, (name="OATIB", sargs=(max_iterations=heuristicsteps, precision=heuristicprecision, max_time=timeout, dynamic_recompute=true, dynamic_precision=heuristicprecision, max_recomputes=100), pargs=(), get_Q0=true))
     push!(precomp_solverargs, ( sargs=(max_iterations=2, max_recomputes=0, precomp_solver=STIBSolver(max_iterations=2)), pargs=()))
 end
 if "SawTIB_pre" in solver_names

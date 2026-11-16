@@ -7,6 +7,7 @@ struct DiscreteHashedBelief{S}
     state_list::Vector{S}       # assumed sorted!
     probs::Vector{Float64}
     hash::UInt
+    support_mask::UInt64        # bit i is set if the support contains a state s with state_bit(s) = i (see maybe_support_subset)
 end
 
 function DiscreteHashedBelief{S}(state_list::Vector{S}, probs::Vector{<:Float64}) where S
@@ -17,8 +18,19 @@ function DiscreteHashedBelief{S}(state_list::Vector{S}, probs::Vector{<:Float64}
     ordered_state_list = state_list[idxs]
     ordered_probs = probs[idxs]
     hash = makeDBhash(ordered_state_list, ordered_probs)
-    return DiscreteHashedBelief{S}(ordered_state_list, ordered_probs, hash)
+    support_mask = make_support_mask(ordered_state_list)
+    return DiscreteHashedBelief{S}(ordered_state_list, ordered_probs, hash, support_mask)
 end
+
+state_bit(s::Integer) = UInt64(1) << mod(s, 64)
+state_bit(s) = UInt64(1) << (hash(s) % 64)
+make_support_mask(state_list::Vector) = foldl((mask, s) -> mask | state_bit(s), state_list; init=UInt64(0))
+
+"""
+Returns false if the support of bp is certainly not a subset of the support of b, i.e., if bp contains a state whose
+bit is not set in the mask of b. If it returns true, the support of bp may or may not be a subset of that of b.
+"""
+maybe_support_subset(bp::DiscreteHashedBelief, b::DiscreteHashedBelief) = iszero(bp.support_mask & ~b.support_mask)
 
 #Note: This method should only be used when b is a belief, but currently this is not checked.
 # I don't see any way to do this though: the beliefs used throughout the POMDP framework do not have a consistent supertype (even though they should all be distributions...)
@@ -30,8 +42,8 @@ function DiscreteHashedBelief{Bool}(b::BoolDistribution)
     return DiscreteHashedBelief{Bool}([true, false], [b.p, 1-b.p])
 end
 
-function DiscreteHashedBelief{S}(b::Distribution{F,S}) where F where S 
-    states, probs = [], Float64[]
+function DiscreteHashedBelief{S}(b) where S
+    states, probs = S[], Float64[]
     for (s,p) in weighted_iterator(b)
         if p>0
             push!(states,s)
@@ -42,7 +54,7 @@ function DiscreteHashedBelief{S}(b::Distribution{F,S}) where F where S
 end
 
 
-function POMDPs.rand(rng::AbstractRNG, s::Random.SamplerTrivial{DiscreteHashedBelief})
+function POMDPs.rand(rng::AbstractRNG, s::Random.SamplerTrivial{<:DiscreteHashedBelief})
     d = s[]
     r = rand(rng)
     tot = 0.0
@@ -95,9 +107,11 @@ Base.hash(x::DiscreteHashedBelief) = hash(x,UInt(0))
 #########################################
 
 """Struct for updating DiscreteHashedBelief"""
-struct DiscreteHashedBeliefUpdater{S,A,O} <: Updater
-    model::X where X<:POMDP{S,A,O}
+struct DiscreteHashedBeliefUpdater{S,A,O,M<:POMDP{S,A,O}} <: Updater
+    model::M
 end
+DiscreteHashedBeliefUpdater{S,A,O}(model::M) where {S,A,O,M<:POMDP{S,A,O}} = DiscreteHashedBeliefUpdater{S,A,O,M}(model)
+DiscreteHashedBeliefUpdater(model::POMDP{S,A,O}) where {S,A,O} = DiscreteHashedBeliefUpdater{S,A,O}(model)
 
 """Given a distribution d, create a DiscreteHashedBelief"""
 function initialize_belief(bu::DiscreteHashedBeliefUpdater{Ss}, d) where Ss
@@ -114,7 +128,7 @@ function POMDPs.update(bu::DiscreteHashedBeliefUpdater{S}, b::DiscreteHashedBeli
 
     ### Collect possible next states with transition probs
     for (s, ps) in weighted_iterator(b)
-        for (snext, psnext) in weighted_iterator(transition(model,s,a))
+        for (snext, psnext) in weighted_iterator(transition(model, s, a))
             add_to_dict!(bnext, snext, ps * psnext)
         end
     end
@@ -122,7 +136,7 @@ function POMDPs.update(bu::DiscreteHashedBeliefUpdater{S}, b::DiscreteHashedBeli
     ### Alter weights according to obs
     bnext_ = Dict{S, Float64}()
     for (snext, psnext) in bnext
-        po = pdf(observation(model,a,snext), o)
+        po = pdf(observation(model, a, snext), o)
         bnext_[snext] = psnext * po
     end
     ### Normalize

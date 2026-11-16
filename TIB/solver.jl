@@ -28,6 +28,16 @@ end
     precision::Float64      = 1e-4
     precomp_solver          = STIBSolver(precision=1e-4, max_iterations=250, max_time=3600, precomp_solver=FIBSolver_alt(precision=1e-4, max_iterations=1000, max_time=3600))
  end
+"""OTIB, but the value of a next belief is max_a min_w sum_j w_j Q_j(a) instead of min_w max_a (see get_all_maxmin_weights)."""
+@kwdef struct OATIBSolver <: TIBSolver
+    dynamic_recompute       = true
+    dynamic_precision       = 1e-4
+    max_recomputes          = 50
+    max_iterations::Int64   = 250
+    max_time::Float64       = 3600
+    precision::Float64      = 1e-4
+    precomp_solver          = STIBSolver(precision=1e-4, max_iterations=250, max_time=3600, precomp_solver=FIBSolver_alt(precision=1e-4, max_iterations=1000, max_time=3600))
+end
  @kwdef struct SawTIBSolver <: TIBSolver
     dynamic_recompute       = true
     dynamic_precision       = 1e-4
@@ -89,6 +99,8 @@ function compute_weights(solver::X, Data::TIB_Data{S}, Bbao_data::BBAO_Data{S}) 
         Weights = get_all_iterative_closeness_weights(Data, Bbao_data)
     elseif solver isa OTIBSolver
         Weights = get_all_optimal_weights(Data, Bbao_data)
+    elseif solver isa OATIBSolver
+        Weights = get_all_maxmin_weights(Data, Bbao_data)
     elseif solver isa SawTIBSolver
         Weights = get_all_sawtooth_weights(Data, Bbao_data)
     elseif solver isa ISawTIBSolver
@@ -104,7 +116,7 @@ function compute_weights(solver::X, Data::TIB_Data{S}, Bbao_data::BBAO_Data{S}) 
 end
 
 
-SOLVERS_REQUIRING_BBAO = [ETIBSolver, CTIBSolver, ICTIBSolver, OTIBSolver, SawTIBSolver, ISawTIBSolver, MultiTIBSolver]
+SOLVERS_REQUIRING_BBAO = [ETIBSolver, CTIBSolver, ICTIBSolver, OTIBSolver, OATIBSolver, SawTIBSolver, ISawTIBSolver, MultiTIBSolver]
 POMDPs.solve(solver::X, model::POMDP) where X<: TIBSolver = solve_info(solver, model; Data=nothing)[1]
 POMDPTools.solve_info(solver::X, model::POMDP) where X<: TIBSolver = solve_info(solver, model; Data=nothing)
 
@@ -147,21 +159,23 @@ function solve_info(solver::X, model::POMDP{S,A,O}; Data::Union{TIB_Data{S},Noth
     # Lets be overly fancy! Define a function for computing Q, depending on the specific solver
     get_Q, args = identity, []
     if solver isa STIBSolver
-        pol, get_Q, args = STIBPolicy, get_QTIB_Beliefset, (Data,)
+        pol, get_Q, args = STIBPolicy, get_QTIB_Beliefset, (Data, tib_backup_table(Data))
     elseif solver isa OTIBSolver
-        pol, get_Q, args = OTIBPolicy, Get_Q_weights_Beliefset, (Data, Bbao_data, Weights)
+        pol, get_Q, args = OTIBPolicy, Get_Q_weights_Beliefset, weighted_args(Data, Bbao_data, Weights)
+    elseif solver isa OATIBSolver
+        pol, get_Q, args = OATIBPolicy, Get_Q_weights_Beliefset, weighted_args(Data, Bbao_data, Weights; maxmin=true)
     elseif solver isa SawTIBSolver
-        pol, get_Q, args = SawTIBPolicy, Get_Q_weights_Beliefset, (Data, Bbao_data, Weights)
+        pol, get_Q, args = SawTIBPolicy, Get_Q_weights_Beliefset, weighted_args(Data, Bbao_data, Weights)
     elseif solver isa ISawTIBSolver
-        pol, get_Q, args = ISawTIBPolicy, Get_Q_weights_Beliefset, (Data, Bbao_data, Weights)
+        pol, get_Q, args = ISawTIBPolicy, Get_Q_weights_Beliefset, weighted_args(Data, Bbao_data, Weights)
     elseif solver isa ETIBSolver
-        pol, get_Q, args = ETIBPolicy, Get_Q_weights_Beliefset, (Data, Bbao_data, Weights)
+        pol, get_Q, args = ETIBPolicy, Get_Q_weights_Beliefset, weighted_args(Data, Bbao_data, Weights)
     elseif solver isa CTIBSolver
-        pol, get_Q, args = CTIBPolicy, Get_Q_weights_Beliefset, (Data, Bbao_data, Weights)
+        pol, get_Q, args = CTIBPolicy, Get_Q_weights_Beliefset, weighted_args(Data, Bbao_data, Weights)
     elseif solver isa ICTIBSolver
-        pol, get_Q, args = ICTIBPolicy, Get_Q_weights_Beliefset, (Data, Bbao_data, Weights)
+        pol, get_Q, args = ICTIBPolicy, Get_Q_weights_Beliefset, weighted_args(Data, Bbao_data, Weights)
     elseif solver isa MultiTIBSolver
-        pol, get_Q, args = MultiTIBPolicy, Get_Q_weights_Beliefset, (Data, Bbao_data, Weights)
+        pol, get_Q, args = MultiTIBPolicy, Get_Q_weights_Beliefset, weighted_args(Data, Bbao_data, Weights)
     else
         throw("Solver type not recognized!")
     end
@@ -200,7 +214,7 @@ function solve_info(solver::X, model::POMDP{S,A,O}; Data::Union{TIB_Data{S},Noth
                     || (it > solver.max_iterations && recomputes < solver.max_recomputes))             
                 verbose && printdb("Recomputing weights (precision = $(factor * max_dif)")
                 Weights = compute_weights(solver, Data, Bbao_data)
-                args = (Data, Bbao_data, Weights)
+                args = weighted_args(Data, Bbao_data, Weights; maxmin=solver isa OATIBSolver)
                 max_dif = Inf
                 it = 0
                 recomputes += 1
@@ -210,7 +224,7 @@ function solve_info(solver::X, model::POMDP{S,A,O}; Data::Union{TIB_Data{S},Noth
         elseif mod(i, solver.recompute_iterations) == 0
             verbose && printdb("Recomputing weights")
             Weights = get_all_optimal_weights(Data, Bbao_data)
-            args = (Data, Bbao_data, Weights)
+            args = weighted_args(Data, Bbao_data, Weights)
         end
 
     end
@@ -269,44 +283,105 @@ end
 
 ############ TIB ###################
 
+"""
+The BackupTable for TIB backups. For each belief-action pair (b,a) and each observation o in BAOs[b,a] (in that order), the columns
+of its group are the next beliefs b' = B_idx[s,a,o] with weights b(s) * P(o|s,a) for all s in supp(b) (in the order of supp(b)).
+Since B is fixed, this saves looking these up again in every sweep.
+"""
+function tib_backup_table(Data::TIB_Data)
+    nb, na, no = length(Data.B), Data.constants.na, Data.constants.no
+    ba_start, obs_start, next, weight = Int[1], Int[1], Int32[], Float64[]
+    group_next, group_weight = [Int32[] for _ in 1:no], [Float64[] for _ in 1:no]
+    for (bi, b) in enumerate(Data.B), ai in 1:na
+        for (s, ps) in weighted_iterator(b)
+            si = Data.S_dict[s]
+            for oi in Data.SAOs[si,ai]
+                push!(group_next[oi], Data.B_idx[si,ai,oi])
+                push!(group_weight[oi], ps * Data.SAO_probs[oi,si,ai])
+            end
+        end
+        for oi in Data.BAOs[bi,ai]
+            isempty(group_next[oi]) && error("observation $oi is possible after (b,a) = ($bi,$ai), but not after any state in supp(b)")
+            append!(next, group_next[oi]); append!(weight, group_weight[oi])
+            push!(obs_start, length(next) + 1)
+        end
+        foreach(empty!, group_next); foreach(empty!, group_weight)
+        push!(ba_start, length(obs_start))
+    end
+    return BackupTable(ba_start, UnitProbs(), Base.OneTo(length(obs_start)-1), WeightedColumns(obs_start, next, weight))
+end
+
 """Performs one iteration of TIB"""
-function get_QTIB_Beliefset(model::POMDP{S}, Q::Qtype, timeleft::Float64, Data::TIB_Data{S}) where S where Qtype <: AbstractArray{Float64,2}
+function get_QTIB_Beliefset(model::POMDP{S}, Q::Qtype, timeleft::Float64, Data::TIB_Data{S}, T::BackupTable) where S where Qtype <: AbstractArray{Float64,2}
     t0 = time()
     Qs_new = zero(Q) # TODO: this may be inefficient?
-    for (b_idx,b) in enumerate(Data.B)
+    gamma = Float64(discount(model))
+    Qt = permutedims(Q)     # ai, bi -> Q: the Q-values of a belief are contiguous
+    for b_idx in eachindex(Data.B)
         timeleft+t0-time() < 0 && (return Q, 0)
-        for (ai, a) in enumerate(Data.constants.A)
-            Qs_new[b_idx,ai] = get_QTIB_ba(model,b,a, Q, Data; bi=b_idx, ai=ai)
-        end
+        QTIB_backup_b!(Qs_new, Val(size(Q,2)), b_idx, gamma, Qt, Data.Br, T)
     end
     max_dif = maximum(map(abs, (Qs_new .- Q) ./ (Q.+1e-10)))
     return Qs_new, max_dif
 end
 
+"""TIB backups of all actions of belief b_idx. The number of actions NA is a type parameter, so that the loops over actions are unrolled."""
+function QTIB_backup_b!(Qs_new::Matrix{Float64}, ::Val{NA}, b_idx::Int, gamma::Float64, Qt::Matrix{Float64}, Br::Matrix{Float64}, T::BackupTable) where NA
+    @inbounds for ai in 1:NA
+        k = (b_idx-1)*NA + ai
+        Qs_new[b_idx,ai] = backup_action(Br[b_idx,ai], T, gamma, Qt, k, Val(NA))
+    end
+    return Qs_new
+end
+
 """Performs one iteration of TIB for the given belief-action pair"""
-function get_QTIB_ba(model::POMDP{S,A,O},b::DiscreteHashedBelief{S},a::A,Qs::Qtype, Data::TIB_Data{S}; ai=nothing, bi=nothing) where S where A where O where Qtype <: AbstractArray{Float64,2}  
+function get_QTIB_ba(model::POMDP{S,A,O},b::DiscreteHashedBelief{S},a::A,Qs::Qtype, Data::TIB_Data{S}; ai=nothing, bi=nothing) where S where A where O where Qtype <: AbstractArray{Float64,2}
     isnothing(ai) && ( ai=findfirst(==(a), Data.constants.A) )
     if isnothing(bi)
-        Q = breward(model,b,a)
+        r = breward(model,b,a)
         possible_os = get_possible_obs(b,ai,Data)
     else
-        Q = Data.Br[bi,ai]
+        r = Data.Br[bi,ai]
         possible_os = Data.BAOs[bi,ai]
     end
-    Qo = zeros(Float64,Data.constants.na)
-    @inbounds for oi in possible_os
-        fill!(Qo, 0.0)
-        for (s, ps) in weighted_iterator(b)
-            si = Data.S_dict[s]
-            if oi in Data.SAOs[si,ai]
-                p = ps * Data.SAO_probs[oi,si,ai]
-                bp_idx = Data.B_idx[si,ai,oi]
-                @views Qo .+= p .* Qs[bp_idx,:]
+    buffers = TIB_Buffers(size(Qs,2), Data.constants.no)
+    return QTIB_backup!(buffers, Float64(discount(model)), b, ai, Float64(r), possible_os, transpose(Qs), Data)
+end
+
+"""Work arrays for TIB backups, so that sweeps do not allocate"""
+struct TIB_Buffers
+    Qo::Matrix{Float64}     # ai, oi -> Q-value of the next beliefs given oi
+    seen::Vector{Bool}      # oi -> is Qo[:,oi] initialized?
+end
+TIB_Buffers(na::Int, no::Int) = TIB_Buffers(zeros(na, no), zeros(Bool, no))
+
+"""
+TIB backup of (b,ai) with expected reward r, where possible_os are the observations possible after (b,ai), and Qt[a,bi] the
+current Q-values. Loops over the possible observations of each state once, and sums over observations in the order of possible_os.
+"""
+function QTIB_backup!(buffers::TIB_Buffers, gamma::Float64, b::DiscreteHashedBelief{S}, ai::Int, r::Float64, possible_os, Qt::AbstractMatrix{Float64}, Data::TIB_Data{S}) where S
+    Qo, seen = buffers.Qo, buffers.seen
+    na = size(Qt, 1)
+    for (s, ps) in weighted_iterator(b)
+        si = Data.S_dict[s]
+        for oi in Data.SAOs[si,ai]
+            if !seen[oi]
+                seen[oi] = true
+                @inbounds for a in 1:na; Qo[a,oi] = 0.0; end
             end
+            p = ps * Data.SAO_probs[oi,si,ai]
+            bp_idx = Data.B_idx[si,ai,oi]
+            @inbounds for a in 1:na; Qo[a,oi] += p * Qt[a,bp_idx]; end
         end
-        Q += discount(model) * maximum(Qo)
     end
-    return convert(Float64, Q)
+    Q = r
+    for oi in possible_os
+        Qmax = Qo[1,oi]
+        @inbounds for a in 2:na; Qmax = max(Qmax, Qo[a,oi]); end
+        Q += gamma * Qmax
+        seen[oi] = false
+    end
+    return Q
 end
 
 # Some different function definitions for convenience:
@@ -314,62 +389,102 @@ get_QTIB_ba(model::POMDP{S},b::DiscreteHashedBelief{S},a,D::TIB_Data{S}; bi=noth
 
 ########## Heuristics with pre-computed weights (OTIB, ETIB, CTIB) ###########
 
+"""
+The BackupTable for ETIB, CTIB, OTIB and MultiTIB. For each belief-action pair (b,a) and each observation o (in the order of
+Bbao_idx[b,a]), it stores P(o|b,a) and the next belief b': bi for beliefs in B, nb + baoi for beliefs only in Bbao. The columns are the
+beliefs and weights that represent each b': WeightedColumns for one set of weights, or MultiWeightedColumns for several (MultiTIB,
+or OATIB if maxmin). It is rebuilt whenever the weights change.
+"""
+function weighted_backup_table(Data::TIB_Data, Bbao_data::BBAO_Data, Weights::Union{Weights_Data, Vector{Weights_Data}}; maxmin=false)
+    nb, na = length(Data.B), Data.constants.na
+    ba_start, prob, target = Int[1], Float64[], Int[]
+    for bi in 1:nb, ai in 1:na
+        for oi in get_possible_obs((true,bi), ai, Data, Bbao_data)
+            in_B, baoi = Bbao_data.Bbao_idx[bi,ai][oi]
+            push!(prob, Bbao_data.BAO_probs[oi,bi,ai])
+            push!(target, in_B ? baoi : nb + baoi)
+        end
+        push!(ba_start, length(prob) + 1)
+    end
+    columns = Weights isa Weights_Data ? weighted_columns(Weights) : multi_weighted_columns(Weights; maxmin=maxmin)
+    return BackupTable(ba_start, prob, target, columns)
+end
+
+"""The columns representing all beliefs for one set of weights: bi for beliefs in B, nb + baoi for beliefs only in Bbao."""
+function weighted_columns(W::Weights_Data)
+    start, idx, val = Int[1], Int32[], Float64[]
+    for (idxs, ws) in ((W.B_idxs, W.B_weights), (W.Bbao_idxs, W.Bbao_weights)), i in eachindex(idxs)
+        isassigned(idxs, i) && (append!(idx, idxs[i]); append!(val, ws[i]))     # (B_idxs is only set for beliefs in Bbao)
+        push!(start, length(idx) + 1)
+    end
+    return WeightedColumns(start, idx, val)
+end
+
+"""
+The columns representing all beliefs for several sets of weights, numbered as in weighted_columns. Each target gets one set for every
+W in Ws in which its weights are assigned and non-empty, so a belief without weights in some W (left #undef) simply has fewer sets.
+maxmin selects how target_value combines the sets (see MultiWeightedColumns).
+"""
+function multi_weighted_columns(Ws::Vector{Weights_Data}; maxmin=false)
+    start, set_start, idx, val = Int[1], Int[1], Int32[], Float64[]
+    nB, nBbao = length(Ws[1].B_idxs), length(Ws[1].Bbao_idxs)
+    for t in 1:nB+nBbao
+        for W in Ws
+            idxs, ws, i = t <= nB ? (W.B_idxs, W.B_weights, t) : (W.Bbao_idxs, W.Bbao_weights, t - nB)
+            (isassigned(idxs, i) && !isempty(idxs[i])) || continue
+            append!(idx, idxs[i]); append!(val, ws[i])
+            push!(set_start, length(idx) + 1)
+        end
+        push!(start, length(set_start))
+    end
+    return MultiWeightedColumns{maxmin}(start, set_start, idx, val)
+end
+
+weighted_args(Data::TIB_Data, Bbao_data::BBAO_Data, Weights; maxmin=false) = (Data, Bbao_data, weighted_backup_table(Data, Bbao_data, Weights; maxmin=maxmin))
+
 """Performs one iteration of ETIB"""
-function Get_Q_weights_Beliefset(model::POMDP{S}, Q::Qtype, timeleft, Data::TIB_Data{S}, Bbao_data::BBAO_Data{S}, Weights::Union{Weights_Data, Vector{Weights_Data}}) where S where Qtype <: AbstractArray{Float64,2}
+function Get_Q_weights_Beliefset(model::POMDP{S}, Q::Qtype, timeleft, Data::TIB_Data{S}, Bbao_data::BBAO_Data{S}, W::BackupTable) where S where Qtype <: AbstractArray{Float64,2}
     Qs_new = zero(Q)
     t0 = time()
-    for (b_idx,b) in enumerate(Data.B)
+    gamma = Float64(discount(model))
+    Qt = permutedims(Q)     # ai, bi -> Q: the Q-values of a belief are contiguous
+    for b_idx in eachindex(Data.B)
         timeleft+t0-time() < 0 && (return Q, 0)
-        for (ai, a) in enumerate(Data.constants.A)
-            Qs_new[b_idx,ai] = min(Q[b_idx, ai], get_Q_weights_ba(model, b_idx, ai, Q, Data,  Bbao_data, Weights))
-        end
+        weighted_backup_b!(Qs_new, Q, Val(size(Q,2)), b_idx, gamma, Qt, Data.Br, W)
     end
     max_dif = maximum(map(abs, (Qs_new .- Q) ./ (Q.+1e-10)))
     return Qs_new, max_dif
 end
 
-"""Performs one iteration of ETIB for the given belief-action pair, using pre-computed weights"""
-function get_Q_weights_ba(model::POMDP{S},bi::Int, ai::Int, Qs::Qtype, Data::TIB_Data{S}, Bbao_data::BBAO_Data{S}, Weights_data::Weights_Data) where S where Qtype <: AbstractArray{Float64,2}
-    # SAOs, constants, S_dict = Data.SAOs, Data.constants, Data.S_dict
-    Q = Data.Br[bi,ai]
-    Os = get_possible_obs((true,bi),ai,Data,Bbao_data)
-    for oi in Os
-        o = Data.constants.O[oi]
-        bao = get_bao(Bbao_data, bi, ai, oi, Data.B)
-        w = discount(model) * Bbao_data.BAO_probs[oi,bi,ai]
-        idxs, weights = get_weights(Bbao_data, Weights_data, bi, ai, oi)
-        Q += w * maximum( sum( weights .* Qs[idxs,:], dims=1) )
+"""
+Backups of all actions of belief bi, using precomputed weights (for MultiTIB, the minimum over its sets of weights).
+The number of actions NA is a type parameter, so that the loops over actions are unrolled.
+"""
+function weighted_backup_b!(Qs_new::Matrix{Float64}, Q::Matrix{Float64}, ::Val{NA}, bi::Int, gamma::Float64, Qt::Matrix{Float64}, Br::Matrix{Float64}, W::BackupTable) where NA
+    @inbounds for ai in 1:NA
+        k = (bi-1)*NA + ai
+        Qs_new[bi,ai] = min(Q[bi,ai], backup_action(Br[bi,ai], W, gamma, Qt, k, Val(NA)))
     end
-    return Q
+    return Qs_new
 end
 
-function get_Q_weights_ba(model::POMDP{S},bi::Int, ai::Int, Qs::Qtype, Data::TIB_Data{S}, Bbao_data::BBAO_Data{S}, Weights_data_vector::Vector{Weights_Data}) where S where Qtype <: AbstractArray{Float64,2}
-    # SAOs, constants, S_dict = Data.SAOs, Data.constants, Data.S_dict
-    Q = Data.Br[bi,ai]
-    Os = get_possible_obs((true,bi),ai,Data,Bbao_data)
-    for oi in Os
-        o = Data.constants.O[oi]
-        bao = get_bao(Bbao_data, bi, ai, oi, Data.B)
-        thisQ = Inf
-        for Weights_data in Weights_data_vector
-            idxs, weights = get_weights(Bbao_data, Weights_data, bi, ai, oi)
-            thisQ = min(thisQ, maximum( sum( weights .* Qs[idxs,:], dims=1) ))
-        end
-        Q += discount(model) * Bbao_data.BAO_probs[oi,bi,ai] * thisQ
-    end
-    return Q
-end
-
-"""Performs one iteration of ETIB for the given belief-action pair, computing weights for b on the spot"""
-function get_Q_weights_ba(model::POMDP{S,A,O}, b::DiscreteHashedBelief{S}, a, Data::TIB_Data{S}; weight_function = get_single_entropy_weights) where S where A where O
+"""
+Performs one iteration of ETIB for the given belief-action pair, computing weights for b on the spot. If value_function is given,
+it computes the value of each next belief instead (OATIB).
+"""
+function get_Q_weights_ba(model::POMDP{S,A,O}, b::DiscreteHashedBelief{S}, a, Data::TIB_Data{S}; weight_function = get_single_entropy_weights, value_function = nothing) where S where A where O
     ai = actionindex(model, a)
     Q = breward(model,b,a)
     for (oi, po) in get_possible_obs_probs(b,ai,Data)
         o = Data.constants.O[oi]
         bao = update(DiscreteHashedBeliefUpdater{S,A,O}(model),b,a,o)
         _relevant_Bs, relevant_Bis = get_overlapping_beliefs(bao, Data.B)
-        idxs, weights = weight_function(bao, relevant_Bis, Data)
-        Qo = maximum( sum(weights .* Data.Q[idxs,:], dims=1) )
+        if isnothing(value_function)
+            idxs, weights = weight_function(bao, relevant_Bis, Data)
+            Qo = maximum( sum(weights .* Data.Q[idxs,:], dims=1) )
+        else
+            Qo = value_function(bao, relevant_Bis, Data)
+        end
         Q += po * discount(model) * Qo
     end
     return Q
@@ -404,6 +519,10 @@ struct STIBPolicy <: TIBPolicy
     Data::TIB_Data
 end
 struct OTIBPolicy <: TIBPolicy
+    model::POMDP
+    Data::TIB_Data
+end
+struct OATIBPolicy <: TIBPolicy
     model::POMDP
     Data::TIB_Data
 end
@@ -458,10 +577,11 @@ action_value(π::ETIBPolicy, b::DiscreteHashedBelief{S}) where S = action_value_
 action_value(π::CTIBPolicy, b::DiscreteHashedBelief{S}) where S = action_value_preweights(π, b; weight_function=get_single_closeness_weights)
 action_value(π::ICTIBPolicy, b::DiscreteHashedBelief{S}) where S = action_value_preweights(π, b; weight_function=get_single_iterative_closeness_weights)
 action_value(π::OTIBPolicy, b::DiscreteHashedBelief{S}) where S = action_value_preweights(π, b; weight_function=get_single_optimal_weights)
+action_value(π::OATIBPolicy, b::DiscreteHashedBelief{S}) where S = action_value_preweights(π, b; value_function=get_single_maxmin_value)
 action_value(π::SawTIBPolicy, b::DiscreteHashedBelief{S}) where S = action_value_preweights(π, b; weight_function=get_single_sawtooth_weights)
 action_value(π::ISawTIBPolicy, b::DiscreteHashedBelief{S}) where S = action_value_preweights(π, b; weight_function=get_single_iterative_sawtooth_weights)
 action_value(π::MultiTIBPolicy, b::DiscreteHashedBelief{S}) where S = action_value_preweights(π, b; weight_function=get_single_optimal_weights)
-function action_value_preweights(π::X, b::DiscreteHashedBelief{S}; weight_function = get_single_entropy_weights) where X<:TIBPolicy where S
+function action_value_preweights(π::X, b::DiscreteHashedBelief{S}; weight_function = get_single_entropy_weights, value_function = nothing) where X<:TIBPolicy where S
     trace = stacktrace()
     model = π.model
     bestQ, bestA = -Inf, nothing
@@ -470,7 +590,7 @@ function action_value_preweights(π::X, b::DiscreteHashedBelief{S}; weight_funct
         # Instead, we could use the TIB approach online, but use the Q-table computed using our weights
         # However, we currently just use the more expensive variant
         if true
-            Qa = get_Q_weights_ba(model::POMDP, b, a, π.Data; weight_function=weight_function)
+            Qa = get_Q_weights_ba(model::POMDP, b, a, π.Data; weight_function=weight_function, value_function=value_function)
         else
             Qa = get_QTIB_ba(model, b, a, π.Data; ai=ai)
         end
