@@ -111,7 +111,6 @@ struct DiscreteHashedBeliefUpdater{S,A,O,M<:POMDP{S,A,O}} <: Updater
     model::M
 end
 DiscreteHashedBeliefUpdater{S,A,O}(model::M) where {S,A,O,M<:POMDP{S,A,O}} = DiscreteHashedBeliefUpdater{S,A,O,M}(model)
-DiscreteHashedBeliefUpdater(model::POMDP{S,A,O}) where {S,A,O} = DiscreteHashedBeliefUpdater{S,A,O}(model)
 
 """Given a distribution d, create a DiscreteHashedBelief"""
 function initialize_belief(bu::DiscreteHashedBeliefUpdater{Ss}, d) where Ss

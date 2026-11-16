@@ -1,4 +1,4 @@
-module TIB
+module TighterInformedBound
     using POMDPs, POMDPTools, Random, Distributions, SparseArrays, LinearAlgebra, Clp
 
     include("Beliefs.jl")

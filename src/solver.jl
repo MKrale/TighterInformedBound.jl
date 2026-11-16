@@ -6,8 +6,14 @@
 
 verbose = false
 
+"""
+Abstract type for solvers corresponding to different TIB variants. For the standard TIB solver, use STIBSolver instead.
+"""
 abstract type TIBSolver <: Solver end
 
+"""
+Solver type for TIB.
+"""
 @kwdef struct STIBSolver <: TIBSolver
     max_iterations::Int64   = 250       # maximum iterations taken by solver
     max_time::Float64       = 3600      # maximum time spent solving
