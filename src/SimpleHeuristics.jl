@@ -11,7 +11,7 @@ abstract type QS_table_policy <: Policy end
 @kwdef struct QMDPSolver_alt <: Solver
     precision::AbstractFloat    = 1e-4      # (Approximate) precision at which the algorithm terminates
     max_time::Float64           = 600       # Timeout time for computations 
-    max_iterations::Int         = 5_000     # Timeout nmbr. of iterations
+    max_iterations::Int         = typemax(Int)  # Optional cap on the number of iterations (default: none, stop on convergence or timeout)
 end
 
 """QMDP Policy, reimplemented for efficiency"""
@@ -103,7 +103,7 @@ end
 @kwdef struct FIBSolver_alt <: Solver
     precision::AbstractFloat    = 1e-4
     max_time::Float64           = 600
-    max_iterations::Int         = 250
+    max_iterations::Int         = typemax(Int)  # Optional cap on the number of iterations (default: none, stop on convergence or timeout)
 end
 
 """FIB Policy, reimplemented for efficiency"""
@@ -125,11 +125,11 @@ function solve(sol::FIBSolver_alt, m::POMDP{S,A,O}; Data::Union{TIB_Data{S}, Not
         SAO_probs, SAOs = get_all_obs_probs(m, C)
 
         B, B_idx = get_belief_set(m, SAOs, C)
-        Q = solve(QMDPSolver_alt(precision=sol.precision, max_iterations=sol.max_iterations*10), m; C=C, S_dict=S_dict).Data.Q
+        Q = solve(QMDPSolver_alt(precision=sol.precision, max_time=sol.max_time), m; C=C, S_dict=S_dict).Data.Q
     else
         C, S_dict, SAO_probs, SAOs = Data.constants, Data.S_dict, Data.SAO_probs, Data.SAOs
         B, B_idx, Q = Data.B, Data.B_idx,  Data.Q
-        Q isa Nothing && (Q = solve(QMDPSolver_alt(precision=sol.precision, max_iterations=sol.max_iterations*10), m; C=C, S_dict=S_dict).Data.Q)
+        Q isa Nothing && (Q = solve(QMDPSolver_alt(precision=sol.precision, max_time=sol.max_time), m; C=C, S_dict=S_dict).Data.Q)
     end
     gamma = Float64(discount(m))
     factor = discount(m) / (1-discount(m))

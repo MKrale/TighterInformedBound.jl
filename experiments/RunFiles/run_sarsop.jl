@@ -28,7 +28,7 @@ s = ArgParseSettings()
         help = "Filename (default: generated automatically)"
         default = ""
     "--solvers"
-        help = "Solver to be run. Availble options: standard, TIB, ETIB, OTIB. (default: run all except OTIB)"
+        help = "Solver to be run. Available options: standard, TIB, ETIB, CTIB, OTIB_pre, OTIB, OATIB_pre, OATIB, MultiTIB_pre, MultiTIB. (default: run all)"
         default = ""
     "--discount"
         help = "Discount factor"
@@ -55,7 +55,7 @@ precision = parsed_args["precision"]
 path = parsed_args["path"]
 filename = parsed_args["filename"]
 solver_name = [parsed_args["solvers"]]
-solver_name == [""] && (solver_name = ["standard","TIB","ETIB","CTIB","MultiTIB"])
+solver_name == [""] && (solver_name = ["standard", "TIB", "ETIB", "CTIB", "OTIB_pre", "OTIB", "OATIB_pre", "OATIB", "MultiTIB_pre", "MultiTIB"])
 discount = parsed_args["discount"]
 discount_str = string(discount)[3:end]
 sims = parsed_args["sims"]
@@ -77,58 +77,82 @@ solvers, precomp_solvers, solverargs = [], [], []
 include("../Sarsop_altered/NativeSARSOP.jl")
 import .NativeSARSOP_alt
 
-h_iterations, h_precision = 10_000, 1e-3
-discount == 0.95 && (h_iterations = 250; h_precision = 1e-3; h_timeout = 1200.0)
-discount == 0.99 && (h_iterations = 1000; h_precision = 1e-3; h_timeout = 1200.0)
+# Heuristic settings. h_timeout bounds the time spent iterating the heuristic (it is part of the SARSOP budget `timeout`).
+# All heuristics iterate until converged to h_precision (or until h_timeout).
+h_precision, h_timeout = 1e-3, 1200.0
+
+# Solvers used to initialize the Q-values of the TIB-style heuristics (default precision, but limited to the same time budget)
+init_FIB = NativeSARSOP_alt.FIBSolver_alt(max_time=h_timeout)
+init_STIB = NativeSARSOP_alt.STIBSolver(max_time=h_timeout, precomp_solver=init_FIB)
+
+# Settings shared by all TIB-style heuristics, and by all weighted heuristics that recompute weights dynamically.
+h_args = (precision=h_precision, max_time=h_timeout)
+h_init_args = (h_args..., precomp_solver=init_STIB)
+h_dynamic_args = (dynamic_recompute=true, dynamic_precision=h_precision)
+
+# Small heuristic solvers used only to precompile (same solver types as in the actual runs).
+pre_STIB = NativeSARSOP_alt.STIBSolver(max_iterations=2, precomp_solver=NativeSARSOP_alt.FIBSolver_alt(max_iterations=2))
+pre_weighted_args = (max_iterations=2, max_recomputes=0, precomp_solver=pre_STIB)
+
+"""Adds a SARSOP run with heuristic h_solver, and a precompile run with heuristic precomp_h_solver."""
+function add_sarsop_run!(name, h_solver, precomp_h_solver)
+    push!(solvers, NativeSARSOP_alt.SARSOPSolver)
+    push!(solverargs, (name=name, sargs=(precision=precision, max_time=timeout, verbose=false, heuristic_solver=h_solver, use_only_Bs=onlyBs), pargs=()))
+    push!(precomp_solvers, (sargs=(max_its=2, verbose=false, heuristic_solver=precomp_h_solver), pargs=()))
+end
 
 if "standard" in solver_name
-    push!(solvers, NativeSARSOP_alt.SARSOPSolver)
-    h_solver = NativeSARSOP_alt.FIBSolver_alt(max_iterations=(h_iterations*4), precision=h_precision)
-    push!(solverargs, (name="SARSOP", sargs=(precision=precision, max_time=timeout, verbose=false, heuristic_solver=h_solver), pargs=()))
-
-    precomp_h_solver = NativeSARSOP_alt.FIBSolver_alt(max_iterations=2)
-    push!(precomp_solvers, (sargs=(max_its = 2, verbose=false, heuristic_solver=precomp_h_solver),pargs=()))
+    add_sarsop_run!("SARSOP",
+        NativeSARSOP_alt.FIBSolver_alt(;h_args...),
+        NativeSARSOP_alt.FIBSolver_alt(max_iterations=2))
 end
 if "TIB" in solver_name
-    push!(solvers, NativeSARSOP_alt.SARSOPSolver)
-    h_solver = NativeSARSOP_alt.STIBSolver(max_iterations=h_iterations, precision=h_precision)
-    push!(solverargs, (name="TIB-SARSOP", sargs=( precision=precision, max_time=timeout, verbose=false, heuristic_solver=h_solver, use_only_Bs=onlyBs), pargs=()))
-
-    precomp_h_solver = NativeSARSOP_alt.STIBSolver(max_iterations=2)
-    push!(precomp_solvers, (sargs=(max_its = 2, verbose=false, heuristic_solver=precomp_h_solver),pargs=()))
+    add_sarsop_run!("TIB-SARSOP",
+        NativeSARSOP_alt.STIBSolver(;h_args..., precomp_solver=init_FIB),
+        pre_STIB)
 end
 if "ETIB" in solver_name
-    push!(solvers, NativeSARSOP_alt.SARSOPSolver)
-    h_solver = NativeSARSOP_alt.ETIBSolver(max_iterations=h_iterations, precision=h_precision)
-    push!(solverargs, (name="ETIB-SARSOP", sargs=( precision=precision, max_time=timeout, verbose=false, heuristic_solver=h_solver, use_only_Bs=onlyBs), pargs=()))
-
-    precomp_h_solver = NativeSARSOP_alt.ETIBSolver(max_iterations=2)
-    push!(precomp_solvers, (sargs=(max_its = 2, verbose=false, heuristic_solver=precomp_h_solver),pargs=()))
+    add_sarsop_run!("ETIB-SARSOP",
+        NativeSARSOP_alt.ETIBSolver(;h_init_args...),
+        NativeSARSOP_alt.ETIBSolver(max_iterations=2, precomp_solver=pre_STIB))
 end
 if "CTIB" in solver_name
-    push!(solvers, NativeSARSOP_alt.SARSOPSolver)
-    h_solver = NativeSARSOP_alt.ICTIBSolver(max_iterations=h_iterations, precision=h_precision)
-    push!(solverargs, (name="CTIB-SARSOP", sargs=( precision=precision, max_time=timeout, verbose=false, heuristic_solver=h_solver, use_only_Bs=onlyBs), pargs=()))
-
-    precomp_h_solver = NativeSARSOP_alt.ETIBSolver(max_iterations=2)
-    push!(precomp_solvers, (sargs=(max_its = 2, verbose=false, heuristic_solver=precomp_h_solver),pargs=()))
+    add_sarsop_run!("CTIB-SARSOP",
+        NativeSARSOP_alt.ICTIBSolver(;h_init_args...),
+        NativeSARSOP_alt.ICTIBSolver(max_iterations=2, precomp_solver=pre_STIB))
+end
+if "OTIB_pre" in solver_name
+    add_sarsop_run!("OTIB_pre-SARSOP",
+        NativeSARSOP_alt.OTIBSolver(;h_init_args..., dynamic_recompute=false),
+        NativeSARSOP_alt.OTIBSolver(;pre_weighted_args...))
 end
 if "OTIB" in solver_name
-    push!(solvers, NativeSARSOP_alt.SARSOPSolver)
-    h_solver = NativeSARSOP_alt.OTIBSolver(max_iterations=h_iterations, precision=h_precision, dynamic_recompute=true, dynamic_precision=h_precision, max_recomputes=100)
-    push!(solverargs, (name="OTIB-SARSOP", sargs=( precision=precision, max_time=timeout, verbose=false, heuristic_solver=h_solver, use_only_Bs=onlyBs), pargs=()))
-
-    precomp_h_solver = NativeSARSOP_alt.OTIBSolver(max_iterations=2, precomp_solver=NativeSARSOP_alt.STIBSolver(max_iterations=2))
-    push!(precomp_solvers, (sargs=(max_its = 2, verbose=false, heuristic_solver=precomp_h_solver),pargs=()))
+    add_sarsop_run!("OTIB-SARSOP",
+        NativeSARSOP_alt.OTIBSolver(;h_init_args..., h_dynamic_args...),
+        NativeSARSOP_alt.OTIBSolver(;pre_weighted_args...))
+end
+if "OATIB_pre" in solver_name
+    add_sarsop_run!("OATIB_pre-SARSOP",
+        NativeSARSOP_alt.OATIBSolver(;h_init_args..., dynamic_recompute=false),
+        NativeSARSOP_alt.OATIBSolver(;pre_weighted_args...))
+end
+if "OATIB" in solver_name
+    add_sarsop_run!("OATIB-SARSOP",
+        NativeSARSOP_alt.OATIBSolver(;h_init_args..., h_dynamic_args...),
+        NativeSARSOP_alt.OATIBSolver(;pre_weighted_args...))
+end
+if "MultiTIB_pre" in solver_name
+    add_sarsop_run!("MultiTIB_pre-SARSOP",
+        NativeSARSOP_alt.MultiTIBSolver(;h_init_args..., dynamic_recompute=false),
+        NativeSARSOP_alt.MultiTIBSolver(;pre_weighted_args...))
 end
 if "MultiTIB" in solver_name
-    push!(solvers, NativeSARSOP_alt.SARSOPSolver)
-    h_solver = NativeSARSOP_alt.MultiTIBSolver(max_iterations=h_iterations, precision=h_precision)
-    push!(solverargs, (name="MultiTIB-SARSOP", sargs=( precision=precision, max_time=timeout, verbose=false, heuristic_solver=h_solver, use_only_Bs=onlyBs), pargs=()))
-
-    precomp_h_solver = NativeSARSOP_alt.ETIBSolver(max_iterations=2)
-    push!(precomp_solvers, (sargs=(max_its = 2, verbose=false, heuristic_solver=precomp_h_solver),pargs=()))
+    add_sarsop_run!("MultiTIB-SARSOP",
+        NativeSARSOP_alt.MultiTIBSolver(;h_init_args..., h_dynamic_args...),
+        NativeSARSOP_alt.MultiTIBSolver(;pre_weighted_args...))
 end
+
+isempty(solvers) && println("Warning: no solver selected!")
 
 ##################################################################
 #                       Selecting env 

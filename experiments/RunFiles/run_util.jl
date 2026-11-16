@@ -59,7 +59,7 @@ function get_envs(env_name)
         push!(envargs, (name="K-out-of-N (3)",))
     end
     if env_name == "HeavenOrHell"
-        model = HeavenOrHell(size=10)
+        model = HeavenOrHell(size=10, discount=discount)
         push!(envs, QuickSparseTabularPOMDP(model))
         push!(envargs, (name="HeavenOrHell",))
     end
@@ -136,7 +136,7 @@ function get_envs(env_name)
         push!(envargs, (name="Tag",))
     end
     if env_name == "DroneSurveilance"
-        drone = DroneSurveillancePOMDP()
+        drone = DroneSurveillancePOMDP(discount_factor=discount)
         drone = QuickSparseTabularPOMDP(drone)
         push!(envs, drone)
         push!(envargs, (name="DroneSurveilance",))

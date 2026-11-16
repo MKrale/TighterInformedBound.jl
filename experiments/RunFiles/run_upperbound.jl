@@ -4,7 +4,6 @@ import POMDPs, POMDPTools
 using POMDPs
 using POMDPTools, POMDPFiles, ArgParse, JSON
 using Statistics, POMDPModels
-using Profile, FlameGraphs, ProfileSVG
 using InteractiveUtils
 
 using TighterInformedBound
@@ -35,7 +34,7 @@ s = ArgParseSettings()
         help = "Filename (default: generated automatically)"
         default = ""
     "--solvers"
-        help = "Solver to be run. Availble options: FIB, TIB, ETIB, OTIB, OATIB, SARSOP, TIBSARSOP, ETIBSARSOP. (default: run all but TIBSARSOP & ETIBSARSOP)"
+        help = "Solver to be run. Available options: QMDP, FIB, TIB, ETIB, CTIB, CTIB_once, OTIB_pre, OTIB, OATIB_pre, OATIB, MultiTIB_pre, MultiTIB, SawTIB_pre, SawTIB, ISawTIB_pre, ISawTIB, SARSOP, TIBSARSOP, ETIBSARSOP. (default: TIB, ETIB, CTIB, OTIB_pre, OTIB, OATIB_pre, OATIB, MultiTIB_pre, MultiTIB, FIB, QMDP, SARSOP)"
         default = "All"
     "--discount"
         help = "Discount factor"
@@ -53,7 +52,7 @@ timeout = parsed_args["timeout"]
 path = parsed_args["path"]
 filename = parsed_args["filename"]
 solver_names = [parsed_args["solvers"]]
-solver_names == ["All"] && (solver_names = ["TIB", "ETIB", "CTIB", "OTIB_pre", "OTIB", "MultiTIB_pre", "MultiTIB", "FIB", "QMDP", "SARSOP"])
+solver_names == ["All"] && (solver_names = ["TIB", "ETIB", "CTIB", "OTIB_pre", "OTIB", "OATIB_pre", "OATIB", "MultiTIB_pre", "MultiTIB", "FIB", "QMDP", "SARSOP"])
 
 discount = parsed_args["discount"]
 discount_str = string(discount)[3:end]
@@ -61,6 +60,7 @@ precompile = parsed_args["precompile"]
 heuristicprecision = parsed_args["precision"]
 
 if timeout == -1.0
+	timeout = 1200.0
 	discount == 0.95 && (timeout = 1200.0)
 	discount == 0.99 && (timeout = 1200.0)
 end
@@ -70,109 +70,117 @@ end
 ##################################################################
 
 # We define both a vector with the solvers to run, as well as their arguments.
-# Moreover, we add a vector with the arguments to use in the precomp run (i.e., using only one iteration)
+# Moreover, we add a vector with the arguments to use in the precomp run (i.e., using only a few iterations)
 solvers, solverargs, precomp_solverargs = [], [], []
 SARSOPprecision = 1e-3 # Hardcoded
-heuristicsteps = 1_000
 if heuristicprecision == 0.0 # i.e. precision is not set
-    # Precision & #steps picked based on discount
+    # Precision picked based on discount. All bounds iterate until converged to this precision (or until timeout).
     heuristicprecision = 1e-4
-    discount == 0.95 && (heuristicprecision = 1e-3;  heuristicsteps = 250)
-    discount == 0.99 && (heuristicprecision = 1e-4;  heuristicsteps = 1_000)
+    discount == 0.95 && (heuristicprecision = 1e-3)
+    discount == 0.99 && (heuristicprecision = 1e-4)
 end
 
 timeout_sarsop = 1200.0
 
+# Solvers used to initialize the Q-values of the TIB-style bounds (default precision, but limited to the same time budget)
+init_FIB = FIBSolver_alt(max_time=timeout)
+init_STIB = STIBSolver(max_time=timeout, precomp_solver=init_FIB)
+
 if "FIB" in solver_names
     push!(solvers, FIBSolver_alt)
-    push!(solverargs, (name="FIB", sargs=(max_iterations=heuristicsteps*4, precision=heuristicprecision, max_time=timeout), pargs=(), get_Q0=true))
+    push!(solverargs, (name="FIB", sargs=(precision=heuristicprecision, max_time=timeout), pargs=(), get_Q0=true))
     push!(precomp_solverargs, ( sargs=(max_iterations=2,), pargs=()))
 end
 if "TIB" in solver_names
     push!(solvers, STIBSolver)
-    push!(solverargs, (name="TIB", sargs=(max_iterations=heuristicsteps, precision=heuristicprecision, max_time=timeout), pargs=(), get_Q0=true))
+    push!(solverargs, (name="TIB", sargs=(precision=heuristicprecision, max_time=timeout, precomp_solver=init_FIB), pargs=(), get_Q0=true))
     push!(precomp_solverargs, ( sargs=(max_iterations=3, precomp_solver=FIBSolver_alt(max_iterations=3)), pargs=()))
 end
 if "ETIB" in solver_names
     push!(solvers, ETIBSolver)
-    push!(solverargs, (name="ETIB", sargs=(max_iterations=heuristicsteps, precision=heuristicprecision, max_time=timeout), pargs=(), get_Q0=true))
+    push!(solverargs, (name="ETIB", sargs=(precision=heuristicprecision, max_time=timeout, precomp_solver=init_STIB), pargs=(), get_Q0=true))
     push!(precomp_solverargs, ( sargs=(max_iterations=2, precomp_solver=STIBSolver(max_iterations=2)), pargs=()))    
 end
 if "CTIB_once" in solver_names
     push!(solvers, CTIBSolver)
-    push!(solverargs, (name="CTIB_once", sargs=(max_iterations=heuristicsteps, precision=heuristicprecision, max_time=timeout), pargs=(), get_Q0=true))
+    push!(solverargs, (name="CTIB_once", sargs=(precision=heuristicprecision, max_time=timeout, precomp_solver=init_STIB), pargs=(), get_Q0=true))
     push!(precomp_solverargs, ( sargs=(max_iterations=2, precomp_solver=STIBSolver(max_iterations=2)), pargs=()))    
 end
 if "CTIB" in solver_names
     push!(solvers, ICTIBSolver)
-    push!(solverargs, (name="CTIB", sargs=(max_iterations=heuristicsteps, precision=heuristicprecision, max_time=timeout), pargs=(), get_Q0=true))
+    push!(solverargs, (name="CTIB", sargs=(precision=heuristicprecision, max_time=timeout, precomp_solver=init_STIB), pargs=(), get_Q0=true))
     push!(precomp_solverargs, ( sargs=(max_iterations=2, precomp_solver=STIBSolver(max_iterations=2)), pargs=()))    
 end
 if "OTIB_pre" in solver_names
     push!(solvers, OTIBSolver)
-    push!(solverargs, (name="OTIB_pre", sargs=(max_iterations=heuristicsteps, precision=heuristicprecision, max_time=timeout, dynamic_recompute=false), pargs=(), get_Q0=true))
+    push!(solverargs, (name="OTIB_pre", sargs=(precision=heuristicprecision, max_time=timeout, precomp_solver=init_STIB, dynamic_recompute=false), pargs=(), get_Q0=true))
     push!(precomp_solverargs, ( sargs=(max_iterations=2, max_recomputes=0, precomp_solver=STIBSolver(max_iterations=2)), pargs=()))
 end
 if "OTIB" in solver_names
     push!(solvers, OTIBSolver)
-    push!(solverargs, (name="OTIB", sargs=(max_iterations=heuristicsteps, precision=heuristicprecision, max_time=timeout, dynamic_recompute=true, dynamic_precision=heuristicprecision, max_recomputes=100), pargs=(), get_Q0=true))
+    push!(solverargs, (name="OTIB", sargs=(precision=heuristicprecision, max_time=timeout, precomp_solver=init_STIB, dynamic_recompute=true, dynamic_precision=heuristicprecision), pargs=(), get_Q0=true))
+    push!(precomp_solverargs, ( sargs=(max_iterations=2, max_recomputes=0, precomp_solver=STIBSolver(max_iterations=2)), pargs=()))
+end
+if "OATIB_pre" in solver_names
+    push!(solvers, OATIBSolver)
+    push!(solverargs, (name="OATIB_pre", sargs=(precision=heuristicprecision, max_time=timeout, precomp_solver=init_STIB, dynamic_recompute=false), pargs=(), get_Q0=true))
     push!(precomp_solverargs, ( sargs=(max_iterations=2, max_recomputes=0, precomp_solver=STIBSolver(max_iterations=2)), pargs=()))
 end
 if "OATIB" in solver_names
     push!(solvers, OATIBSolver)
-    push!(solverargs, (name="OATIB", sargs=(max_iterations=heuristicsteps, precision=heuristicprecision, max_time=timeout, dynamic_recompute=true, dynamic_precision=heuristicprecision, max_recomputes=100), pargs=(), get_Q0=true))
+    push!(solverargs, (name="OATIB", sargs=(precision=heuristicprecision, max_time=timeout, precomp_solver=init_STIB, dynamic_recompute=true, dynamic_precision=heuristicprecision), pargs=(), get_Q0=true))
     push!(precomp_solverargs, ( sargs=(max_iterations=2, max_recomputes=0, precomp_solver=STIBSolver(max_iterations=2)), pargs=()))
 end
 if "SawTIB_pre" in solver_names
     push!(solvers, SawTIBSolver)
-    push!(solverargs, (name="SawTIB_pre", sargs=(max_iterations=heuristicsteps, precision=heuristicprecision, max_time=timeout, dynamic_recompute=false), pargs=(), get_Q0=true))
+    push!(solverargs, (name="SawTIB_pre", sargs=(precision=heuristicprecision, max_time=timeout, precomp_solver=init_STIB, dynamic_recompute=false), pargs=(), get_Q0=true))
     push!(precomp_solverargs, ( sargs=(max_iterations=2, max_recomputes=0, precomp_solver=STIBSolver(max_iterations=2)), pargs=()))
 end
 if "SawTIB" in solver_names
     push!(solvers, SawTIBSolver)
-    push!(solverargs, (name="SawTIB", sargs=(max_iterations=heuristicsteps, precision=heuristicprecision, max_time=timeout, dynamic_recompute=true, dynamic_precision=heuristicprecision, max_recomputes=100), pargs=(), get_Q0=true))
+    push!(solverargs, (name="SawTIB", sargs=(precision=heuristicprecision, max_time=timeout, precomp_solver=init_STIB, dynamic_recompute=true, dynamic_precision=heuristicprecision), pargs=(), get_Q0=true))
     push!(precomp_solverargs, ( sargs=(max_iterations=2, max_recomputes=0, precomp_solver=STIBSolver(max_iterations=2)), pargs=()))
 end
 if "ISawTIB_pre" in solver_names
     push!(solvers, ISawTIBSolver)
-    push!(solverargs, (name="ISawTIB_pre", sargs=(max_iterations=heuristicsteps, precision=heuristicprecision, max_time=timeout, dynamic_recompute=false), pargs=(), get_Q0=true))
+    push!(solverargs, (name="ISawTIB_pre", sargs=(precision=heuristicprecision, max_time=timeout, precomp_solver=init_STIB, dynamic_recompute=false), pargs=(), get_Q0=true))
     push!(precomp_solverargs, ( sargs=(max_iterations=2, max_recomputes=0, precomp_solver=STIBSolver(max_iterations=2)), pargs=()))
 end
 if "ISawTIB" in solver_names
     push!(solvers, ISawTIBSolver)
-    push!(solverargs, (name="ISawTIB", sargs=(max_iterations=heuristicsteps, precision=heuristicprecision, max_time=timeout, dynamic_recompute=true, dynamic_precision=heuristicprecision, max_recomputes=100), pargs=(), get_Q0=true))
+    push!(solverargs, (name="ISawTIB", sargs=(precision=heuristicprecision, max_time=timeout, precomp_solver=init_STIB, dynamic_recompute=true, dynamic_precision=heuristicprecision), pargs=(), get_Q0=true))
     push!(precomp_solverargs, ( sargs=(max_iterations=2, max_recomputes=0, precomp_solver=STIBSolver(max_iterations=2)), pargs=()))
 end
 if "MultiTIB_pre" in solver_names
     push!(solvers, MultiTIBSolver)
-    push!(solverargs, (name="MultiTIB_pre", sargs=(max_iterations=heuristicsteps, precision=heuristicprecision, max_time=timeout, dynamic_recompute=false), pargs=(), get_Q0=true))
+    push!(solverargs, (name="MultiTIB_pre", sargs=(precision=heuristicprecision, max_time=timeout, precomp_solver=init_STIB, dynamic_recompute=false), pargs=(), get_Q0=true))
     push!(precomp_solverargs, ( sargs=(max_iterations=2, max_recomputes = 0, precomp_solver=STIBSolver(max_iterations=2)), pargs=()))
 end
 if "MultiTIB" in solver_names
     push!(solvers, MultiTIBSolver)
-    push!(solverargs, (name="MultiTIB", sargs=(max_iterations=heuristicsteps, precision=heuristicprecision, max_time=timeout, dynamic_recompute=true, dynamic_precision=heuristicprecision, max_recomputes=100), pargs=(), get_Q0=true))
+    push!(solverargs, (name="MultiTIB", sargs=(precision=heuristicprecision, max_time=timeout, precomp_solver=init_STIB, dynamic_recompute=true, dynamic_precision=heuristicprecision), pargs=(), get_Q0=true))
     push!(precomp_solverargs, ( sargs=(max_iterations=2, max_recomputes = 0, precomp_solver=STIBSolver(max_iterations=2)), pargs=()))
 end
 if "SARSOP" in solver_names
     push!(solvers, NativeSARSOP_alt.SARSOPSolver)
-    h_solver = NativeSARSOP_alt.FIBSolver_alt(max_iterations=heuristicsteps*4, precision=heuristicprecision)
+    h_solver = NativeSARSOP_alt.FIBSolver_alt(precision=heuristicprecision, max_time=timeout)
     push!(solverargs, (name="SARSOP", sargs=(precision=SARSOPprecision, max_time=timeout_sarsop, verbose=false, heuristic_solver=h_solver), pargs=()))
     precomp_h_solver = NativeSARSOP_alt.FIBSolver_alt(max_iterations=2)
-    push!(precomp_solverargs, ( sargs=(max_its=1, verbose=false, heuristic_solver=h_solver), pargs=()))
+    push!(precomp_solverargs, ( sargs=(max_its=1, verbose=false, heuristic_solver=precomp_h_solver), pargs=()))
 end
 if "TIBSARSOP" in solver_names
     push!(solvers, NativeSARSOP_alt.SARSOPSolver)
-    h_solver = NativeSARSOP_alt.STIBSolver(max_iterations=250, precision=1e-5)
+    h_solver = NativeSARSOP_alt.STIBSolver(precision=1e-5)
     push!(solverargs, (name="TIB-SARSOP", sargs=( precision=SARSOPprecision, max_time=timeout_sarsop, verbose=false, heuristic_solver=h_solver), pargs=()))
 end
 if "ETIBSARSOP" in solver_names
     push!(solvers, NativeSARSOP_alt.SARSOPSolver)
-    h_solver = NativeSARSOP_alt.ETIBSolver(max_iterations=250, precision=1e-5)
-    push!(solverargs, (name="ETIB-SARSOP", sargs=( precision=precision, max_time=timeout_sarsop, verbose=false, heuristic_solver=h_solver), pargs=()))
+    h_solver = NativeSARSOP_alt.ETIBSolver(precision=1e-5)
+    push!(solverargs, (name="ETIB-SARSOP", sargs=( precision=SARSOPprecision, max_time=timeout_sarsop, verbose=false, heuristic_solver=h_solver), pargs=()))
 end
 if "QMDP" in solver_names
     push!(solvers, QMDPSolver_alt)
-    push!(solverargs, (name="QMDP", sargs=(max_iterations=heuristicsteps*10, precision=heuristicprecision),pargs=(), get_Q0=true))
+    push!(solverargs, (name="QMDP", sargs=(precision=heuristicprecision, max_time=timeout), pargs=(), get_Q0=true))
     push!(precomp_solverargs, ( sargs=(max_iterations=2,), pargs=()))
 end
 
@@ -205,9 +213,7 @@ verbose = true
 
 for (m_idx,(model, modelargs)) in enumerate(zip(envs, envargs))   
     for (s_idx,(solver, solverarg)) in enumerate(zip(solvers, solverargs))
-        # print("huh?")
-        print_model_info(model)
-        env_data = Dict() # Comment out when you want to get env info
+        env_data = Dict() # Model sizes are collected separately (see RunFiles/run_modelsizes.jl)
 
         # Precompile
         if precompile
@@ -221,8 +227,7 @@ for (m_idx,(model, modelargs)) in enumerate(zip(envs, envargs))
         thissolver = solver(;solverarg.sargs...)
 	GC.gc()
         t = @elapsed begin
-            # policy, info = POMDPTools.solve_info(thissolver, model; solverarg.pargs...) 
-            @profile policy, info = POMDPTools.solve_info(thissolver, model; solverarg.pargs...) 
+            policy, info = POMDPTools.solve_info(thissolver, model; solverarg.pargs...) 
         end
         if !isdefined(info, :ub) || !isdefined(info, :lb)
             ub = POMDPs.value(policy, POMDPs.initialstate(model))
@@ -231,9 +236,6 @@ for (m_idx,(model, modelargs)) in enumerate(zip(envs, envargs))
             ub = info.ub
             lb =  info.lb
         end       
-
-        fg = flamegraph(Profile.fetch(); norepl=true, combine=true)
-        ProfileSVG.save("flamegraph.svg", fg; width=3600, fontsize=10, maxdepth=40, maxframes=10_000)
 
         ### Policy simulation (very slow, so not used)
         #rs = []

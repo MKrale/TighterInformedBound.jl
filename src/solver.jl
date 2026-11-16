@@ -15,73 +15,73 @@ abstract type TIBSolver <: Solver end
 Solver type for TIB.
 """
 @kwdef struct STIBSolver <: TIBSolver
-    max_iterations::Int64   = 250       # maximum iterations taken by solver
+    max_iterations::Int64   = typemax(Int64)   # optional cap on the number of iterations (default: none, stop on convergence or timeout)
     max_time::Float64       = 3600      # maximum time spent solving
     precision::Float64      = 1e-4      # precision at which iterations is stopped
-    precomp_solver          = FIBSolver_alt(precision=1e-4, max_iterations=1000, max_time=3600) # Solver used for precomputing Q
+    precomp_solver          = FIBSolver_alt(precision=1e-4, max_time=3600) # Solver used for precomputing Q
 end
 @kwdef struct ETIBSolver <: TIBSolver
-    max_iterations::Int64   = 250
+    max_iterations::Int64   = typemax(Int64)
     max_time::Float64       = 3600
     precision::Float64      = 1e-4
-    precomp_solver          = STIBSolver(precision=1e-4, max_iterations=250, max_time=3600, precomp_solver=FIBSolver_alt(precision=1e-4, max_iterations=1000, max_time=3600)) end
+    precomp_solver          = STIBSolver(precision=1e-4, max_time=3600, precomp_solver=FIBSolver_alt(precision=1e-4, max_time=3600)) end
 @kwdef struct OTIBSolver <: TIBSolver
     dynamic_recompute       = true
     dynamic_precision       = 1e-4
-    max_recomputes          = 50
-    max_iterations::Int64   = 250
+    max_recomputes          = typemax(Int64)
+    max_iterations::Int64   = typemax(Int64)
     max_time::Float64       = 3600
     precision::Float64      = 1e-4
-    precomp_solver          = STIBSolver(precision=1e-4, max_iterations=250, max_time=3600, precomp_solver=FIBSolver_alt(precision=1e-4, max_iterations=1000, max_time=3600))
+    precomp_solver          = STIBSolver(precision=1e-4, max_time=3600, precomp_solver=FIBSolver_alt(precision=1e-4, max_time=3600))
  end
 """OTIB, but the value of a next belief is max_a min_w sum_j w_j Q_j(a) instead of min_w max_a (see get_all_maxmin_weights)."""
 @kwdef struct OATIBSolver <: TIBSolver
     dynamic_recompute       = true
     dynamic_precision       = 1e-4
-    max_recomputes          = 50
-    max_iterations::Int64   = 250
+    max_recomputes          = typemax(Int64)
+    max_iterations::Int64   = typemax(Int64)
     max_time::Float64       = 3600
     precision::Float64      = 1e-4
-    precomp_solver          = STIBSolver(precision=1e-4, max_iterations=250, max_time=3600, precomp_solver=FIBSolver_alt(precision=1e-4, max_iterations=1000, max_time=3600))
+    precomp_solver          = STIBSolver(precision=1e-4, max_time=3600, precomp_solver=FIBSolver_alt(precision=1e-4, max_time=3600))
 end
  @kwdef struct SawTIBSolver <: TIBSolver
     dynamic_recompute       = true
     dynamic_precision       = 1e-4
-    max_recomputes          = 50
-    max_iterations::Int64   = 250
+    max_recomputes          = typemax(Int64)
+    max_iterations::Int64   = typemax(Int64)
     max_time::Float64       = 3600
     precision::Float64      = 1e-4
-    precomp_solver          = STIBSolver(precision=1e-4, max_iterations=250, max_time=3600, precomp_solver=FIBSolver_alt(precision=1e-4, max_iterations=1000, max_time=3600))
+    precomp_solver          = STIBSolver(precision=1e-4, max_time=3600, precomp_solver=FIBSolver_alt(precision=1e-4, max_time=3600))
  end
   @kwdef struct ISawTIBSolver <: TIBSolver
     dynamic_recompute       = true
     dynamic_precision       = 1e-4
-    max_recomputes          = 50
-    max_iterations::Int64   = 250
+    max_recomputes          = typemax(Int64)
+    max_iterations::Int64   = typemax(Int64)
     max_time::Float64       = 3600
     precision::Float64      = 1e-4
-    precomp_solver          = STIBSolver(precision=1e-4, max_iterations=250, max_time=3600, precomp_solver=FIBSolver_alt(precision=1e-4, max_iterations=1000, max_time=3600))
+    precomp_solver          = STIBSolver(precision=1e-4, max_time=3600, precomp_solver=FIBSolver_alt(precision=1e-4, max_time=3600))
  end
  @kwdef struct CTIBSolver <: TIBSolver
-    max_iterations::Int64   = 250
+    max_iterations::Int64   = typemax(Int64)
     max_time::Float64       = 3600
     precision::Float64      = 1e-4
-    precomp_solver          = STIBSolver(precision=1e-4, max_iterations=250, max_time=3600, precomp_solver=FIBSolver_alt(precision=1e-4, max_iterations=1000, max_time=3600))
+    precomp_solver          = STIBSolver(precision=1e-4, max_time=3600, precomp_solver=FIBSolver_alt(precision=1e-4, max_time=3600))
  end
 @kwdef struct ICTIBSolver <: TIBSolver
-    max_iterations::Int64   = 250
+    max_iterations::Int64   = typemax(Int64)
     max_time::Float64       = 3600
     precision::Float64      = 1e-4
-    precomp_solver          = STIBSolver(precision=1e-4, max_iterations=250, max_time=3600, precomp_solver=FIBSolver_alt(precision=1e-4, max_iterations=1000, max_time=3600))
+    precomp_solver          = STIBSolver(precision=1e-4, max_time=3600, precomp_solver=FIBSolver_alt(precision=1e-4, max_time=3600))
 end
 @kwdef struct MultiTIBSolver <: TIBSolver
     dynamic_recompute       = true
     dynamic_precision       = 1e-4
-    max_recomputes          = 50
-    max_iterations::Int64   = 250
+    max_recomputes          = typemax(Int64)
+    max_iterations::Int64   = typemax(Int64)
     max_time::Float64       = 3600
     precision::Float64      = 1e-4
-    precomp_solver          = STIBSolver(precision=1e-4, max_iterations=250, max_time=3600, precomp_solver=FIBSolver_alt(precision=1e-4, max_iterations=1000, max_time=3600))
+    precomp_solver          = STIBSolver(precision=1e-4, max_time=3600, precomp_solver=FIBSolver_alt(precision=1e-4, max_time=3600))
 end
 
 struct TIB_solver_info
@@ -209,28 +209,23 @@ function solve_info(solver::X, model::POMDP{S,A,O}; Data::Union{TIB_Data{S},Noth
 
         ### Convergence & recomputation checks for OTIB
         elseif solver.dynamic_recompute
-            ### Break if 1) fully converged, 2) Max iterations is reached, or 3) timeout is reached
+            ### Break if 1) fully converged (new weights do not change the bound), 2) the (optional) iteration & recompute caps are reached, or 3) timeout is reached
             if ((factor * max_dif < solver.dynamic_precision && it == 1)
                 || (it >  solver.max_iterations && recomputes >= solver.max_recomputes)
                 || time()-t0 > solver.max_time)
                 total_it += it
                 break
-            ### Compute new weights if 1) converged for current weights, or 2) reached max iterations for weights
+            ### Compute new weights if 1) converged for current weights, or 2) reached the (optional) iteration cap for current weights
             elseif ( factor * max_dif < solver.dynamic_precision 
                     || (it > solver.max_iterations && recomputes < solver.max_recomputes))             
                 verbose && printdb("Recomputing weights (precision = $(factor * max_dif)")
                 Weights = compute_weights(solver, Data, Bbao_data)
                 args = weighted_args(Data, Bbao_data, Weights; maxmin=solver isa OATIBSolver)
                 max_dif = Inf
+                total_it += it
                 it = 0
                 recomputes += 1
-                total_it += it
             end
-        
-        elseif mod(i, solver.recompute_iterations) == 0
-            verbose && printdb("Recomputing weights")
-            Weights = get_all_optimal_weights(Data, Bbao_data)
-            args = weighted_args(Data, Bbao_data, Weights)
         end
 
     end
