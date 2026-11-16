@@ -1,8 +1,7 @@
 import POMDPs, POMDPTools
 using POMDPs
 using POMDPTools, POMDPFiles, ArgParse, JSON
-include("../TIB/TIB.jl")
-using .TIB
+using TighterInformedBound
 using Statistics, POMDPModels
 
 ##################################################################

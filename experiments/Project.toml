@@ -1,0 +1,22 @@
+[deps]
+ArgParse = "c7e460c6-2fb9-53a9-8c5b-16f535851c63"
+Clp = "e2554f3b-3117-50c0-817c-e040a3ddf72d"
+Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
+DroneSurveillance = "63556450-714a-11e9-08e1-e368b701e279"
+FlameGraphs = "08572546-2f56-4bcf-ba4e-bab62c3a3f89"
+InteractiveUtils = "b77e0a4c-d291-57a0-90e8-8db25a27a240"
+JSON = "682c06a0-de6a-54ab-a142-c8b1cf79cde6"
+POMDPFiles = "9cf5b727-2e06-5671-8c87-8c6b0f729d5d"
+POMDPModels = "355abbd5-f08e-5560-ac9e-8b5f2592a0ca"
+POMDPTools = "7588e00f-9cae-40de-98dc-e0c70c48cdd7"
+POMDPs = "a93abf59-7444-517b-a68a-c42f96afdd7d"
+ProfileSVG = "132c30aa-f267-4189-9183-c8a63c7e05e6"
+QuickPOMDPs = "8af83fb2-a731-493c-9049-9e19dbce6165"
+Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
+RockSample = "de008ff0-c357-11e8-3329-7fe746fe836e"
+SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
+TagPOMDPProblem = "8a653263-a1cc-4cf9-849f-f530f6ffc800"
+TighterInformedBound = "2afd7a37-1555-438f-a2e5-6641a1612ac9"
+
+[sources]
+TighterInformedBound = {path = ".."}

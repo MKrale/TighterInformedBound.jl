@@ -7,8 +7,7 @@ using Statistics, POMDPModels
 using Profile, FlameGraphs, ProfileSVG
 using InteractiveUtils
 
-include("../TIB/TIB.jl")
-using .TIB
+using TighterInformedBound
 include("../Sarsop_altered/NativeSARSOP.jl")
 import .NativeSARSOP_alt
 
