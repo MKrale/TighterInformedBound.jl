@@ -4,7 +4,6 @@ import POMDPs, POMDPTools
 using POMDPs
 using POMDPTools, POMDPFiles, ArgParse, JSON
 using Statistics, POMDPModels
-using InteractiveUtils
 
 using TighterInformedBound
 include("../Sarsop_altered/NativeSARSOP.jl")
