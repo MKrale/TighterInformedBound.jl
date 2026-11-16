@@ -24,5 +24,8 @@ policy = solve(solver, pomdp)
 Vs, _Bsao, _Vsao = get_heuristic_pointset(policy)
 ```
 
-Implemented bounds include ```TIB, OTIB, ETIB, CTIB, MultiTIB```, as well as optimized version of ```FIB``` and ```QMDP```. For solving Linear Programs, we use [Clp.jl](https://github.com/jump-dev/Clp.jl), which is freely accessible and performs well on small LPs. Our solvers are compatible with any discrete POMDPs following the [POMDPs.jl](https://github.com/JuliaPOMDP/POMDPs.jl) framework.
+Implemented bounds include ```TIB, OTIB, OATIB, ETIB, CTIB, MultiTIB```, as well as optimized version of ```FIB``` and ```QMDP```. For solving Linear Programs, we use [Clp.jl](https://github.com/jump-dev/Clp.jl), which is freely accessible and performs well on small LPs. Our solvers are compatible with any discrete POMDPs following the [POMDPs.jl](https://github.com/JuliaPOMDP/POMDPs.jl) framework.
 
+## Experiments
+
+The code and data used for the experiments in the paper can be found on the [JAAMAS branch](../../tree/JAAMAS/experiments), in the ```experiments``` folder.

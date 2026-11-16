@@ -1,1 +1,5 @@
 /Manifest*.toml
+
+# Profiling output written by experiments/RunFiles/run_upperbound.jl
+flamegraph.svg
+*.pb.gz

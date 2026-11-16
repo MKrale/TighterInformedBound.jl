@@ -1,11 +1,12 @@
 module TighterInformedBound
-    using POMDPs, POMDPTools, Random, Distributions, SparseArrays, JuMP, Clp
+    using POMDPs, POMDPTools, Random, Distributions, SparseArrays, LinearAlgebra, Clp
 
     include("Beliefs.jl")
     export DiscreteHashedBelief, DiscreteHashedBeliefUpdater
     include("Caching.jl")
     export print_model_info
     include("Weights.jl")
+    include("BackupTable.jl")
     # Both QMDP and FIB use alpha-vectors in the original version, which is slow...
     include("SimpleHeuristics.jl")
     export QMDPSolver_alt, FIBSolver_alt,
@@ -14,8 +15,8 @@ module TighterInformedBound
 
     include("solver.jl")
     export
-    STIBSolver, OTIBSolver, SawTIBSolver, ISawTIBSolver, ETIBSolver, CTIBSolver, ICTIBSolver, MultiTIBSolver
-    STIBPolicy, OTIBPolicy, SawTIBPolicy, ISawTIBPolicy, ETIBPolicy, CTIBPolicy, ICTIBPolicy, MultiTIBPolicy
+    STIBSolver, OTIBSolver, OATIBSolver, SawTIBSolver, ISawTIBSolver, ETIBSolver, CTIBSolver, ICTIBSolver, MultiTIBSolver
+    STIBPolicy, OTIBPolicy, OATIBPolicy, SawTIBPolicy, ISawTIBPolicy, ETIBPolicy, CTIBPolicy, ICTIBPolicy, MultiTIBPolicy
     include("Convenience.jl")
     export 
     sparseTabularPOMDPFiniteReward
