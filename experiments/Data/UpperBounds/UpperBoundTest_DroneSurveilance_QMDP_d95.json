@@ -1,1 +1,1 @@
-{"env_full":"DroneSurveilance","env_data":{},"solvetime":0.109582442,"lb":-1,"ub":12.877753577663292,"solver":"QMDP","simtime":-1.0,"ravg":-1.0,"env":"DroneSurveilance","additional_info":null}
+{"lb":-1,"solvetime":0.02759954,"simtime":-1.0,"env":"DroneSurveilance","ravg":-1.0,"solver":"QMDP","additional_info":null,"env_full":"DroneSurveilance","env_data":{},"ub":12.877753577663292}

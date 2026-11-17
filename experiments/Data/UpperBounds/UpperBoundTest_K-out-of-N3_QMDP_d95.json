@@ -1,1 +1,1 @@
-{"env_full":"K-out-of-N (3)","env_data":{},"solvetime":0.137266259,"lb":-1,"ub":-1.4666720073890893,"solver":"QMDP","simtime":-1.0,"ravg":-1.0,"env":"K-out-of-N3","additional_info":null}
+{"lb":-1,"solvetime":0.544011605,"simtime":-1.0,"env":"K-out-of-N3","ravg":-1.0,"solver":"QMDP","additional_info":null,"env_full":"K-out-of-N (3)","env_data":{},"ub":-1.4666720073890893}

@@ -1,1 +1,1 @@
-{"env_full":"fourth","env_data":{},"solvetime":4.998717887,"lb":-1,"ub":0.08671490168625391,"solver":"FIB","simtime":-1.0,"ravg":-1.0,"env":"fourth","additional_info":null}
+{"lb":-1,"solvetime":1.928801717,"simtime":-1.0,"env":"fourth","ravg":-1.0,"solver":"FIB","additional_info":null,"env_full":"fourth","env_data":{},"ub":0.0867149016862538}

@@ -1,1 +1,1 @@
-{"env_full":"Tiger","env_data":{},"solvetime":0.000273009,"lb":-1,"ub":87.18993281339388,"solver":"FIB","simtime":-1.0,"ravg":-1.0,"env":"Tiger","additional_info":null}
+{"lb":-1,"solvetime":0.000154917,"simtime":-1.0,"env":"Tiger","ravg":-1.0,"solver":"FIB","additional_info":null,"env_full":"Tiger","env_data":{},"ub":87.18993281339388}

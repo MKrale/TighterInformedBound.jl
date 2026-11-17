@@ -1,1 +1,1 @@
-{"env_full":"iff","env_data":{},"solvetime":0.011116488,"lb":-1,"ub":7.5917197994842915,"solver":"QMDP","simtime":-1.0,"ravg":-1.0,"env":"iff","additional_info":null}
+{"lb":-1,"solvetime":0.004647101,"simtime":-1.0,"env":"iff","ravg":-1.0,"solver":"QMDP","additional_info":null,"env_full":"iff","env_data":{},"ub":7.5917197994842915}
